@@ -1668,17 +1668,37 @@ body.fullscreen-mode .phone-frame {
     transform: none !important;
 }
 
-/* === 新增：为悬浮顶栏下的内容区域添加上边距并使其可滚动 === */
+/* === 更新：为悬浮顶栏下的内容区域添加上边距并使其可滚动 === */
 #settings-screen .settings-content,
-#music-screen .music-content,
-#worldbook-screen .music-content,
 #messages-screen .messages-content,
 #playlist-detail-screen .playlist-content {
     padding-top: 90px;
-    /* --- 新增的关键修复 --- */
-    height: 100%;          /* 让内容区高度占满整个屏幕 */
-    overflow-y: auto;      /* 让内容区自己负责垂直滚动 */
-    box-sizing: border-box;/* 确保内边距不会撑破高度 */
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* 将音乐和世界书界面单独设置，使用Flexbox布局 */
+#music-screen .music-content,
+#worldbook-screen .music-content {
+    padding: 90px 15px 15px 15px; /* 调整内边距，左右也加上 */
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column; /* 垂直排列 */
+    gap: 15px; /* 按钮和列表的间距 */
+}
+
+/* === 新增：使“新建”按钮固定 === */
+.add-playlist-button {
+    flex-shrink: 0; /* 防止按钮在空间不足时被压缩 */
+    /* 其他样式保持不变 */
+}
+
+/* === 新增：让新的列表容器可滚动 === */
+.scrollable-list-container {
+    flex-grow: 1; /* 占据所有剩余的垂直空间 */
+    overflow-y: auto; /* 让这个容器自己负责滚动 */
 }
 /* === 最终版：独立转账卡片样式 === */
 
@@ -1721,6 +1741,27 @@ body.fullscreen-mode .phone-frame {
     right: 16px;
     width: 34px; /* 直接为图标容器设置尺寸 */
     height: 28px;
+}
+
+/* === 新增：世界书多选列表的样式 === */
+.multiselect-container {
+    max-height: 120px; /* 设置一个最大高度 */
+    overflow-y: auto;  /* 内容超出时出现滚动条 */
+    background-color: #e9e9eb;
+    border: 1px solid #d1d1d6;
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* 选项之间的间距 */
+}
+
+.multiselect-item {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* 复选框和文字的间距 */
+    font-size: 14px;
+    cursor: pointer;
 }
 
     </style>
@@ -1905,9 +1946,9 @@ body.fullscreen-mode .phone-frame {
             </div>
             <div id="music-content" class="music-content">
                 <button id="add-playlist-btn" class="add-playlist-button">新建歌单</button> 
-                <!-- 这个 div 将用来存放所有新建的歌单 -->
-                <div id="playlist-grid" class="playlist-grid">
-                    <!-- 歌单项会通过 JS 动态添加到这里 -->
+                <div class="scrollable-list-container">
+                    <div id="playlist-grid" class="playlist-grid">
+                        </div>
                 </div>
             </div>
             
@@ -1917,6 +1958,7 @@ body.fullscreen-mode .phone-frame {
                 <button id="playlist-back-button" class="header-text-button">返回</button>
                 <h1 id="playlist-name-title">歌单名称</h1>
                 <div class="header-actions">
+                    <button id="edit-playlist-name-btn" class="header-button">编</button>
                     <button id="upload-cover-btn" class="header-button">封</button>
                     <button id="multi-select-btn" class="header-button">批</button>
                 </div>
@@ -2070,8 +2112,10 @@ body.fullscreen-mode .phone-frame {
         </div>
         <div class="music-content">
             <button id="add-worldbook-btn" class="add-playlist-button">新建世界书</button>
-            <div id="worldbook-list" class="contact-list" style="margin-top: 20px;">
+            <div class="scrollable-list-container">
+                <div id="worldbook-list" class="contact-list" style="margin-top: 20px;">
                 </div>
+            </div>
         </div>
     </div>
 
@@ -2125,11 +2169,9 @@ body.fullscreen-mode .phone-frame {
                     <input type="number" id="context-memory-input-settings" class="form-input" value="10" min="0" max="100">
                 </div>
                 
-                <div class="form-group-inline">
-                    <label for="worldbook-select-settings">世界书:</label>
-                    <select id="worldbook-select-settings" class="form-select" style="width: 180px;">
-                        <option value="">不使用</option>
-                        </select>
+                <div class="form-group"> <label>关联世界书 (可多选):</label>
+                    <div id="worldbook-multiselect-container" class="multiselect-container">
+                        </div>
                 </div>
             </div>
 
@@ -2326,6 +2368,16 @@ const dbHelper = {
 
             request.onsuccess = () => resolve();
             request.onerror = (event) => reject(`清空 ${storeName} 失败: ` + event.target.error);
+        });
+    },
+    async updateRecord(storeName, record) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.put(record); // 直接放入更新后的完整对象
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject(`更新 ${storeName} 中的记录失败: ` + event.target.error);
         });
     }
     
@@ -2906,6 +2958,9 @@ const songList = document.getElementById('song-list');
 const uploadCoverBtn = document.getElementById('upload-cover-btn');
 const multiSelectBtn = document.getElementById('multi-select-btn');
 const coverUploadInput = document.getElementById('cover-upload-input');
+
+// === 新增：歌单名称编辑所需元素 ===
+const editPlaylistNameBtn = document.getElementById('edit-playlist-name-btn');
 
 let isDeleteMode = false; // 用于跟踪是否处于删除模式
 
@@ -3630,16 +3685,8 @@ const systemPrompt = `
  * @param {string} triggerMessage - 触发本次AI调用的特定消息或指令。
  */
  //
-// 这是 callAI 函数的最终修正版，请完整复制并替换掉您现有的版本
-//
-//
-// 这是 callAI 函数的【新版】，实现了立即显示加载动画
-//
-// === 修正版：AI 调用函数，使其能在后台安全运行 ===
-// === 这是 callAI 函数的【最终修复版】，解决了UI不更新和加载动画的问题 ===
-// === callAI 函数的最终版, 完美融合后台处理和“转换气泡”UI效果 ===
-// === callAI 函数的最终版(V3), 完美实现“初始加载动画 -> 转换”效果 ===
-// === callAI 函数的最终版 (V5)，增加了强大的混合消息分割逻辑 ===
+
+// === callAI 函数的最终修复版 (V7)，修复了 "settings is not defined" 的拼写错误 ===
 async function callAI(triggerMessage, contact) {
     if (isAiReplying) return;
     isAiReplying = true;
@@ -3651,7 +3698,24 @@ async function callAI(triggerMessage, contact) {
             initialTypingIndicator = showTypingIndicator();
         }
 
+        let worldBookContent = "无特定世界观设定，请自由发挥。";
+        if (contact.linkedWorldBookIds && contact.linkedWorldBookIds.length > 0) {
+            const worldbookData = await dbHelper.loadData('worldBooks', 'allWorldBooks');
+            if (worldbookData && Array.isArray(worldbookData.value)) {
+                const linkedBooksContent = worldbookData.value
+                    .filter(book => contact.linkedWorldBookIds.includes(book.id))
+                    .map(book => book.content)
+                    .join('\n\n---\n\n');
+                
+                if (linkedBooksContent) {
+                    worldBookContent = linkedBooksContent;
+                }
+            }
+        }
+        
         const settingsData = await dbHelper.loadData('settingsStore', 'apiSettings');
+        
+        // --- 关键修复：将错误的 "settings.value" 改为 "settingsData.value" ---
         if (!settingsData || !settingsData.value.url || !settingsData.value.key || !settingsData.value.model) {
             throw new Error("API未完整配置，请在设置中检查。");
         }
@@ -3660,10 +3724,16 @@ async function callAI(triggerMessage, contact) {
         const finalSystemPrompt = systemPrompt
             .replace('{ai_persona}', `姓名: ${contact.ai.name}\n人设: ${contact.ai.persona}`)
             .replace('{user_persona}', `姓名: ${contact.user.name}\n人设: ${contact.user.persona}`)
-            .replace('{world_book_content}', contact.worldBookContent || '无特定世界观设定，请自由发挥。');
-        
+            .replace('{world_book_content}', worldBookContent);
+
         const history = contact.history || [];
-        const recentHistory = history.slice(-contact.contextMemory || -10);
+        
+        let contextSize = contact.contextMemory;
+        if (typeof contextSize !== 'number' || isNaN(contextSize) || contextSize < 0) {
+            contextSize = 10;
+        }
+        const recentHistory = contextSize > 0 ? history.slice(-contextSize) : [];
+
         const messages = [{ role: "system", content: finalSystemPrompt }];
         
         recentHistory.forEach(msg => {
@@ -3687,20 +3757,16 @@ async function callAI(triggerMessage, contact) {
         const data = await response.json();
         const aiContent = data.choices[0].message.content;
 
-        // --- 核心修改：分割混合消息 ---
-        // 这个正则表达式会根据 [MESSAGE_START] 或 [TRANSFER_START] 来分割字符串
         const messageBlocks = aiContent.split(/(?=\[(?:MESSAGE_START|TRANSFER_START)\])/g).filter(block => block.trim());
 
         const savedMessages = [];
         if (messageBlocks.length > 0) {
             for (const block of messageBlocks) {
-                // 我们现在处理的是分割好的、干净的单个消息块
                 const aiMessage = { sender: 'ai', text: block.trim(), timestamp: new Date() };
                 await saveMessageToHistory(aiMessage, contactId);
                 savedMessages.push(aiMessage);
             }
         } else {
-            // 如果分割失败，作为整体保存
             const rawAiMessage = { sender: 'ai', text: aiContent, timestamp: new Date() };
             await saveMessageToHistory(rawAiMessage, contactId);
             savedMessages.push(rawAiMessage);
@@ -3982,55 +4048,57 @@ const defaultBubbleCss = `.user-bubble {
 }`;
 
 // --- 功能 A: 打开和关闭设置弹出层 ---
-// --- 功能 A: 打开和关闭设置弹出层 (已修复数据加载) ---
+// === 更新 openChatSettingsModal (支持世界书多选) ===
 async function openChatSettingsModal() {
     if (!currentOpenContact) return;
 
-    // 1. 加载当前联系人的数据到表单
-    // AI 信息
+    // --- 加载角色信息等 (这部分不变) ---
     aiAvatarPreviewSettings.src = currentOpenContact.ai.avatar;
     aiNameInputSettings.value = currentOpenContact.ai.name;
     aiPersonaInputSettings.value = currentOpenContact.ai.persona;
-    
-    // --- 关键修复：新增了下面三行，用于正确加载用户信息 ---
     userAvatarPreviewSettings.src = currentOpenContact.user.avatar;
     userNameInputSettings.value = currentOpenContact.user.name;
     userPersonaInputSettings.value = currentOpenContact.user.persona;
-
-    // 其他设置
     contextMemoryInputSettings.value = currentOpenContact.contextMemory || 10;
     bubbleCssInput.value = currentOpenContact.customBubbleCss || defaultBubbleCss;
     const avatarSettings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
-showAvatarsToggle.checked = avatarSettings.show;
-avatarRadiusInput.value = avatarSettings.radius;
+    showAvatarsToggle.checked = avatarSettings.show;
+    avatarRadiusInput.value = avatarSettings.radius;
 
-// --- 2.【核心新增】加载并填充世界书下拉框 ---
+    // --- 核心修改：加载并渲染世界书多选列表 ---
+    const container = document.getElementById('worldbook-multiselect-container');
+    container.innerHTML = ''; // 清空旧的选项
+
     try {
         const worldbookData = await dbHelper.loadData('worldBooks', 'allWorldBooks');
-        const books = (worldbookData && Array.isArray(worldbookData.value)) ? worldbookData.value : [];
+        const allBooks = (worldbookData && Array.isArray(worldbookData.value)) ? worldbookData.value : [];
+        
+        // 获取当前对话已关联的世界书ID数组
+        const linkedBookIds = new Set(currentOpenContact.linkedWorldBookIds || []);
 
-        // 清空旧选项，保留“不使用”
-        worldbookSelectSettings.innerHTML = '<option value="">不使用</option>';
-
-        books.forEach(book => {
-            const option = document.createElement('option');
-            option.value = book.id;
-            option.textContent = book.name;
-            worldbookSelectSettings.appendChild(option);
-        });
-        // 设置当前对话已选择的世界书
-        if (currentOpenContact.linkedWorldBookId) {
-            worldbookSelectSettings.value = currentOpenContact.linkedWorldBookId;
+        if (allBooks.length > 0) {
+            allBooks.forEach(book => {
+                const item = document.createElement('div');
+                item.className = 'multiselect-item';
+                
+                const isChecked = linkedBookIds.has(book.id); // 判断是否应该被勾选
+                
+                item.innerHTML = `
+                    <input type="checkbox" id="book-${book.id}" value="${book.id}" ${isChecked ? 'checked' : ''}>
+                    <label for="book-${book.id}">${book.name}</label>
+                `;
+                container.appendChild(item);
+            });
         } else {
-            worldbookSelectSettings.value = ""; // 默认选中“不使用”
+            container.innerHTML = '<span style="color: #888; font-size: 13px;">暂无世界书</span>';
         }
+
     } catch (error) {
         console.error("加载世界书到设置失败:", error);
+        container.innerHTML = '<span style="color: red; font-size: 13px;">加载失败</span>';
     }
-    // --- 世界书加载结束 ---
 
-
-    // 2. 显示弹出层
+    // --- 显示弹窗 (这部分不变) ---
     chatSettingsModal.style.display = 'flex';
     setTimeout(() => {
         chatSettingsModal.style.opacity = '1';
@@ -4103,73 +4171,60 @@ clearHistoryBtn.addEventListener('click', () => {
 // --- 功能 C: 保存所有设置 ---
 // --- 功能 C: 保存所有设置 (已修复数据保存) ---
 // --- 功能 C: 保存所有设置 (最终修复版) ---
+// === 更新 saveChatSettingsBtn (支持世界书多选保存) ===
 saveChatSettingsBtn.addEventListener('click', async () => {
     if (!currentOpenContact) return;
 
     try {
-        const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
-        if (!allContactsData || !Array.isArray(allContactsData.value)) {
-            throw new Error("无法加载联系人数据");
-        }
-        let allContacts = allContactsData.value;
-        
-        const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
-        if (contactIndex === -1) {
-            throw new Error("在数据库中找不到当前联系人");
-        }
+        // --- 核心修改：收集所有被选中的世界书ID ---
+        const selectedBookIds = [];
+        const checkboxes = document.querySelectorAll('#worldbook-multiselect-container input[type="checkbox"]:checked');
+        checkboxes.forEach(cb => {
+            selectedBookIds.push(parseInt(cb.value, 10));
+        });
 
-        // 1. 更新角色信息
-        allContacts[contactIndex].ai.name = aiNameInputSettings.value.trim();
-        allContacts[contactIndex].ai.persona = aiPersonaInputSettings.value.trim();
-        allContacts[contactIndex].ai.avatar = aiAvatarPreviewSettings.src;
-        allContacts[contactIndex].user.name = userNameInputSettings.value.trim();
-        allContacts[contactIndex].user.persona = userPersonaInputSettings.value.trim();
-        allContacts[contactIndex].user.avatar = userAvatarPreviewSettings.src;
-        allContacts[contactIndex].contextMemory = parseInt(contextMemoryInputSettings.value, 10);
+        // 将新的ID数组存入当前联系人对象
+        currentOpenContact.linkedWorldBookIds = selectedBookIds;
         
-        // 2. 更新个性化设置
-        allContacts[contactIndex].customBubbleCss = bubbleCssInput.value;
-        allContacts[contactIndex].avatarSettings = {
+        // --- 更新其他设置 (这部分不变) ---
+        currentOpenContact.ai.name = aiNameInputSettings.value.trim();
+        currentOpenContact.ai.persona = aiPersonaInputSettings.value.trim();
+        currentOpenContact.ai.avatar = aiAvatarPreviewSettings.src;
+        currentOpenContact.user.name = userNameInputSettings.value.trim();
+        currentOpenContact.user.persona = userPersonaInputSettings.value.trim();
+        currentOpenContact.user.avatar = userAvatarPreviewSettings.src;
+        currentOpenContact.contextMemory = parseInt(contextMemoryInputSettings.value, 10);
+        currentOpenContact.customBubbleCss = bubbleCssInput.value;
+        currentOpenContact.avatarSettings = {
             show: showAvatarsToggle.checked,
             radius: avatarRadiusInput.value.trim() || '50%'
         };
-        const selectedBookId = worldbookSelectSettings.value;
-allContacts[contactIndex].linkedWorldBookId = selectedBookId ? parseInt(selectedBookId, 10) : null;
-        // 3. 更新聊天背景
         const bgImage = chatScreen.style.backgroundImage;
-        allContacts[contactIndex].chatBackground = bgImage.includes('url') ? bgImage : null;
-
-        // 4. 更新聊天记录
+        currentOpenContact.chatBackground = bgImage.includes('url') ? bgImage : null;
         if (currentOpenContact.history && currentOpenContact.history.length === 0) {
-             allContacts[contactIndex].history = [];
+             currentOpenContact.history = [];
         }
 
-        // 5. 将更新后的整个联系人列表存回数据库
-        await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
+        // --- 使用新的 updateRecord 函数来更新数据库中的这条联系人记录 ---
+        await dbHelper.updateRecord('messageContacts', currentOpenContact);
 
-        // --- 关键修复：用保存后的最新数据，更新当前内存中的联系人对象 ---
-        currentOpenContact = allContacts[contactIndex];
+        // --- 更新UI (这部分不变) ---
+        applyChatViewSettings(currentOpenContact);
+        chatContactName.textContent = currentOpenContact.ai.name;
+        const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
+        if (contactItemInList) {
+            contactItemInList.querySelector('.contact-name').textContent = currentOpenContact.ai.name;
+        }
 
-// 6. 立即应用新设置到当前视图
-applyChatViewSettings(currentOpenContact);
-// --- 新增：手动同步UI上的名字 ---
-chatContactName.textContent = currentOpenContact.ai.name;
-const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
-if (contactItemInList) {
-    contactItemInList.querySelector('.contact-name').textContent = currentOpenContact.ai.name;
-}
-
-        // 7. 关闭弹窗
         closeChatSettingsModal();
         alert('设置已保存！');
 
     } catch (error) {
         console.error("保存聊天设置失败:", error);
-        alert("保存失败，请查看控制台日志。");
+        alert(`保存失败: ${error.message}`);
     }
 });
 
-// --- 功能 D: 应用所有聊天视图的个性化设置 (已更新) ---
 // --- 功能 D: 应用所有聊天视图的个性化设置 (已更新) ---
 function applyChatViewSettings(contact) {
     // 应用气泡样式
@@ -4976,6 +5031,65 @@ function handleFileImport(event) {
 backupDataBtn.addEventListener('click', backupData);
 importDataBtn.addEventListener('click', () => importFileInput.click()); // 点击“导入”按钮，实际是触发隐藏的文件选择框
 importFileInput.addEventListener('change', handleFileImport);
+
+// === 新增：歌单名称编辑功能 ===
+// === 修正版：歌单名称编辑功能 (确保数据正确持久化) ===
+editPlaylistNameBtn.addEventListener('click', async () => {
+    if (!currentOpenPlaylist) return;
+
+    const newName = prompt("请输入新的歌单名称：", currentOpenPlaylist);
+
+    if (newName === null || newName.trim() === "") return;
+    
+    const trimmedNewName = newName.trim();
+    if (trimmedNewName === currentOpenPlaylist) return;
+
+    try {
+        // 1. **从数据库加载最新的完整歌单列表**
+        const allPlaylistsData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
+        if (!allPlaylistsData || typeof allPlaylistsData.value !== 'object') {
+            throw new Error("无法加载歌单数据库。");
+        }
+        let allPlaylists = allPlaylistsData.value;
+
+        // 2. **检查新名称是否冲突**
+        if (allPlaylists[trimmedNewName]) {
+            alert("错误：该歌单名称已存在！");
+            return;
+        }
+
+        // 3. **在内存中执行重命名操作**
+        // a. 复制旧歌单的数据到新名称下
+        allPlaylists[trimmedNewName] = allPlaylists[currentOpenPlaylist];
+        // b. 删除旧名称的歌单
+        delete allPlaylists[currentOpenPlaylist];
+
+        // 4. **将修改后的完整歌单列表，一次性存回数据库**
+        await dbHelper.saveData('musicPlaylists', 'allPlaylists', allPlaylists);
+
+        // 5. **确认数据成功保存后，再更新UI**
+        const titleElement = document.getElementById('playlist-name-title');
+        if (titleElement) {
+            titleElement.textContent = trimmedNewName;
+        }
+        
+        const cardToUpdate = playlistGrid.querySelector(`.playlist-card[data-playlist-name="${currentOpenPlaylist}"]`);
+        if (cardToUpdate) {
+            cardToUpdate.querySelector('.playlist-name').textContent = trimmedNewName;
+            cardToUpdate.dataset.playlistName = trimmedNewName;
+        }
+
+        // 6. **最后更新全局状态变量**
+        currentOpenPlaylist = trimmedNewName;
+
+        alert("歌单名称已更新！");
+
+    } catch (error) {
+        console.error("编辑歌单名称失败:", error);
+        alert(`编辑失败: ${error.message}`);
+    }
+});
+
     </script>
 
 </body>
