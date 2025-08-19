@@ -1763,7 +1763,28 @@ body.fullscreen-mode .phone-frame {
     font-size: 14px;
     cursor: pointer;
 }
+/* === 新增：歌单多选删除模式的样式 === */
 
+/* 1. 让歌单卡片成为复选框的定位基准 */
+.playlist-card {
+    position: relative;
+}
+
+/* 2. 复选框的样式，默认隐藏 */
+.playlist-checkbox {
+    display: none;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    z-index: 5; /* 确保在封面之上，可以被点击 */
+}
+
+/* 3. 当歌单网格进入删除模式时，显示复选框 */
+.playlist-grid.delete-mode .playlist-checkbox {
+    display: block;
+}
     </style>
 
 <style id="custom-bubble-styles"></style>
@@ -1943,6 +1964,9 @@ body.fullscreen-mode .phone-frame {
             <div class="settings-header">
                 <button id="music-back-button" class="header-text-button">返回</button>
                 <h1>音乐</h1>
+                <div class="header-actions">
+                    <button id="playlist-multiselect-btn" class="header-button">多选</button>
+                </div>
             </div>
             <div id="music-content" class="music-content">
                 <button id="add-playlist-btn" class="add-playlist-button">新建歌单</button> 
@@ -2398,6 +2422,10 @@ const wallpaperUploadInput = document.getElementById('wallpaper-upload-input');
         const musicAppIcon = document.getElementById('music-app-icon');
     const musicScreen = document.getElementById('music-screen');
     const musicBackButton = document.getElementById('music-back-button');
+
+    // === 新增：歌单多选功能所需元素 ===
+const playlistMultiselectBtn = document.getElementById('playlist-multiselect-btn');
+let isPlaylistDeleteMode = false; // 用于跟踪是否处于删除模式
 
     const messagesAppIcon = document.getElementById('messages-app-icon');
 const messagesScreen = document.getElementById('messages-screen');
@@ -2861,77 +2889,47 @@ musicBackButton.addEventListener('click', () => {
 const addPlaylistBtn = document.getElementById('add-playlist-btn');
 const playlistGrid = document.getElementById('playlist-grid');
 
-// 2. 为“新建歌单”按钮添加点击事件
-// === 修改：“新建歌单”按钮的点击事件，增加保存功能 ===
-// === 修改：“新建歌单”按钮的点击事件，以适应新的数据结构 ===
-// === 替换为修复版：新建歌单时使用正确的新数据结构 ===
-addPlaylistBtn.addEventListener('click', async () => {
-    const playlistName = prompt("请输入新的歌单名称：");
-
-    if (playlistName && playlistName.trim() !== "") {
-        const newName = playlistName.trim();
-        try {
-            const existingData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
-            let playlists = (existingData && typeof existingData.value === 'object') ? existingData.value : {};
-            
-            if (playlists[newName]) {
-                alert("歌单名称已存在！");
-                return;
-            }
-
-            // --- 关键修复 ---
-            // 创建包含歌曲列表和封面URL的新结构
-            playlists[newName] = {
-                songs: [],
-                coverUrl: null 
-            };
-            
-            await dbHelper.saveData('musicPlaylists', 'allPlaylists', playlists);
-            
-            // 传入新建的空歌单对象
-            createPlaylistCard(newName, playlists[newName]);
-            
-        } catch (error) {
-            console.error("保存歌单失败:", error);
-            alert("无法保存歌单，请稍后重试。");
-        }
-    }
-});
 
 // 3. 定义一个函数，用于创建歌单卡片的 HTML 结构
 // === 这是 createPlaylistCard 函数的唯一正确版本 ===
 // 它创建卡片、异步更新歌曲数量，并为卡片绑定了正确的点击事件
 
-// === 替换为修复版：正确计算歌曲数量和显示封面 ===
+// === 更新 createPlaylistCard (增加复选框) ===
 function createPlaylistCard(name, playlistData) {
     const card = document.createElement('div');
     card.className = 'playlist-card';
     card.dataset.playlistName = name;
 
-    const coverDiv = document.createElement('div');
-    coverDiv.className = 'playlist-cover';
-    // 正确地从新结构中读取封面
+    // --- 新增：在卡片内部添加复选框 ---
+    card.innerHTML = `
+        <input type="checkbox" class="playlist-checkbox">
+        <div class="playlist-cover"></div>
+        <div class="playlist-name"></div>
+        <div class="playlist-count"></div>
+    `;
+
+    // 获取刚刚创建的元素并填充内容
+    const coverDiv = card.querySelector('.playlist-cover');
     if (playlistData && playlistData.coverUrl) {
         coverDiv.style.backgroundImage = `url(${playlistData.coverUrl})`;
-        coverDiv.style.backgroundSize = 'cover'; // 确保封面完全填充
     }
 
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'playlist-name';
-    nameDiv.textContent = name;
-
-    const countDiv = document.createElement('div');
-    countDiv.className = 'playlist-count';
-    // --- 关键修复 ---
-    // 正确地从新结构的 .songs 属性中获取歌曲数量
+    card.querySelector('.playlist-name').textContent = name;
+    
     const songCount = (playlistData && Array.isArray(playlistData.songs)) ? playlistData.songs.length : 0;
-    countDiv.textContent = `${songCount} 首歌曲`;
+    card.querySelector('.playlist-count').textContent = `${songCount} 首歌曲`;
 
-    card.append(coverDiv, nameDiv, countDiv);
     playlistGrid.appendChild(card);
 
-    card.addEventListener('click', () => {
-        openPlaylistDetailView(name);
+    card.addEventListener('click', (event) => {
+        // 如果是删除模式，并且点击的不是复选框，则模拟点击复选框
+        if (isPlaylistDeleteMode && event.target.type !== 'checkbox') {
+            const checkbox = card.querySelector('.playlist-checkbox');
+            checkbox.checked = !checkbox.checked;
+        } else if (!isPlaylistDeleteMode) {
+            // 正常模式下才进入详情页
+            openPlaylistDetailView(name);
+        }
     });
 }
 /// === 修改：从数据库加载并显示歌单（适配新数据结构） ===
@@ -5082,6 +5080,94 @@ editPlaylistNameBtn.addEventListener('click', async () => {
         alert(`编辑失败: ${error.message}`);
     }
 });
+
+// === 新增：歌单多选与删除的全部逻辑 ===
+
+// --- “多选”按钮的点击事件 ---
+playlistMultiselectBtn.addEventListener('click', () => {
+    isPlaylistDeleteMode = !isPlaylistDeleteMode; // 切换模式
+    playlistGrid.classList.toggle('delete-mode', isPlaylistDeleteMode);
+
+    if (isPlaylistDeleteMode) {
+        playlistMultiselectBtn.textContent = '取消';
+        addPlaylistBtn.textContent = '删除所选';
+        addPlaylistBtn.classList.add('delete');
+    } else {
+        playlistMultiselectBtn.textContent = '多选';
+        addPlaylistBtn.textContent = '新建歌单';
+        addPlaylistBtn.classList.remove('delete');
+        // 退出时取消所有勾选
+        playlistGrid.querySelectorAll('.playlist-checkbox').forEach(cb => cb.checked = false);
+    }
+});
+
+// --- 修改“新建歌单”按钮的行为，使其在删除模式下执行删除 ---
+addPlaylistBtn.addEventListener('click', () => {
+    if (isPlaylistDeleteMode) {
+        // 如果是删除模式，则执行删除
+        handleBatchDeletePlaylists();
+    } else {
+        // 否则，执行新建
+        createNewPlaylist();
+    }
+});
+// 将原有的新建逻辑封装成一个函数
+async function createNewPlaylist() {
+    const playlistName = prompt("请输入新的歌单名称：");
+    if (playlistName && playlistName.trim() !== "") {
+        const newName = playlistName.trim();
+        try {
+            const existingData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
+            let playlists = (existingData && typeof existingData.value === 'object') ? existingData.value : {};
+            if (playlists[newName]) {
+                alert("歌单名称已存在！");
+                return;
+            }
+            playlists[newName] = { songs: [], coverUrl: null };
+            await dbHelper.saveData('musicPlaylists', 'allPlaylists', playlists);
+            createPlaylistCard(newName, playlists[newName]);
+        } catch (error) {
+            console.error("保存歌单失败:", error);
+        }
+    }
+}
+
+// --- 批量删除的执行函数 ---
+async function handleBatchDeletePlaylists() {
+    const selectedCheckboxes = playlistGrid.querySelectorAll('.playlist-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('请至少选择一个要删除的歌单。');
+        return;
+    }
+
+    if (!confirm(`确定要删除选中的 ${selectedCheckboxes.length} 个歌单吗？此操作无法撤销。`)) {
+        return;
+    }
+
+    const namesToDelete = new Set();
+    selectedCheckboxes.forEach(cb => {
+        const card = cb.closest('.playlist-card');
+        namesToDelete.add(card.dataset.playlistName);
+    });
+
+    try {
+        const existingData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
+        let playlists = existingData.value;
+        
+        namesToDelete.forEach(name => {
+            delete playlists[name];
+        });
+
+        await dbHelper.saveData('musicPlaylists', 'allPlaylists', playlists);
+
+        await loadPlaylists();
+        playlistMultiselectBtn.click(); // 操作完成后自动退出多选模式
+
+    } catch (error) {
+        console.error("删除歌单失败:", error);
+        alert("删除失败，请查看控制台日志。");
+    }
+}
 
     </script>
 
