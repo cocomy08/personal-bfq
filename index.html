@@ -46,7 +46,6 @@
             width: 100%;
             height: 100%;
             background: #fff;
-            overflow-y: auto;
             /* 如果内容超出屏幕高度，允许滚动 */
             position: absolute;
             /* 让两个页面可以重叠 */
@@ -1669,15 +1668,18 @@ body.fullscreen-mode .phone-frame {
     transform: none !important;
 }
 
-/* === 新增：为悬浮顶栏下的内容区域添加上边距 === */
+/* === 新增：为悬浮顶栏下的内容区域添加上边距并使其可滚动 === */
 #settings-screen .settings-content,
 #music-screen .music-content,
 #worldbook-screen .music-content,
 #messages-screen .messages-content,
 #playlist-detail-screen .playlist-content {
-    padding-top: 90px; /* 留出足够空间给顶栏 */
+    padding-top: 90px;
+    /* --- 新增的关键修复 --- */
+    height: 100%;          /* 让内容区高度占满整个屏幕 */
+    overflow-y: auto;      /* 让内容区自己负责垂直滚动 */
+    box-sizing: border-box;/* 确保内边距不会撑破高度 */
 }
-    
 /* === 最终版：独立转账卡片样式 === */
 
 /* 1. 卡片主容器 */
@@ -4198,6 +4200,7 @@ if (contactItemInList) {
 });
 
 // --- 功能 D: 应用所有聊天视图的个性化设置 (已更新) ---
+// --- 功能 D: 应用所有聊天视图的个性化设置 (已更新) ---
 function applyChatViewSettings(contact) {
     // 应用气泡样式
     customBubbleStyles.innerHTML = contact.customBubbleCss || defaultBubbleCss;
@@ -4210,9 +4213,16 @@ function applyChatViewSettings(contact) {
         chatScreen.style.backgroundColor = '#f0f2f5';
     }
 
-    // 新增：应用头像显示设置
-    const avatarSettings = contact.avatarSettings || { show: true };
+    // 应用头像显示设置
+    const avatarSettings = contact.avatarSettings || { show: true, radius: '50%' };
     chatMessagesContainer.classList.toggle('hide-avatars', !avatarSettings.show);
+
+    // --- 新增的关键修复 ---
+    // 实时更新当前屏幕上所有头像的圆角
+    const allAvatars = document.querySelectorAll('#chat-messages-container .chat-avatar');
+    allAvatars.forEach(avatar => {
+        avatar.style.borderRadius = avatarSettings.radius;
+    });
 }
 
 // === 更新：将消息显示为带头像的聊天气泡 ===
