@@ -1386,7 +1386,9 @@ transition: background-color 0.2s;
 .message-row.user { flex-direction: row-reverse; transform-origin: bottom right; padding-left: 15%;  }
 .message-row.ai { transform-origin: bottom left;padding-right: 15%; }
 .hide-avatars .chat-avatar { display: none; }
-.hide-avatars .message-row { max-width: 75%; }
+.hide-avatars .message-row.user {
+    justify-content: flex-end;
+}
 .chat-messages-container { display: flex; flex-direction: column; }
 
 
