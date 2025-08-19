@@ -1,0 +1,4170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机框界面</title>
+    <style>
+
+        /* 页面基础样式，用于将手机框居中显示 */
+        body {
+            background-color: #dfdfdf;
+            /* 淡灰色背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+        }
+        /* === 新增：移除移动端点击时的高亮背景 === */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+        /* 手机外框 */
+        .phone-frame {
+            width: 375px;
+            /* 模拟iPhone X/11/12/13 Pro的宽度 */
+            height: 700px;
+            /* 模拟iPhone X/11/12/13 Pro的高度 */
+            border: 6px solid #111;
+            /* 手机边框颜色 */
+            border-radius: 54px;
+            /* 圆角边框 */
+            background: #d5d4d4;
+            /* 屏幕默认背景色 */
+            box-shadow: 0 19px 38px rgba(0, 0, 0, 0.30), 0 15px 12px rgba(0, 0, 0, 0.22);
+            position: relative;
+            overflow: hidden;
+            /* 隐藏超出屏幕的内容 */
+        }
+
+        /* 手机屏幕区域 */
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            overflow-y: auto;
+            /* 如果内容超出屏幕高度，允许滚动 */
+            position: absolute;
+            /* 让两个页面可以重叠 */
+            transition: opacity 0.3s ease-in-out;
+            /* 动画效果 */
+        }
+
+
+
+        /* --- 新的淡入淡出动画控制样式 --- */
+
+        /* 默认状态：主屏幕完全不透明，并且可以交互 */
+        #home-screen {
+            opacity: 1;
+            pointer-events: auto;
+            /* 允许鼠标点击等交互 */
+            z-index: 2;
+            /* 在默认状态下，主屏幕在最上层 */
+        }
+
+        /* 默认状态：设置页完全透明，并且无法交互 */
+        #settings-screen {
+            opacity: 0;
+            pointer-events: none;
+            /* 禁止鼠标点击等交互 */
+            z-index: 1;
+            /* 在默认状态下，设置页在下层 */
+        }
+
+        /* 当 phone-frame 拥有 .show-settings 类名时，反转上面的状态 */
+        .phone-frame.show-settings #home-screen {
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1;
+            /* 主屏幕沉下去 */
+        }
+
+        .phone-frame.show-settings #settings-screen {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 2;
+            /* 设置页浮上来 */
+        }
+        /* === 新增：音乐App的动画控制 === */
+    /* 默认状态：音乐页完全透明，并且无法交互 */
+    #music-screen {
+    display: flex;
+    flex-direction: column; /* 垂直排列 */
+    height: 100%; /* 确保它占满父容器的高度 */
+    overflow: hidden; /* 防止整个屏幕意外滚动 */
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+    /* 当 phone-frame 拥有 .show-music 类名时 */
+    .phone-frame.show-music #home-screen {
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .phone-frame.show-music #music-screen {
+        opacity: 1;
+        pointer-events: auto;
+        z-index: 2; /* 音乐页浮上来 */
+    }
+
+        /* 内容区域新样式 */
+        .content {
+            padding: 40px 0 50px 0;
+            /* 稍微增加底部内边距，让它更好看 */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            /* <<< 修改为 flex-end */
+            align-items: center;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        /* === 新增：顶部内容样式 === */
+        .header-content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 时钟容器 */
+        .clock {
+            display: flex;
+            /* 使用flex布局 */
+            align-items: center;
+            /* 垂直居中对齐 */
+            justify-content: center;
+            gap: 2px;
+            /* 数字间的细微间距 */
+            width: 240px;
+            /* 给予足够宽度 */
+        }
+
+        /* 时钟数字的通用样式 */
+        .clock span {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 100px;
+            font-weight: 700;
+            color: #000;
+            /* 根据您的新图，颜色改为了黑色 */
+            line-height: 1;
+            /* 修正行高防止额外空间 */
+        }
+
+        
+
+        /* 语录容器 */
+        .motto-container {
+            margin-top: 10px;
+            margin-bottom: 30px;
+        }
+
+        /* 语录文字样式 */
+        #motto {
+            font-size: 16px;
+            color: #8a8a8e;
+            font-weight: 500;
+            border: none;
+            /* 移除边框 */
+            padding: 5px 10px;
+            /* 增加一点内边距 */
+            border-radius: 5px;
+            /* 轻微圆角 */
+            cursor: text;
+            /* 鼠标样式为文本输入 */
+        }
+
+        /* 当用户点击编辑时，提供一个清晰的轮廓 */
+        #motto:focus {
+            outline: 2px solid #007aff;
+            /* 编辑时的蓝色外框 */
+            background-color: #f0f2f5;
+        }
+
+        /* === 修改：调整整体布局 === */
+        .content {
+            padding: 60px 0 50px 0;
+            /* 调整上下内边距 */
+            display: flex;
+            flex-direction: column;
+            /* 核心改动：让元素之间自动分布空间，顶部贴顶，底部贴底 */
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        /* 调整小组件的上下间距为0，因为 space-between 会自动处理 */
+        .widget-placeholder {
+            margin-bottom: 0;
+        }
+
+        /* ===小组件(Widget)区域样式 === */
+        .widget-placeholder {
+            width: 285px;
+            /* 宽度与App区域一致 */
+            height: 145px;
+            /* 大约两行App的高度 */
+            margin-bottom: 40px;
+            /* 与下方App的间距 */
+            background-color: #f0f2f5;
+            border: 2px dashed #d1d1d6;
+            /* 虚线边框 */
+            border-radius: 22px;
+            /* 圆角 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            /* 鼠标悬浮时显示手形 */
+            color: #8e8e93;
+            font-size: 16px;
+            transition: background-color 0.3s;
+
+            /* 用于显示上传后的图片 */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .widget-placeholder:hover {
+            background-color: #e1e3e6;
+        }
+
+        /* App 图标网格布局 */
+        .app-grid {
+            display: grid;
+            /* 创建4个等宽的列 */
+            grid-template-columns: repeat(4, 1fr);
+            /* 定义行与列之间的间距 */
+            row-gap: 25px;
+            column-gap: 15px;
+            padding: 20px;
+        }
+
+        /* 单个App的容器 (图标 + 名称) */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* App图标样式 */
+        .app-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            /* 圆角效果 */
+            margin-bottom: -20px;
+            /* 核心：为图标添加阴影 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            /* 用于垂直居中图标内的元素（例如emoji或文字） */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            /* 如果用emoji当图标，可以调整大小 */
+            color: white;
+        }
+
+        /* App名称样式 */
+        .app-name {
+            font-size: 12px;
+            color: #111;
+            font-weight: 500;
+            /* 核心：为文字添加轻微阴影 */
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.40);
+            transform: translateY(24px);
+        }
+
+
+        /* 新增：App图标中图片的样式 */
+        .app-icon img {
+            width: 100%;
+            height: 100%;
+            /* 让图片本身也带圆角，这样即使是直角图片也能完美显示 */
+            border-radius: 15px;
+            /* object-fit: cover; 属性可以防止图片因拉伸而变形 */
+            object-fit: cover;
+        }
+
+        /* === 新增：设置页面的专属样式 === */
+        .settings-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            padding-top: 45px;
+            /* 为顶部的刘海留出空间 */
+            border-bottom: 1px solid #e5e5e5;
+            position: relative;
+            background-color: #fff; /* 确保有背景色 */
+    flex-shrink: 0; /* 防止顶栏在空间不足时被压缩 */
+    z-index: 10; /* 让顶栏在内容之上 */
+        }
+
+        .app-back-button {
+    background: none;
+    border: none;
+    font-weight: bold;
+    color: #007aff;
+    cursor: pointer;
+    padding: 0 10px;
+    margin-top: 5px;
+}
+
+        .settings-header h1 {
+            font-size: 18px;
+            font-weight: 400;
+            color: #111;
+            margin: 0;
+            /* 让标题在剩余空间里居中 */
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #save-settings-button {
+            padding: 4px 10px;
+
+font-size: 12px;
+
+font-weight: 400;
+
+color: #007AFF;
+
+background-color: rgba(0, 122, 255, 0.1);
+
+border: none;
+
+border-radius: 40px;
+
+cursor: pointer;
+margin-left: auto;
+
+transition: background-color 0.2s;
+        }
+
+        /* === 唯一的、修正后的 settings-content 样式 === */
+.settings-content {
+    padding: 20px 0; /* 只保留上下内边距，左右为0 */
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    /* 核心：强制所有子元素在水平方向上居中 */
+    align-items: center; 
+}
+
+/* Add this new rule anywhere in your styles */
+.modal-body .form-group {
+    width: 100%;
+}
+
+
+
+        .form-group {
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            /* 标签和输入框之间的间距 */
+        }
+
+        .form-group label {
+            font-size: 15px;
+            font-weight: 500;
+            color: #333;
+            padding-left: 5px;
+        }
+
+        .form-input,
+        .form-select {
+            width: 93%;
+            height: 40px;
+            background-color: #e9e9eb;
+            border: 1px solid #d1d1d6;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-select:disabled {
+            background-color: #f5f5f5;
+            color: #c7c7cd;
+        }
+
+        .form-button {
+            padding: 6px 15px;
+            font-size: 12px;
+            font-weight: 400;
+            color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.1);
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .form-button:disabled {
+            background-color: #8E8E93;
+            cursor: not-allowed;
+        }
+
+        /* --- 滑块样式 --- */
+        .form-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(to right, #6fa8e5 0%, #6fa8e5 var(--progress-percent, 50%), #E5E5EA var(--progress-percent, 50%), #E5E5EA 100%);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .form-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            border: 0.5px solid rgba(0, 0, 0, 0.04);
+            box-shadow: 0px 0.5px 4px rgba(0, 0, 0, 0.12), 0px 2px 3px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+        }
+
+        .form-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            border: 0.5px solid rgba(0, 0, 0, 0.04);
+            box-shadow: 0px 0.5px 4px rgba(0, 0, 0, 0.12), 0px 2px 3px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+        }
+
+        
+        /* === 新增：壁纸设置控件的样式 === */
+/* 用这段代码替换掉您已有的 .wallpaper-controls 样式 */
+.wallpaper-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* 预览图和按钮组之间的间距 */
+}
+
+/* 新增：壁纸预览图样式 (尺寸调整) */
+#wallpaper-preview {
+    width: 50px;
+    height: 88px; /* 保持一个合适的手机壁纸比例 */
+    border-radius: 6px;
+    border: 1px solid #d1d1d6;
+    background-color: #e9e9eb;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+/* 新增：两个按钮的容器样式 */
+.wallpaper-buttons {
+    flex-grow: 1; /* 占满剩余空间 */
+    display: flex;
+    flex-direction: column; /* 让两个按钮垂直堆叠 */
+    gap: 8px; /* 两个按钮之间的间距 */
+}
+/* 这是一个次要按钮的样式，区别于主要的蓝色按钮 */
+.form-button-secondary {
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.1);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* --- 关键修改：确保只有主屏幕有壁纸 --- */
+#home-screen {
+    background-size: cover;
+    background-position: center;
+    background-color: transparent; /* 让主屏幕背景透明，以便显示壁纸 */
+}
+
+#settings-screen {
+    background-color: #fff; /* 确保设置页始终是白色背景 */
+}
+
+/* === 新增：用于隐藏小组件的类 === */
+.widget-hidden {
+            display: none !important;
+        }
+
+        /* === 新增：开关(Toggle Switch)样式 === */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 0px;
+            bottom: 0px;
+            background-color: white;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: #6fa8e5; 
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #6fa8e5;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(25px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+        /* === 新增：响应式缩放，修复小屏幕下的显示问题 === */
+
+/* 这是一个媒体查询，它表示：
+   “如果浏览器窗口的宽度小于或等于 420px 时...” 
+*/
+@media (max-width: 420px) {
+    .phone-frame {
+        /* * “...就把 .phone-frame 这个元素（包括它里面的所有内容）
+         * 等比例缩小到原来的 90%。”
+         * 这样它就不会超出窄屏幕的边界了。
+        */
+        transform: scale(0.9);
+    }
+}
+
+/* * 你还可以为更小的屏幕添加进一步的缩放规则，
+ * 例如，当屏幕宽度小于 380px 时，再缩小一点。
+*/
+@media (max-width: 380px) {
+    .phone-frame {
+        transform: scale(0.85);
+    }
+}
+/* === 音乐 App 专属样式 (新版) === */
+
+/* 新建歌单按钮的新样式 */
+.add-playlist-button {
+    display: block;
+    margin: 0 auto;
+    width: 100%; /* 按钮宽度占满容器 */
+    padding: 10px;
+    margin-bottom: 20px; /* 与下方歌单网格的间距 */
+    font-size: 16px;
+    font-weight: 400;
+    color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.1);
+    border: none;
+    border-radius: 8px; /* 圆角 */
+    cursor: pointer;
+    text-align: center; /* 文字居中 */
+    transition: background-color 0.2s;
+
+}
+
+.add-playlist-button:hover {
+    background-color: #e1e3e6; /* 鼠标悬浮时颜色加深 */
+}
+
+
+/* 音乐内容区域 */
+.music-content {
+    padding: 15px;
+    flex-grow: 1; /* 关键：让这个区域占据所有剩余的垂直空间 */
+    overflow-y: auto; /* 内容超出这个区域时，允许垂直滚动 */
+}
+
+/* 歌单网格布局（瀑布流） */
+.playlist-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+/* 单个歌单卡片的样式 */
+.playlist-card {
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+}
+
+.playlist-card:hover {
+    transform: scale(1.03); 
+}
+
+/* 歌单封面 */
+.playlist-cover {
+    width: 100%;
+    padding-bottom: 100%;
+    background-color: #e9e9eb; 
+    border-radius: 8px; 
+    margin-bottom: 8px;
+    background-size: cover;     /* 关键：让图片缩放以完全覆盖容器 */
+    background-position: center;  /* 辅助：让图片在容器里居中显示 */
+}
+
+/* 歌单名称 */
+.playlist-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1c1c1e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 歌单歌曲数量 */
+.playlist-count {
+    font-size: 12px;
+    color: #8a8a8e;
+}
+/* === 新增：歌单详情页的动画控制 === */
+#playlist-detail-screen {
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3; /* 层级比音乐主页更高 */
+    background-color: #fff; /* 确保有白色背景 */
+    display: flex; /* 使用 flex 布局 */
+    flex-direction: column; /* 垂直排列 */
+}
+
+.phone-frame.show-playlist-detail #playlist-detail-screen {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 详情页顶栏样式 */
+.playlist-header {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* 详情页内容区 */
+.playlist-content {
+    padding: 20px;
+    flex-grow: 1; /* 占据剩余所有空间 */
+    overflow-y: auto; /* 内容多时可以滚动 */
+}
+
+/* 导入按钮样式 */
+.import-button {
+    display: block; /* 块级元素 */
+    width: 120px; /* 固定宽度 */
+    margin: 0 auto 25px auto; /* 水平居中，并和下方列表拉开距离 */
+    padding: 8px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.1);
+    border: 1px solid #ffffff;
+    border-radius: 20px; /* 圆角 */
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* 歌曲列表样式 */
+.song-list {
+    list-style: none; /* 移除默认的圆点 */
+    padding: 0;
+    margin: 0;
+}
+
+/* 列表中的每一项 */
+.song-item {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 5px;
+}
+
+/* 歌曲名 */
+.song-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #111;
+}
+
+/* 歌手名 */
+.song-artist {
+    font-size: 14px;
+    color: #888;
+    margin-top: 4px;
+}
+/* === 新增：播放按钮和歌曲列表项新布局 === */
+.song-item {
+    display: flex;
+    justify-content: space-between; /* 两端对齐 */
+    align-items: center; /* 垂直居中 */
+    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 5px;
+}
+
+.song-info {
+    /* 这个新容器用来包裹歌名和歌手 */
+    display: flex;
+    flex-direction: column;
+}
+
+.play-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    width: 32px; /* 固定宽度 */
+    height: 32px; /* 固定高度 */
+}
+
+.play-button svg {
+    width: 100%;
+    height: 100%;
+}
+/* === 新增：详情页顶栏右侧按钮 === */
+.header-actions {
+    margin-left: auto; /* 关键：将按钮组推到最右边 */
+    display: flex;
+    gap: 10px; /* 按钮之间的间距 */
+}
+
+.header-button {
+    padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 400;
+            color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.1);
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+}
+/* 删除按钮的特殊样式 */
+.header-button.delete {
+    border-color: #ff3b30;
+    color: #ff3b30;
+}
+
+/* === 新增：多选删除模式下的样式 === */
+.song-item .song-checkbox {
+    display: none; /* 默认隐藏复选框 */
+    margin-right: 15px; /* 和歌曲信息拉开距离 */
+}
+
+/* 当 song-list 处于删除模式时，显示复选框 */
+.song-list.delete-mode .song-checkbox {
+    display: block;
+}
+/* === 新增：统一的头部文本按钮样式 === */
+.header-text-button {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.1);
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    /* 用于在flex布局中对齐 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.header-text-button:hover {
+    background-color: rgba(0, 122, 255, 0.2);
+}
+/* === 新增：消息App的动画控制 === */
+/* 默认状态：消息页完全透明，并且无法交互 */
+#messages-screen {
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* 当 phone-frame 拥有 .show-messages 类名时 */
+.phone-frame.show-messages #home-screen {
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.phone-frame.show-messages #messages-screen {
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 2; /* 消息页浮上来 */
+}
+.dynamic-island {
+    position: absolute;
+    top: 5px; /* 距离手机顶部刘海的距离 */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999; /* 确保在最顶层 */
+
+    /* 默认收起状态的尺寸和样式 */
+    width: 120px;
+    height: 36px;
+    background-color: #000;
+    border-radius: 40px;
+    color: white;
+    
+    /* 动画效果 */
+    transition: all 0.35s cubic-bezier(0.65, 0, 0.35, 1);
+
+    /* 默认隐藏，通过JS添加 .active 来显示 */
+    opacity: 0;
+    pointer-events: none;
+    cursor: pointer;
+}
+
+.dynamic-island.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 展开状态的尺寸 */
+.dynamic-island.expanded {
+    width: 336px; /* 展开后的宽度 */
+    height: 160px; /* 展开后的高度 */
+}
+
+/* --- 收起/展开内容的切换 --- */
+.island-collapsed-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+    transition: opacity 0.2s ease-out;
+}
+.dynamic-island.expanded .island-collapsed-content {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* === 用下面这段新的代码替换上面的旧代码 === */
+
+.island-expanded-content {
+    /* --- 关键修复：添加绝对定位 --- */
+    position: absolute;
+    top: 0;
+    left: 0;
+    
+    width: 100%;
+    height: 100%;
+    padding: 18px;
+    box-sizing: border-box;
+
+    /* 使用 Flexbox 布局来排列内部元素 */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around; /* 垂直方向上均匀分布 */
+    
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+    pointer-events: none; /* 在隐藏时确保无法交互 */
+}
+.dynamic-island.expanded .island-expanded-content {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s 0.15s ease-in;
+}
+
+
+/* --- 内部元素样式 --- */
+
+/* 收起状态的波形动画 */
+.waveform { display: flex; align-items: center; height: 15px; }
+.waveform span { width: 3px; height: 100%; background: #5f5; margin: 0 2px; border-radius: 3px; animation: wave 1.2s infinite ease-in-out; }
+.waveform span:nth-child(2) { animation-delay: 0.2s; }
+.waveform span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes wave { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
+
+/* 展开状态的内容 */
+.song-details { text-align: center; }
+/* === 用下面这段新的代码替换上面的旧代码 === */
+
+/* 使用 .dynamic-island 来提高优先级，确保样式只应用在灵动岛内部 */
+.dynamic-island .song-details .song-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #FFFFFF; /* 强制指定为白色 */
+}
+
+.dynamic-island .song-details .song-artist {
+    font-size: 14px;
+    color: #b2b2b2; /* 一个更亮的灰色，在黑背景上更清晰 */
+}
+
+.progress-container { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #aaa; }
+.progress-bar-wrapper { flex-grow: 1; height: 6px; background-color: #333; border-radius: 3px; overflow: hidden; }
+.progress-bar-fill { width: 0%; height: 100%; background-color: #fff; border-radius: 3px; }
+
+.controls-container { display: flex; justify-content: space-around; align-items: center; }
+.control-button { background: none; border: none; width: 40px; height: 40px; cursor: pointer; }
+.control-button svg { fill: #fff; width: 100%; height: 100%; }
+.control-button.play-pause { width: 50px; height: 50px; }
+.play-icon, .pause-icon { display: none; }
+.control-button.play .play-icon, .control-button.pause .pause-icon { display: block; }
+/* 强制提升控制按钮容器的层级 */
+.dynamic-island .controls-container {
+    position: relative; /* z-index 生效需要 position 属性 */
+    z-index: 10;
+}
+/* === 新增：联系人弹出层 (Modal) 的所有样式 === */
+
+/* 1. 遮罩背景 */
+.modal-overlay {
+    position: absolute; /* 相对于 .phone-frame 定位 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* 半透明黑色背景 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* 确保在最顶层 */
+    opacity: 0; /* 默认透明 */
+    transition: opacity 0.3s ease; /* 淡入淡出动画 */
+}
+
+/* 2. 对话框主体 */
+.modal-content {
+    background-color: #f7f7f7;
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    width: 270px;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* 内部元素的间距 */
+    transform: scale(0.95); /* 默认稍微缩小 */
+    transition: transform 0.3s ease; /* 缩放动画 */
+}
+/* 当 .modal-overlay 显示时，让 .modal-content 动画出现 */
+.modal-overlay.visible .modal-content {
+    transform: scale(1);
+}
+
+
+/* 3. 顶部滑块和关闭按钮 */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.role-switcher {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+.switch-label {
+    color: #888;
+    transition: color 0.3s;
+}
+.switch-label.active {
+    color: #007AFF;
+}
+.modal-close-button {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 1;
+}
+
+/* 4. AI 和用户表单的样式 */
+.role-form {
+    display: none; /* 默认隐藏 */
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.role-form.active {
+    display: flex; /* .active 类使其显示 */
+}
+.avatar-uploader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.avatar-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%; /* 圆形头像 */
+    object-fit: cover;
+    border: 2px solid #e0e0e0;
+}
+.avatar-input {
+    display: none; /* 隐藏原始的文件选择框 */
+}
+.avatar-upload-label {
+    font-size: 12px;
+    color: #007AFF;
+    cursor: pointer;
+}
+.form-textarea {
+    width: 95%;
+    height: 100px;
+    background-color: #e9e9eb;
+    border: 1px solid #d1d1d6;
+    border-radius: 12px;
+    font-size: 14px;
+    padding: 10px;
+    box-sizing: border-box;
+    resize: vertical; /* 允许用户垂直调整大小 */
+}
+
+/* 5. 底部公共部分 */
+.modal-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid #e5e5e5;
+    padding-top: 15px;
+}
+.form-group-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+.form-group-inline input {
+    width: 60px;
+    text-align: center;
+}
+.save-button {
+    width: 95%;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    background-color: #007AFF;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+/* === 新增：消息列表的样式 === */
+.contact-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.contact-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+}
+.contact-item:hover {
+    background-color: #f9f9f9;
+}
+.contact-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 15px;
+}
+.contact-info {
+    flex-grow: 1;
+}
+.contact-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #111;
+}
+.contact-last-message {
+    font-size: 14px;
+    color: #888;
+    margin-top: 4px;
+    /* 防止文字过长换行 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* === 新增：消息列表多选删除模式的样式 === */
+
+/* 1. 默认隐藏列表项中的复选框 */
+.contact-item .contact-checkbox {
+    display: none;
+    margin-right: 15px; /* 和头像拉开距离 */
+}
+
+/* 2. 当列表进入删除模式时，显示复选框 */
+.contact-list.delete-mode .contact-item .contact-checkbox {
+    display: block; /* block 会让它显示出来 */
+}
+
+/* 3. 删除模式下，列表项内边距微调，给复选框留出空间 */
+.contact-list.delete-mode .contact-item {
+    padding-left: 10px;
+}
+
+/* 4. 删除按钮的特殊红色样式 (复用音乐App的样式) */
+.header-button.delete {
+    color: #ff3b30; /* 红色文字 */
+}
+
+/* === 新增：聊天界面的所有样式 === */
+
+/* 1. 聊天界面整体和滑入动画 */
+#chat-screen {
+    /* 初始状态：透明且略微放大 */
+    opacity: 0;
+    transform: scale(1.05);
+    pointer-events: none; /* 隐藏时不可交互 */
+    transition: opacity 0.3s ease, transform 0.3s ease; /* 让透明度和缩放同时产生动画 */
+    z-index: 4;
+    background-color: #f0f2f5;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* vvv 新增：控制背景图的显示方式 vvv */
+    background-size: cover;         /* 关键：让背景图缩放以完全覆盖容器 */
+    background-position: center;    /* 辅助：让图片在容器里居中显示 */
+    background-repeat: no-repeat;   /* 辅助：防止图片在尺寸不匹配时平铺 */
+}
+/* 当 phone-frame 拥有 .show-chat 类名时 */
+.phone-frame.show-chat #chat-screen {
+    /* 结束状态：完全不透明且正常大小 */
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto; /* 激活后可交互 */
+}
+/* (可选) 让消息列表页向左滑出，效果更佳 */
+.phone-frame.show-chat #messages-screen {
+    /* 让消息列表页直接淡出，而不是缩小 */
+    opacity: 0;
+    pointer-events: none;
+}
+
+
+/* 2. 固定的高斯模糊顶栏 */
+.chat-header {
+    /* 继承通用顶栏样式，但需要覆盖一些属性 */
+    position: absolute; /* 改为绝对定位，固定在顶部 */
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    padding-top: 45px; /* 为手机刘海留出空间 */
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    z-index: 10;
+
+    /* --- 高斯模糊核心样式 --- */
+    background-color: rgba(255, 255, 255, 0.85); /* 必须是半透明背景 */
+    -webkit-backdrop-filter: blur(10px); /* 兼容 Safari */
+    backdrop-filter: blur(10px); /* 标准语法 */
+}
+.chat-header h1 {
+    /* 继承通用标题样式 */
+    font-size: 17px;
+    font-weight: 400;
+    color: #111;
+    margin: 0;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+/* 让右侧按钮自动靠右 */
+.chat-header #chat-settings-button {
+    margin-left: auto;
+}
+
+
+/* 3. 聊天消息容器 */
+.chat-messages-container {
+    flex-grow: 1; /* 占据所有剩余的垂直空间 */
+    overflow-y: auto; /* 内容超出时可以滚动 */
+    padding: 10px;
+    /* --- 关键：为固定的顶栏和底栏留出空间 --- */
+    padding-top: 90px;  /* 约等于顶栏高度 */
+    padding-bottom: 70px; /* 约等于底栏高度 */
+}
+
+
+/* 4. 固定的底部输入区域 */
+/* 4. 固定的底部输入区域 (已更新) */
+.chat-input-area {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    padding-bottom: 20px; 
+    background-color: #ffffff;
+    border-top: 1px solid #dcdcdc;
+    gap: 10px; /* 新增：为所有子元素之间添加间距 */
+    box-sizing: border-box;
+}
+
+/* 新增：为左右两个圆形按钮创建一个通用样式 */
+.chat-action-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    background-color: transparent; /* 默认所有按钮背景都透明 */
+    /* 移除 font-size 和 line-height，因为现在由 SVG 控制 */
+}
+
+/* 2. 加号按钮的特定样式 */
+#chat-add-attachment-button {
+    background-color: #e9e9eb;
+    color: #333; /* SVG 将继承这个颜色 */
+}
+
+/* 3. 新增：为加号按钮内的 SVG 设置样式 */
+#chat-add-attachment-button svg {
+    width: 24px;
+    height: 24px;
+}
+#chat-add-attachment-button svg path {
+    fill: currentColor; /* 关键：让 SVG 颜色跟随按钮的 color 属性 */
+}
+
+/* 更新：输入框样式 */
+.chat-input-area input {
+    width: 70%;
+    height: 40px;
+    border: none;
+    background-color: #ffffff; /* 改为白色背景，更清晰 */
+    border-radius: 20px;
+    padding: 0 15px;
+    font-size: 15px;
+    outline: none;
+}
+
+/* 更新：发送按钮的特定样式 */
+#chat-send-button {
+    background-color: #007AFF;
+    color: white; /* 这个颜色会被SVG继承 */
+    
+}
+
+/* 新增：控制发送按钮内部SVG的样式 */
+#chat-send-button svg {
+    width: 24px;
+    height: 24px;
+}
+#chat-send-button svg path {
+    fill: currentColor; /* 关键：让SVG的路径颜色继承父按钮的color属性 (白色) */
+}
+.chat-input-area input {
+    flex-grow: 1;
+    height: 40px;
+    border: none;
+    background-color: #f0f2f5;
+    border-radius: 20px;
+    padding: 0 15px;
+    font-size: 15px;
+    outline: none;
+}
+/* === 新增：聊天设置、气泡、输入栏的最终正确样式 === */
+
+/* --- 1. 聊天设置对话框 --- */
+.modal-content.large {
+    max-width: 350px; max-height: 85%; gap: 0;
+    display: flex; flex-direction: column;
+}
+.modal-content.large .modal-header, .modal-content.large .modal-footer {
+    flex-shrink: 0;
+}
+.modal-content.large .modal-header { padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; }
+.modal-content.large .modal-header h2 { font-size: 18px; margin: 0; }
+.modal-body {
+    display: flex; flex-direction: column; gap: 25px;
+    padding: 15px 5px; overflow-y: auto; flex-grow: 1;
+}
+.settings-column { display: flex; flex-direction: column; gap: 15px; }
+.settings-column h4 {
+    font-size: 16px; margin: 0 0 5px 0; color: #333;
+    padding-bottom: 8px; border-bottom: 1px solid #eee;
+}
+.form-textarea.code { font-family: monospace; height: 120px; white-space: pre; font-size: 12px; width: 100%; }
+.form-button-secondary.small { padding: 6px 10px; font-size: 14px;}
+.danger-zone { border-top: 1px solid #e5e5e5; padding-top: 15px; }
+.danger-button {
+    width: 100%; padding: 10px; font-size: 14px; font-weight: 500;
+    color: #ff3b30; background-color: rgba(255, 59, 48, 0.1);
+    border: 1px solid rgba(255, 59, 48, 0.2); border-radius: 8px; cursor: pointer;
+}
+/* 关键修复：确保头像设置的行内元素能正确布局 */
+.form-group .form-group-inline {
+    display: flex;
+    justify-content: space-between; /* 两端对齐 */
+    align-items: center;
+}
+.form-group .form-group-inline .form-input {
+    flex-grow: 0; /* 禁止它伸展 */
+}
+
+/* --- 2. 聊天气泡和头像 --- */
+.chat-bubble {
+    max-width: 100%;
+    padding: 10px 15px; border-radius: 18px;
+    line-height: 1.4; word-wrap: break-word;
+    font-size: 13.5px;
+    
+}
+.user-bubble {
+    background-color: #007AFF; color: white;
+    border-bottom-right-radius: 4px;
+}
+.ai-bubble {
+    background-color: #E5E5EA; color: black;
+    border-bottom-left-radius: 4px;
+}
+.message-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    width: 100%;
+    animation: bubble-scale-in 0.3s ease-out;
+}
+.message-row.user { flex-direction: row-reverse; transform-origin: bottom right; padding-left: 15%;  }
+.message-row.ai { transform-origin: bottom left;padding-right: 15%; }
+.chat-avatar {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    flex-shrink: 0;
+    margin: 0 8px;
+    
+}
+.hide-avatars .chat-avatar { display: none; }
+.hide-avatars .message-row { max-width: 75%; }
+.chat-messages-container { display: flex; flex-direction: column; }
+
+
+/* --- 3. 聊天输入栏 --- */
+.chat-input-area {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%; /* 明确宽度 */
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    padding-bottom: 25px; 
+    background-color: #ffffff;
+    border-top: 1px solid #dcdcdc;
+    gap: 10px;
+    box-sizing: border-box; /* 关键修复：确保 padding 不会撑大宽度 */
+    z-index: 20;
+}
+.chat-action-button {
+    display: flex; justify-content: center; align-items: center;
+    width: 40px; height: 40px; border-radius: 50%;
+    border: none; cursor: pointer; flex-shrink: 0; padding: 0;
+    background-color: transparent;
+}
+#chat-add-attachment-button { color: #333; }
+#chat-add-attachment-button svg { width: 26px; height: 26px; }
+#chat-add-attachment-button svg path { fill: currentColor; }
+.chat-input-area input {
+    flex-grow: 1; height: 40px; border: none;
+    background-color: #e5e5e5; border-radius: 20px;
+    padding: 0 15px; font-size: 15px; outline: none;
+}
+#chat-send-button { background-color: #007AFF; color: white; }
+#chat-send-button svg {
+    width: 24px; height: 24px;
+}
+#chat-send-button svg path { fill: currentColor; }
+
+
+/* === 更新：更多功能面板的样式 (竖向布局) === */
+.features-panel {
+    position: absolute;
+    bottom: 70px; /* 定位在输入栏上方 */
+    left: 8px;   /* 靠手机框左边 */
+    background-color: rgba(245, 245, 245, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 18px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    padding: 12px; /* 增加内边距 */
+    box-sizing: border-box;
+
+    opacity: 0;
+    transform: translateY(15px) scale(0.95);
+    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.features-panel.active {
+    opacity: 1;
+    transform: translateY(0) scale(0.8);
+    pointer-events: auto;
+}
+
+/* 将 grid 布局改为 flex 竖向布局 */
+.features-grid {
+    display: flex;
+    flex-direction: column; /* 核心：设置为竖向排列 */
+    gap: 8px; /* 项目之间的间距 */
+}
+
+/* 将项目内部改为横向布局 (图标 | 文字) */
+.feature-item {
+    display: flex;
+    flex-direction: row; /* 核心：图标和文字横向排列 */
+    align-items: center; /* 垂直居中对齐 */
+    gap: 12px; /* 图标和文字之间的间距 */
+    cursor: pointer;
+    border-radius: 10px;
+    transition: background-color 0.2s; /* 添加悬停效果 */
+}
+
+/* 新增：鼠标悬停时高亮背景 */
+.feature-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.feature-icon {
+    width: 40px; /* 可以适当调小图标背景 */
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0; /* 防止图标被压缩 */
+}
+
+/* 新增：控制SVG图标的样式 */
+.feature-icon svg {
+    width: 24px;
+    height: 24px;
+    fill: #333; /* 用CSS控制颜色 */
+}
+
+.feature-name {
+    font-size: 14px; /* 可以适当调大字体 */
+    color: #1c1c1e;
+    font-weight: 500;
+}
+
+@keyframes bubble-scale-in {
+    /* 动画开始时：完全透明，且只有正常大小的80% */
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    /* 动画结束时：完全不透明，恢复正常大小 */
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* === 新增：“正在输入”提示的CSS样式 === */
+
+/* 动画容器的样式 */
+.typing-animation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 16px; /* 控制整体高度 */
+}
+
+/* 动画点的基础样式 */
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    margin: 0 2px;
+    background-color: #8E8E93; /* 点的颜色 */
+    border-radius: 50%;
+    
+    /* 应用我们下面定义的动画 */
+    animation: typing-bounce 1.2s infinite ease-in-out;
+}
+
+/* 为第二个和第三个点设置动画延迟，形成波浪效果 */
+.typing-dot:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+/* 定义一个名为 "typing-bounce" 的动画 */
+@keyframes typing-bounce {
+    0%, 80%, 100% {
+        transform: scale(0); /* 开始、快结束和结束时，点是缩小的 */
+    }
+    40% {
+        transform: scale(1.0); /* 动画进行到40%时，点放大到最大 */
+    }
+}
+/* --- 新增：消息选择功能的CSS样式 --- */
+/* --- 这是消息布局的【最终修复版】CSS --- */
+
+/* 1. 外层行容器：永远100%宽度，用于对齐选择器 */
+.message-row {
+    position: relative;
+    display: flex;
+    margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 2. 新增！内容包装层：负责对齐和限制宽度 */
+.message-content-wrapper {
+    display: flex;
+    align-items: center;
+    max-width: 85%; /* 约束内容最大宽度 */
+    transition: transform 0.3s ease; /* 动画效果 */
+}
+.message-content-wrapper.ai {
+    /* AI的默认靠左，无需特殊处理 */
+}
+.message-content-wrapper.user {
+    margin-left: auto; /* 关键：将用户的内容推到最右边 */
+    flex-direction: row-reverse; /* 头像在右，气泡在左 */
+}
+
+/* 3. 气泡、头像和选择器样式 (基本不变，但选择器更准确) */
+.chat-bubble {
+    padding: 10px 15px;
+    border-radius: 18px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    font-size: 13.5px;
+    min-width: 0; /* 确保能正确换行 */
+}
+.user-bubble {
+    background-color: #007AFF; color: white;
+    border-bottom-right-radius: 4px;
+}
+.ai-bubble {
+    background-color: #E5E5EA; color: black;
+    border-bottom-left-radius: 4px;
+}
+.chat-avatar {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    flex-shrink: 0;
+    margin: 0 8px;
+}
+.selection-indicator {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #c7c7cc;
+    border-radius: 50%;
+    background-color: #fff;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* 4. 选择模式下的样式 (选择器更精确) */
+.selection-mode-active .selection-indicator {
+    opacity: 1;
+}
+.selection-mode-active .message-row { /* 注意是 message-row */
+    background-color: rgba(0, 122, 255, 0.0); /* 移除之前的选中背景色 */
+}
+.message-row.selected { /* 新增：只给被选中的行加背景色 */
+     background-color: rgba(0, 122, 255, 0.08);
+}
+.message-row.selected .selection-indicator {
+    background-color: #007aff;
+    border-color: #007aff;
+}
+.message-row.selected .selection-indicator::after {
+    content: '✔';
+    color: white;
+    font-size: 12px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* 5. 【关键】选择模式下的平移动画 (最终加强版) */
+#chat-screen.selection-mode-active .message-content-wrapper.ai {
+    transform: translateX(30px) !important;
+}
+    
+    </style>
+
+<style id="custom-bubble-styles"></style>
+
+</head>
+
+<body>
+
+    <div class="phone-frame">
+        <div id="dynamic-island" class="dynamic-island">
+            <div class="island-collapsed-content">
+                <div class="waveform">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            <div class="island-expanded-content">
+                <div class="song-details">
+                    <div id="island-song-title" class="song-title">Pepas</div>
+                    <div id="island-song-artist" class="song-artist">Farruko</div>
+                </div>
+                <div class="progress-container">
+                    <span id="progress-current-time">0:00</span>
+                    <div class="progress-bar-wrapper">
+                        <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                    </div>
+                    <span id="progress-remaining-time">-0:00</span>
+                </div>
+                <div class="controls-container">
+                    <button id="island-prev-btn" class="control-button">
+                        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path></svg>
+                    </button>
+                    <button id="island-play-pause-btn" class="control-button play-pause">
+                        <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                        <svg class="pause-icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+                    </button>
+                    <button id="island-next-btn" class="control-button">
+                        <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zm-4.5 6l-8.5 6V6z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="home-screen" class="screen active">
+
+            <div class="content">
+
+                <div class="header-content">
+                    <div class="clock">
+                        <span id="clock-hours">--</span>
+                        <span id="clock-minutes">--</span>
+                    </div>
+                    <div class="motto-container">
+                        <p id="motto" contenteditable="true">签名语录 (点击编辑)</p>
+                    </div>
+                </div>
+
+                <div class="widget-placeholder" id="widgetContainer">
+                    <span id="widgetText">Widgets（点击展示照片）</span>
+                    <input type="file" id="imageUploader" accept="image/*" style="display: none;">
+                </div>
+
+                <div class="app-grid">
+                    <div class="app-container" id="messages-app-icon">
+                        <div class="app-icon">
+                            <img src="https://i.postimg.cc/bJnwpTQR/app.png" alt="消息图标">
+                        </div>
+                        <span class="app-name">消息</span>
+                    </div>
+
+                    <div class="app-container" id="music-app-icon">
+                        <div class="app-icon">
+                            <img src="https://i.postimg.cc/TPzWVh0C/Apple-Music-Icon.png" alt="音乐图标">
+                        </div>
+                        <span class="app-name">音乐</span>
+                    </div>
+
+                    <div class="app-container">
+                        <div class="app-icon">
+                            <img src="https://i.postimg.cc/RFhwRjxZ/image.png" alt="邮件图标">
+                        </div>
+                        <span class="app-name">邮件</span>
+                    </div>
+
+                    <div class="app-container" id="settings-app-icon">
+                        <div class="app-icon">
+                            <img src="https://i.postimg.cc/y6g7qvVg/Settings.png" alt="设置图标">
+                        </div>
+                        <span class="app-name">设置</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+        <div id="settings-screen" class="screen">
+            <div class="settings-header">
+                <button id="back-button" class="header-text-button">返回</button>
+                <h1>设置</h1>
+                <button id="save-settings-button" class="header-text-button">保存</button>
+            </div>
+            <div class="settings-content">
+                <div class="form-group">
+                    <label for="api-url">URL</label>
+                    <input type="text" id="api-url" class="form-input" placeholder="例如：https://api.openai.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="api-key">KEY</label>
+                    <input type="password" id="api-key" class="form-input" placeholder="请输入您的 API Key">
+                </div>
+
+                <div class="form-group" style="display:flex; align-items:center; gap:15px;">
+                    <button id="connect-api-button" class="form-button">连接测试</button>
+                    <span id="api-connection-status" style="font-size: 14px; color: #8A8A8E;"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="api-model">模型</label>
+                    <select id="api-model" class="form-select" disabled>
+                        <option value="" disabled selected>请先连接成功</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="temperature-slider" style="display:flex; justify-content:space-between;">
+                        <span>温度</span>
+                        <span id="temperature-value">1.0</span>
+                    </label>
+                    <input type="range" id="temperature-slider" class="form-slider" min="0" max="2" value="1"
+                        step="0.1">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>显示小组件</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-widget-visibility" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </label>
+                </div>
+                <div class="form-group"> <label>主页壁纸</label>
+                    <div class="wallpaper-controls">
+                        <div id="wallpaper-preview"></div>
+                        <div class="wallpaper-buttons">
+                            <button id="upload-wallpaper-btn" class="form-button-secondary">选择图片</button>
+                            <button id="reset-wallpaper-btn" class="form-button-secondary">恢复默认</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="file" id="wallpaper-upload-input" accept="image/*" style="display: none;">
+            </div>
+            
+        </div>
+        <div id="music-screen" class="screen">
+            <div class="settings-header">
+                <button id="music-back-button" class="header-text-button">返回</button>
+                <h1>音乐</h1>
+            </div>
+            <div id="music-content" class="music-content">
+                <button id="add-playlist-btn" class="add-playlist-button">新建歌单</button> 
+                <!-- 这个 div 将用来存放所有新建的歌单 -->
+                <div id="playlist-grid" class="playlist-grid">
+                    <!-- 歌单项会通过 JS 动态添加到这里 -->
+                </div>
+            </div>
+            
+        </div>
+        <div id="playlist-detail-screen" class="screen">
+            <div class="settings-header playlist-header">
+                <button id="playlist-back-button" class="header-text-button">返回</button>
+                <h1 id="playlist-name-title">歌单名称</h1>
+                <div class="header-actions">
+                    <button id="upload-cover-btn" class="header-button">封</button>
+                    <button id="multi-select-btn" class="header-button">批</button>
+                </div>
+            </div>
+            <div class="playlist-content">
+                <button id="import-music-button" class="import-button">导入歌曲</button>
+                <ul id="song-list" class="song-list">
+                    </ul>
+            </div>
+            <input type="file" id="music-file-input" accept=".mp3,.wav,.flac" multiple="" style="display: none;">
+        </div>
+        <div id="messages-screen" class="screen">
+            <div class="settings-header">
+                <button id="messages-back-button" class="header-text-button">返回</button>
+                <h1>消息</h1>
+                <div class="header-actions">
+                    <button id="messages-add-btn" class="header-button">添加</button>
+                    <button id="messages-multiselect-btn" class="header-button">多选</button>
+                </div>
+            </div>
+            <!-- 这里是消息界面的内容区域，现在是空的 -->
+            <div class="messages-content">
+    <ul id="contact-list" class="contact-list">
+        <!-- 联系人列表项将通过 JS 动态添加到这里 -->
+    </ul>
+</div>
+        </div>
+        
+        <input type="file" id="cover-upload-input" accept="image/*" style="display: none;">
+        <audio id="audio-player" style="display:none;"></audio>
+        <!-- === 新增：添加联系人弹出层 (Modal) === -->
+<div id="add-contact-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+
+        <!-- 1. 顶部滑块和关闭按钮 -->
+        <div class="modal-header">
+            <div class="role-switcher">
+                <span class="switch-label active" data-form="ai">Char</span>
+                <label class="switch">
+                    <input type="checkbox" id="role-switch-checkbox">
+                    <span class="slider round"></span>
+                </label>
+                <span class="switch-label" data-form="user">User</span>
+            </div>
+            <button id="modal-close-btn" class="modal-close-button">&times;</button>
+        </div>
+
+        <!-- 2. AI信息表单 (默认显示) -->
+        <div id="ai-form" class="role-form active">
+            <div class="avatar-uploader">
+                <img src="https://placehold.co/100x100/EFEFEF/AAAAAA?text=AI" id="ai-avatar-preview" class="avatar-preview">
+                <input type="file" id="ai-avatar-input" class="avatar-input" accept="image/*">
+                <label for="ai-avatar-input" class="avatar-upload-label">上传头像</label>
+            </div>
+            <input type="text" id="ai-name-input" class="form-input" placeholder="  角色名">
+            <textarea id="ai-persona-input" class="form-textarea" placeholder="人设输入区域..."></textarea>
+        </div>
+
+        <!-- 3. 用户信息表单 (默认隐藏) -->
+        <div id="user-form" class="role-form">
+            <div class="avatar-uploader">
+                <img src="https://placehold.co/100x100/EFEFEF/AAAAAA?text=User" id="user-avatar-preview" class="avatar-preview">
+                <input type="file" id="user-avatar-input" class="avatar-input" accept="image/*">
+                <label for="user-avatar-input" class="avatar-upload-label">上传头像</label>
+            </div>
+            <input type="text" id="user-name-input" class="form-input" placeholder="  你的名字">
+            <textarea id="user-persona-input" class="form-textarea" placeholder="你的人设..."></textarea>
+        </div>
+
+        <!-- 4. 底部公共部分 -->
+        <div class="modal-footer">
+            <div class="form-group-inline">
+                <label for="context-memory-input">上下文记忆:</label>
+                <input type="number" id="context-memory-input" class="form-input" value="10" min="0" max="100">
+            </div>
+            <button id="save-contact-btn" class="save-button">保存</button>
+        </div>
+
+    </div>
+</div>
+       <!-- === 新增：聊天界面 === -->
+<div id="chat-screen" class="screen">
+    <!-- 1. 悬浮顶栏 -->
+    <div class="chat-header">
+    <button id="chat-back-button" class="header-text-button">返回</button>
+    <h1 id="chat-contact-name">角色名</h1>
+    <div id="chat-header-actions-normal" style="margin-left: auto;">
+        <button id="chat-settings-button" class="header-text-button">设置</button>
+    </div>
+    <div id="chat-header-actions-select" style="margin-left: auto; display: none;">
+        <button id="delete-messages-btn" class="header-text-button" style="color: #ff3b30;">删除</button>
+        <button id="cancel-selection-btn" class="header-text-button">取消</button>
+    </div>
+    </div>
+
+    <!-- 2. 聊天消息容器 -->
+    <div id="chat-messages-container" class="chat-messages-container">
+        <!-- 聊天气泡将通过 JS 动态添加到这里 -->
+    </div>
+
+    <div id="more-features-panel" class="features-panel">
+        <div class="features-grid">
+            <div class="feature-item" id="receipt-feature">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 14C18.8726 13.9669 18.74 13.9593 18.6096 13.9777C18.4793 13.996 18.3539 14.0398 18.2405 14.1067C18.1272 14.1736 18.0282 14.2622 17.9492 14.3675C17.8701 14.4727 17.8126 14.5925 17.78 14.72C17.3976 16.2285 16.5234 17.5666 15.2956 18.5228C14.0677 19.479 12.5563 19.9988 11 20H5.41002L6.05002 19.37C6.23627 19.1826 6.34081 18.9292 6.34081 18.665C6.34081 18.4008 6.23627 18.1474 6.05002 17.96C5.06751 16.9816 4.39772 15.7334 4.1256 14.3737C3.85348 13.0141 3.9913 11.6043 4.52156 10.3231C5.05183 9.04185 5.95065 7.94699 7.10404 7.17733C8.25743 6.40768 9.61342 5.99791 11 6C11.2932 5.98479 11.5869 5.98479 11.88 6C12.1452 6.03183 12.4122 5.95699 12.6223 5.79196C12.8323 5.62693 12.9682 5.38522 13 5.12C13.0318 4.85478 12.957 4.58779 12.792 4.37775C12.6269 4.16771 12.3852 4.03183 12.12 4C11.7471 3.97484 11.3729 3.97484 11 4C9.30748 4.00556 7.65082 4.48828 6.2202 5.39274C4.78959 6.2972 3.64301 7.58673 2.91209 9.11332C2.18116 10.6399 1.89553 12.3417 2.08796 14.0232C2.2804 15.7048 2.94311 17.298 4.00002 18.62L2.29002 20.29C2.15126 20.4306 2.05726 20.6092 2.01989 20.8032C1.98252 20.9972 2.00344 21.1979 2.08002 21.38C2.15504 21.5626 2.28244 21.7189 2.44616 21.8293C2.60988 21.9396 2.80259 21.999 3.00002 22H11C12.9963 22.0013 14.9363 21.3388 16.5149 20.1169C18.0934 18.895 19.221 17.1829 19.72 15.25C19.7576 15.1206 19.7687 14.985 19.7526 14.8512C19.7365 14.7175 19.6936 14.5883 19.6263 14.4716C19.5591 14.3549 19.469 14.2529 19.3613 14.1719C19.2537 14.0908 19.1308 14.0324 19 14ZM21.71 7.26C21.6171 7.16627 21.5065 7.09188 21.3846 7.04111C21.2627 6.99034 21.132 6.9642 21 6.9642C20.868 6.9642 20.7373 6.99034 20.6154 7.04111C20.4936 7.09188 20.383 7.16627 20.29 7.26L19 8.59V3C19 2.73478 18.8947 2.48043 18.7071 2.29289C18.5196 2.10536 18.2652 2 18 2C17.7348 2 17.4804 2.10536 17.2929 2.29289C17.1054 2.48043 17 2.73478 17 3V8.59L15.71 7.29C15.6168 7.19676 15.5061 7.1228 15.3843 7.07234C15.2624 7.02188 15.1319 6.99591 15 6.99591C14.8682 6.99591 14.7376 7.02188 14.6158 7.07234C14.4939 7.1228 14.3833 7.19676 14.29 7.29C14.1968 7.38324 14.1228 7.49393 14.0724 7.61575C14.0219 7.73757 13.9959 7.86814 13.9959 8C13.9959 8.13186 14.0219 8.26243 14.0724 8.38425C14.1228 8.50607 14.1968 8.61676 14.29 8.71L17.29 11.71C17.3851 11.801 17.4973 11.8724 17.62 11.92C17.7397 11.9729 17.8691 12.0002 18 12.0002C18.1309 12.0002 18.2603 11.9729 18.38 11.92C18.5028 11.8724 18.6149 11.801 18.71 11.71L21.71 8.71C21.8037 8.61704 21.8781 8.50644 21.9289 8.38458C21.9797 8.26272 22.0058 8.13201 22.0058 8C22.0058 7.86799 21.9797 7.73728 21.9289 7.61542C21.8781 7.49356 21.8037 7.38296 21.71 7.29V7.26Z"/>
+                    </svg>
+                </div>
+                <span class="feature-name">接收</span>
+            </div>
+            </div>
+    </div>
+
+    <!-- 3. 底部输入区域 -->
+    <div class="chat-input-area">
+        <!-- 用下面的 SVG 替换掉原来的加号按钮 -->
+<button id="chat-add-attachment-button" class="chat-action-button">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 4.5V11.25L15 12L12.0762 19.5H12V13.4766L9 12.7266L11.9238 4.5H12ZM13.5 3H10.8662L10.5117 3.99609L7.58496 12.2256L7.03418 13.7812L8.63672 14.1826L10.5 14.6484V21H13.1016L13.4736 20.0449L16.3975 12.5449L17.0156 10.957L13.5 10.0781V3Z" fill="black"/>
+        </svg>
+        
+           
+        
+</button>
+        <input type="text" id="chat-message-input" placeholder="输入消息...">
+        <button id="chat-send-button" class="chat-action-button">
+            <svg t="1755525428099" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6198"><path d="M815.744 74.752a587.52 587.52 0 0 0-84.864 5.632 958.976 958.976 0 0 0-63.616 10.496 1597.44 1597.44 0 0 0-138.752 33.6A2104.384 2104.384 0 0 0 258.112 221.44a1344.576 1344.576 0 0 0-55.616 26.496 652.672 652.672 0 0 0-67.84 39.104 313.6 313.6 0 0 0-17.664 12.8 201.984 201.984 0 0 0-22.016 19.968 110.08 110.08 0 0 0-11.2 14.72 58.368 58.368 0 0 0-8.768 38.272 85.12 85.12 0 0 0 4.736 21.12 92.928 92.928 0 0 0 12.992 24.64 142.08 142.08 0 0 0 29.376 29.12 198.4 198.4 0 0 0 23.04 15.232 379.52 379.52 0 0 0 40 19.2c9.344 3.968 19.008 7.552 28.8 10.944a723.456 723.456 0 0 0 60.16 18.112c10.24 2.688 20.352 5.12 30.4 7.552 20.096 4.736 39.808 8.96 57.984 12.736l24.896 5.12c12.736 2.56 24.192 4.992 34.112 7.104 9.92 2.176 18.304 4.032 24.96 5.888a200.192 200.192 0 0 1 22.912 8.128c1.088 0.512 1.728 0.96 2.624 1.472 1.088 0.64 2.432 1.28 3.2 1.92l0.576 0.32a22.912 22.912 0 0 1 5.952 6.784 44.352 44.352 0 0 1 3.2 6.4c1.024 2.624 2.176 5.952 3.328 9.984 1.152 4.032 2.368 8.768 3.648 14.464 5.824 26.752 11.392 51.968 16.704 75.648 5.312 23.68 10.432 45.824 15.36 66.368 4.992 20.544 9.856 39.68 14.656 56.96a975.616 975.616 0 0 0 14.4 47.168 453.568 453.568 0 0 0 15.744 38.848c2.816 5.952 5.76 11.52 8.832 16.768a114.816 114.816 0 0 0 28.224 33.28 80.128 80.128 0 0 0 14.912 8.96 71.232 71.232 0 0 0 32.384 6.272 49.024 49.024 0 0 0 15.872-3.84 69.12 69.12 0 0 0 16.768-9.536 104.128 104.128 0 0 0 14.016-12.352c4.48-4.608 8.896-9.6 13.12-14.912a459.072 459.072 0 0 0 39.04-59.776 882.24 882.24 0 0 0 26.56-50.816 1349.12 1349.12 0 0 0 27.008-58.496 1841.28 1841.28 0 0 0 39.744-98.048 2304.128 2304.128 0 0 0 67.52-210.112 1653.568 1653.568 0 0 0 22.848-100.224 816 816 0 0 0 12.352-89.28c0.704-9.152 1.152-18.048 1.28-26.624a340.608 340.608 0 0 0-0.384-24.704 239.104 239.104 0 0 0-4.224-33.536 148.8 148.8 0 0 0-10.88-31.104 87.104 87.104 0 0 0-12.288-17.408 77.44 77.44 0 0 0-16.832-13.76 100.224 100.224 0 0 0-20.032-9.472 168.064 168.064 0 0 0-21.76-5.888 223.488 223.488 0 0 0-22.464-3.2 315.52 315.52 0 0 0-24.64-1.408z m-1.344 64c7.04 0.128 13.696 0.384 19.84 1.024 6.528 0.64 12.16 1.472 16.896 2.496 4.736 0.96 8.64 2.048 11.84 3.2 3.2 1.152 5.76 2.432 7.68 3.52 1.92 1.152 3.2 2.112 3.968 3.008a19.584 19.584 0 0 1 2.752 4.352 48.192 48.192 0 0 1 3.136 8 166.72 166.72 0 0 1 4.48 29.632 406.336 406.336 0 0 1-3.2 68.352 744.32 744.32 0 0 1-9.024 57.024 1181.888 1181.888 0 0 1-13.632 62.72 1617.664 1617.664 0 0 1-27.52 100.672 2179.712 2179.712 0 0 1-84.608 231.04 1579.008 1579.008 0 0 1-38.528 81.088 807.552 807.552 0 0 1-24.256 42.752 398.464 398.464 0 0 1-21.376 30.976 130.944 130.944 0 0 1-8.832 10.048 58.432 58.432 0 0 1-6.528 5.824l-0.256 0.256a16 16 0 0 1-3.712-2.56 40.832 40.832 0 0 1-5.376-5.952 83.2 83.2 0 0 1-5.76-8.448 148.672 148.672 0 0 1-6.016-11.392 383.744 383.744 0 0 1-19.52-52.864c-2.176-7.36-4.48-15.104-6.72-23.296a1712.64 1712.64 0 0 1-13.888-54.208c-4.8-19.84-9.728-41.472-14.976-64.896-5.312-23.424-10.88-48.704-16.896-75.84a296.128 296.128 0 0 0-4.48-18.048 163.392 163.392 0 0 0-9.408-24.96c-1.28-2.624-2.688-5.12-4.224-7.68l-0.64-0.96 127.04-126.976a32.192 32.192 0 0 0 6.976-10.688 31.36 31.36 0 0 0 0-24 32 32 0 0 0-12.032-14.72 32.192 32.192 0 0 0-23.68-4.608 31.36 31.36 0 0 0-16.576 8.704L484.096 494.72l-2.944-1.28a273.6 273.6 0 0 0-17.408-5.376 516.48 516.48 0 0 0-28.864-7.04 2955.072 2955.072 0 0 0-36.608-7.616l-22.912-4.608a2065.92 2065.92 0 0 1-84.992-19.456 888.192 888.192 0 0 1-55.744-16.768 466.624 466.624 0 0 1-25.152-9.536 314.56 314.56 0 0 1-22.208-10.112 201.472 201.472 0 0 1-19.008-10.88 120 120 0 0 1-18.368-14.848 57.28 57.28 0 0 1-6.912-8.64 25.472 25.472 0 0 1-4.096-11.264l1.024-1.472a60.16 60.16 0 0 1 6.08-6.656 136.32 136.32 0 0 1 10.368-8.96 393.984 393.984 0 0 1 52.032-33.024 799.68 799.68 0 0 1 48.64-24.768 1277.44 1277.44 0 0 1 56.448-25.216 1997.952 1997.952 0 0 1 95.488-36.992 2169.216 2169.216 0 0 1 102.656-34.048 2061.632 2061.632 0 0 1 102.656-28.096 1537.408 1537.408 0 0 1 64.832-14.272 1111.232 1111.232 0 0 1 60.16-9.856 705.728 705.728 0 0 1 52.608-4.864 371.2 371.2 0 0 1 22.528-0.256z" fill="#ffffff" p-id="6199"></path></svg>
+        </button>
+    </div>
+</div> 
+
+<!-- === 新增：聊天设置弹出层 (Modal) === -->
+<div id="chat-settings-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content large"> <!-- 使用 .large 类让对话框更宽敞 -->
+
+        <!-- 顶部关闭按钮 -->
+        <div class="modal-header">
+            <h2>聊天设置</h2>
+            <button id="chat-settings-close-btn" class="modal-close-button">&times;</button>
+        </div>
+
+        <!-- 对话框主体内容 -->
+        <div class="modal-body">
+            
+            <!-- 左侧：角色编辑区域 (复用之前的结构) -->
+            <div class="settings-column">
+                <h4>角色信息</h4>
+                <div class="role-switcher">
+                    <span class="switch-label active" data-form="ai-settings">Char</span>
+                    <label class="switch">
+                        <input type="checkbox" id="role-switch-checkbox-settings">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label" data-form="user-settings">User</span>
+                </div>
+                
+                <div id="ai-form-settings" class="role-form active">
+                    <div class="avatar-uploader">
+                        <img src="https://placehold.co/100x100/EFEFEF/AAAAAA?text=AI" id="ai-avatar-preview-settings" class="avatar-preview">
+                        <input type="file" id="ai-avatar-input-settings" class="avatar-input" accept="image/*">
+                        <label for="ai-avatar-input-settings" class="avatar-upload-label">上传头像</label>
+                    </div>
+                    <input type="text" id="ai-name-input-settings" class="form-input" placeholder="角色名">
+                    <textarea id="ai-persona-input-settings" class="form-textarea" placeholder="人设..."></textarea>
+                </div>
+
+                <div id="user-form-settings" class="role-form">
+                     <div class="avatar-uploader">
+                        <img src="https://placehold.co/100x100/EFEFEF/AAAAAA?text=User" id="user-avatar-preview-settings" class="avatar-preview">
+                        <input type="file" id="user-avatar-input-settings" class="avatar-input" accept="image/*">
+                        <label for="user-avatar-input-settings" class="avatar-upload-label">上传头像</label>
+                    </div>
+                    <input type="text" id="user-name-input-settings" class="form-input" placeholder="你的名字">
+                    <textarea id="user-persona-input-settings" class="form-textarea" placeholder="你的人设..."></textarea>
+                </div>
+                 <div class="form-group-inline">
+                    <label>上下文记忆:</label>
+                    <input type="number" id="context-memory-input-settings" class="form-input" value="10" min="0" max="100">
+                </div>
+            </div>
+
+            <!-- 右侧：新增的聊天自定义区域 -->
+            <div class="settings-column">
+                <h4>个性化</h4>
+                <div class="form-group">
+                    <label>自定义气泡样式 (CSS)</label>
+                    <textarea id="bubble-css-input" class="form-textarea code" placeholder=".user-bubble {&#10;  background-color: #007AFF;&#10;}&#10;.ai-bubble {&#10;  background-color: #E5E5EA;&#10;}"></textarea>
+                    <button id="restore-bubble-css-btn" class="form-button-secondary small">恢复默认</button>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>显示聊天头像</span>
+                        <label class="switch">
+                            <input type="checkbox" id="show-avatars-toggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </label>
+                    <div class="form-group-inline" style="margin-top: 8px;">
+                        <label for="avatar-radius-input">头像圆角值:</label>
+                        <input type="text" id="avatar-radius-input" class="form-input" value="50%" placeholder="e.g., 50% or 8px">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>聊天背景</label>
+                    <div class="wallpaper-buttons">
+                         <button id="upload-chat-bg-btn" class="form-button-secondary">选择图片</button>
+                         <button id="reset-chat-bg-btn" class="form-button-secondary">恢复默认</button>
+                    </div>
+                </div>
+
+                <div class="form-group danger-zone">
+                    <label>危险操作</label>
+                    <button id="clear-history-btn" class="danger-button">清除聊天记录</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 底部保存按钮 -->
+        <div class="modal-footer">
+            <button id="save-chat-settings-btn" class="save-button">保存设置</button>
+        </div>
+        
+        <!-- 隐藏的文件上传输入框 -->
+        <input type="file" id="chat-bg-upload-input" accept="image/*" style="display: none;">
+    </div>
+</div>
+
+    </div>
+
+    <script>
+    
+        // === IndexedDB 帮助函数 START ===
+
+// === IndexedDB 帮助函数 (已彻底修复) ===
+const dbHelper = {
+    db: null,
+    dbName: 'phoneDataDB',
+
+    // 1. 初始化数据库
+    async init() {
+        return new Promise((resolve, reject) => {
+            if (this.db) {
+                resolve();
+                return;
+            }
+            // 数据库版本提升到 2，以确保 onupgradeneeded 事件被触发，从而创建新的数据仓库
+            const request = indexedDB.open(this.dbName, 2);
+
+            request.onerror = (event) => {
+                console.error("数据库打开失败:", event);
+                reject("数据库打开失败");
+            };
+
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                resolve();
+            };
+
+            // 第一次创建或版本更新时调用
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                // 我们App需要的所有数据仓库列表
+                const stores = ['settingsStore', 'messageContacts', 'musicPlaylists'];
+                stores.forEach(storeName => {
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        db.createObjectStore(storeName, { keyPath: 'id' });
+                    }
+                });
+            };
+        });
+    },
+
+    // 2. 保存/更新数据 (已修复：接受 storeName 参数)
+    async saveData(storeName, id, value) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.put({ id, value }); // 数据结构为 {id: 'key', value: 'the_data'}
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject(`数据保存到 ${storeName} 失败: ` + event.target.error);
+        });
+    },
+
+    // 3. 读取数据 (已修复：接受 storeName 参数)
+    async loadData(storeName, id) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.get(id);
+
+            request.onsuccess = () => resolve(request.result); 
+            request.onerror = (event) => reject(`从 ${storeName} 读取数据失败: ` + event.target.error);
+        });
+    },
+
+    // 4. 删除数据 (已修复：接受 storeName 参数)
+    async deleteData(storeName, id) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.delete(id);
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject(`从 ${storeName} 删除数据失败: ` + event.target.error);
+        });
+    }
+};
+// === IndexedDB 帮助函数 END ===
+        // === 新增：页面导航的脚本 ===
+        const audioPlayer = document.getElementById('audio-player');
+const wallpaperUploadInput = document.getElementById('wallpaper-upload-input');
+        const phoneFrame = document.querySelector('.phone-frame');
+        const homeScreen = document.getElementById('home-screen');
+        const settingsScreen = document.getElementById('settings-screen');
+        const settingsAppIcon = document.getElementById('settings-app-icon');
+        const backButton = document.getElementById('back-button');
+        const saveSettingsButton = document.getElementById('save-settings-button');
+        const musicAppIcon = document.getElementById('music-app-icon');
+    const musicScreen = document.getElementById('music-screen');
+    const musicBackButton = document.getElementById('music-back-button');
+
+    const messagesAppIcon = document.getElementById('messages-app-icon');
+const messagesScreen = document.getElementById('messages-screen');
+const messagesBackButton = document.getElementById('messages-back-button');
+
+
+// === 新增：添加联系人弹出层所需的所有元素 ===
+const addContactModal = document.getElementById('add-contact-modal');
+const messagesAddBtn = document.getElementById('messages-add-btn');
+const modalCloseBtn = document.getElementById('modal-close-btn');
+const roleSwitchCheckbox = document.getElementById('role-switch-checkbox');
+const switchLabels = document.querySelectorAll('.switch-label');
+const aiForm = document.getElementById('ai-form');
+const userForm = document.getElementById('user-form');
+const contactList = document.getElementById('contact-list');
+
+// 表单内部元素
+const aiAvatarPreview = document.getElementById('ai-avatar-preview');
+const aiAvatarInput = document.getElementById('ai-avatar-input');
+const aiNameInput = document.getElementById('ai-name-input');
+const aiPersonaInput = document.getElementById('ai-persona-input');
+
+const userAvatarPreview = document.getElementById('user-avatar-preview');
+const userAvatarInput = document.getElementById('user-avatar-input');
+const userNameInput = document.getElementById('user-name-input');
+const userPersonaInput = document.getElementById('user-persona-input');
+
+const contextMemoryInput = document.getElementById('context-memory-input');
+const saveContactBtn = document.getElementById('save-contact-btn');
+const messagesMultiselectBtn = document.getElementById('messages-multiselect-btn');
+
+// === 新增：聊天界面所需的所有元素 ===
+const chatScreen = document.getElementById('chat-screen');
+const chatBackButton = document.getElementById('chat-back-button');
+const chatContactName = document.getElementById('chat-contact-name');
+const chatMessagesContainer = document.getElementById('chat-messages-container');
+const chatMessageInput = document.getElementById('chat-message-input');
+const chatSendButton = document.getElementById('chat-send-button');
+let isAiReplying = false;
+
+
+// === 新增：聊天设置弹出层所需的所有元素 ===
+const chatSettingsModal = document.getElementById('chat-settings-modal');
+const chatSettingsButton = document.getElementById('chat-settings-button');
+const chatSettingsCloseBtn = document.getElementById('chat-settings-close-btn');
+const saveChatSettingsBtn = document.getElementById('save-chat-settings-btn');
+
+// 角色编辑 (在设置弹窗内)
+const roleSwitchCheckboxSettings = document.getElementById('role-switch-checkbox-settings');
+const aiFormSettings = document.getElementById('ai-form-settings');
+const userFormSettings = document.getElementById('user-form-settings');
+const aiAvatarPreviewSettings = document.getElementById('ai-avatar-preview-settings');
+const aiAvatarInputSettings = document.getElementById('ai-avatar-input-settings');
+const aiNameInputSettings = document.getElementById('ai-name-input-settings');
+const aiPersonaInputSettings = document.getElementById('ai-persona-input-settings');
+const userAvatarPreviewSettings = document.getElementById('user-avatar-preview-settings');
+const userAvatarInputSettings = document.getElementById('user-avatar-input-settings');
+const userNameInputSettings = document.getElementById('user-name-input-settings');
+const userPersonaInputSettings = document.getElementById('user-persona-input-settings');
+const contextMemoryInputSettings = document.getElementById('context-memory-input-settings');
+
+// 个性化设置
+const bubbleCssInput = document.getElementById('bubble-css-input');
+const restoreBubbleCssBtn = document.getElementById('restore-bubble-css-btn');
+const uploadChatBgBtn = document.getElementById('upload-chat-bg-btn');
+const resetChatBgBtn = document.getElementById('reset-chat-bg-btn');
+const chatBgUploadInput = document.getElementById('chat-bg-upload-input');
+const clearHistoryBtn = document.getElementById('clear-history-btn');
+const customBubbleStyles = document.getElementById('custom-bubble-styles');
+
+const showAvatarsToggle = document.getElementById('show-avatars-toggle');
+const avatarRadiusInput = document.getElementById('avatar-radius-input');
+        
+        // === 新增：API 设置所需的元素 ===
+        
+        const apiUrlInput = document.getElementById('api-url');
+        const apiKeyInput = document.getElementById('api-key');
+        const connectButton = document.getElementById('connect-api-button');
+        const apiStatusSpan = document.getElementById('api-connection-status');
+        const modelSelect = document.getElementById('api-model');
+        const saveApiButton = document.getElementById('save-settings-button'); // 这个按钮是设置页顶部的保存按钮
+        const tempSlider = document.getElementById('temperature-slider');
+        const tempValueSpan = document.getElementById('temperature-value');
+        // === 1. 获取所有需要操作的HTML元素 ===
+        // 时钟元素
+        const clockHoursElem = document.getElementById('clock-hours');
+        const clockMinutesElem = document.getElementById('clock-minutes');
+        // 语录元素
+        const mottoElem = document.getElementById('motto');
+        // 小组件元素
+        const widgetContainer = document.getElementById('widgetContainer');
+        const widgetVisibilityToggle = document.getElementById('toggle-widget-visibility');
+        const imageUploader = document.getElementById('imageUploader');
+        const widgetText = document.getElementById('widgetText');
+        // === 新增：壁纸功能所需的元素 ===
+const wallpaperPreview = document.getElementById('wallpaper-preview');
+const resetWallpaperBtn = document.getElementById('reset-wallpaper-btn');
+const uploadWallpaperBtn = document.getElementById('upload-wallpaper-btn');
+const defaultBodyBg = '#f0f2f5'; // 一个柔和的淡粉色
+
+
+// --- 新增：灵动岛相关元素和状态管理 ---
+const dynamicIsland = document.getElementById('dynamic-island');
+const islandSongTitle = document.getElementById('island-song-title');
+const islandSongArtist = document.getElementById('island-song-artist');
+const islandPlayPauseBtn = document.getElementById('island-play-pause-btn');
+const islandPrevBtn = document.getElementById('island-prev-btn');
+const islandNextBtn = document.getElementById('island-next-btn');
+const progressCurrentTime = document.getElementById('progress-current-time');
+const progressRemainingTime = document.getElementById('progress-remaining-time');
+const progressBarFill = document.getElementById('progress-bar-fill');
+
+let playbackState = {
+    playlist: [],       // 当前播放的整个歌单
+    currentIndex: -1,   // 当前歌曲在歌单中的索引
+    currentSong: null,  // 当前歌曲的对象
+    isPlaying: false
+};
+        // === 2. 时钟功能 ===
+        function updateClock() {
+            const now = new Date();
+            // 使用padStart确保数字总是两位数 (例如 01, 02)
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            clockHoursElem.textContent = hours;
+            clockMinutesElem.textContent = minutes;
+        }
+
+        // === 3. 数据存储功能 (使用 localStorage) ===
+
+        // 功能A: 加载已保存的数据 (页面打开时执行)
+        // 将 function loadData() 修改为 async function loadData()
+async function loadData() {
+    
+    // 加载语录
+    // 原代码: const savedMotto = localStorage.getItem('savedMotto');
+    const mottoData = await dbHelper.loadData('settingsStore', 'savedMotto');
+    if (mottoData) {
+        mottoElem.textContent = mottoData.value;
+    }
+
+    // 加载小组件图片
+    // 原代码: const savedWidgetImage = localStorage.getItem('savedWidgetImage');
+    const widgetImageData = await dbHelper.loadData('settingsStore', 'savedWidgetImage');
+    if (widgetImageData) {
+        widgetContainer.style.backgroundImage = `url('${widgetImageData.value}')`;
+        widgetText.style.display = 'none';
+        widgetContainer.style.border = 'none';
+    }
+
+    // 加载API设置
+    // 原代码: const savedApiSettings = localStorage.getItem('apiSettings');
+    const apiSettingsData = await dbHelper.loadData('settingsStore', 'apiSettings');
+    if (apiSettingsData) {
+        // IndexedDB可以直接存对象，所以无需JSON.parse
+        const settings = apiSettingsData.value;
+        apiUrlInput.value = settings.url || '';
+        apiKeyInput.value = settings.key || '';
+        if (settings.model) {
+            modelSelect.innerHTML = `<option value="${settings.model}">${settings.model}</option>`;
+            modelSelect.value = settings.model;
+            modelSelect.disabled = false;
+        }
+        tempSlider.value = settings.temperature || 1.0;
+        updateSliderProgress();
+    }
+
+    // 加载壁纸
+    // 原代码: const savedWallpaper = localStorage.getItem('homeWallpaper') || defaultBodyBg;
+    const wallpaperData = await dbHelper.loadData('settingsStore', 'homeWallpaper');
+    const savedWallpaper = wallpaperData ? wallpaperData.value : defaultBodyBg;
+    homeScreen.style.backgroundImage = savedWallpaper;
+    wallpaperPreview.style.backgroundImage = savedWallpaper;
+    
+    // 加载小组件可见性
+    // 原代码: const isWidgetVisible = localStorage.getItem('isWidgetVisible') !== 'false';
+    const widgetVisibleData = await dbHelper.loadData('settingsStore', 'isWidgetVisible');
+    // 如果没存过 (null/undefined)，则默认为 true
+    const isWidgetVisible = widgetVisibleData ? widgetVisibleData.value : true;
+    widgetVisibilityToggle.checked = isWidgetVisible;
+    if (!isWidgetVisible) {
+        widgetContainer.classList.add('widget-hidden');
+    }
+}
+
+        // 功能B: 保存语录 (当编辑完成时触发)
+        // "blur"事件表示元素失去焦点，即用户编辑完成
+        mottoElem.addEventListener('blur', async () => {
+    // 原代码: localStorage.setItem('savedMotto', mottoElem.textContent);
+    await dbHelper.saveData('settingsStore', 'savedMotto', mottoElem.textContent);
+});
+
+        // === 4. 小组件图片上传功能 (已集成保存功能) ===
+        widgetContainer.addEventListener('click', () => {
+            imageUploader.click();
+        });
+
+        imageUploader.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = async (e) => { 
+    const imageDataUrl = e.target.result;
+    widgetContainer.style.backgroundImage = `url('${imageDataUrl}')`;
+    widgetText.style.display = 'none';
+    widgetContainer.style.border = 'none';
+    await dbHelper.saveData('settingsStore', 'savedWidgetImage', imageDataUrl);
+};
+        reader.readAsDataURL(file);
+    }
+});
+
+        // === 5. 初始化页面 ===
+async function initializeApp() {
+        try {
+            // 首先初始化数据库
+            await dbHelper.init();
+            // 数据库准备好后，再加载数据
+            await loadData();
+
+            await loadPlaylists(); 
+
+            await loadContacts();
+
+            // 时钟功能不受影响
+            updateClock();
+            setInterval(updateClock, 30000);
+
+        } catch (error) {
+            console.error("应用初始化失败:", error);
+            alert("无法加载数据，请刷新页面重试。");
+        }
+    }
+    // 运行初始化函数
+    initializeApp();
+
+
+        
+
+        // 点击“设置”App图标：给父容器添加类名来触发动画
+        settingsAppIcon.addEventListener('click', () => {
+            phoneFrame.classList.add('show-settings');
+        });
+
+        // 点击“返回”按钮：从父容器移除类名来触发返回动画
+        backButton.addEventListener('click', () => {
+            phoneFrame.classList.remove('show-settings');
+        });
+        // === 新增：连接按钮的事件监听 ===
+        connectButton.addEventListener('click', async () => {
+            const apiUrl = apiUrlInput.value.trim();
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiUrl || !apiKey) {
+                apiStatusSpan.textContent = "URL和Key不能为空";
+                return;
+            }
+            connectButton.textContent = "连接中...";
+            connectButton.disabled = true;
+            apiStatusSpan.textContent = "";
+
+            try {
+                const response = await fetch(`${apiUrl}/v1/models`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+                const data = await response.json();
+                modelSelect.innerHTML = '<option value="" disabled selected>选择一个模型</option>';
+                data.data.forEach(model => {
+                    modelSelect.innerHTML += `<option value="${model.id}">${model.id}</option>`;
+                });
+                modelSelect.disabled = false;
+                apiStatusSpan.textContent = "✓ 连接成功";
+                apiStatusSpan.style.color = "green";
+            } catch (error) {
+                console.error("API 连接失败:", error);
+                apiStatusSpan.textContent = "✗ 连接失败";
+                apiStatusSpan.style.color = "red";
+                modelSelect.innerHTML = '<option value="" disabled selected>连接失败</option>';
+            } finally {
+                connectButton.textContent = "连接测试";
+                connectButton.disabled = false;
+            }
+        });
+
+        // === 新增：温度滑块的事件监听 ===
+        function updateSliderProgress() {
+            const value = parseFloat(tempSlider.value);
+            const percentage = (value / 2) * 100; // 因为最大值是2
+            tempSlider.style.setProperty('--progress-percent', `${percentage}%`);
+            tempValueSpan.textContent = value.toFixed(1);
+        }
+        tempSlider.addEventListener('input', updateSliderProgress);
+        // (新) 保存设置按钮的点击事件
+        // (新) 保存设置按钮的点击事件 (已修复)
+saveSettingsButton.addEventListener('click', async () => {
+    
+    // --- 关键修复在这里 ---
+    // 从各个输入框中读取当前的值，并组装成一个对象
+    const apiSettings = {
+        url: apiUrlInput.value.trim(),
+        key: apiKeyInput.value.trim(),
+        model: modelSelect.value,
+        temperature: tempSlider.value
+    };
+
+    // 将组装好的、包含最新设置的对象存入数据库
+    await dbHelper.saveData('settingsStore', 'apiSettings', apiSettings);
+
+    alert('设置已保存！');
+    phoneFrame.classList.remove('show-settings');
+});
+        // === 新增：壁纸更换的事件监听 ===
+
+// 点击“选择图片”按钮，实际是触发隐藏的 input
+uploadWallpaperBtn.addEventListener('click', () => {
+    wallpaperUploadInput.click();
+});
+
+// 当用户选择了图片文件后
+wallpaperUploadInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = async (e) => { // 改为 async
+    const imageDataUrl = `url(${e.target.result})`;
+    homeScreen.style.backgroundImage = imageDataUrl;
+    wallpaperPreview.style.backgroundImage = imageDataUrl;
+
+    // 原代码: localStorage.setItem('homeWallpaper', imageDataUrl);
+    await dbHelper.saveData('settingsStore', 'homeWallpaper', imageDataUrl);
+};
+        reader.readAsDataURL(file);
+    }
+});
+
+// 点击“恢复默认”按钮
+resetWallpaperBtn.addEventListener('click', async () => {
+    // 1. 恢复主屏幕和预览区的壁纸为默认
+    homeScreen.style.backgroundImage = 'none'; // 清除背景图片
+    homeScreen.style.backgroundColor = defaultBodyBg; // 设置背景颜色
+    wallpaperPreview.style.backgroundImage = 'none'; // 清除预览图
+    wallpaperPreview.style.backgroundColor = defaultBodyBg; // 设置预览区背景色
+
+    // 2. 从本地存储中移除自定义壁纸记录
+    await dbHelper.deleteData('settingsStore', 'homeWallpaper');
+});
+widgetVisibilityToggle.addEventListener('change', async () => { // 改为 async
+    if (widgetVisibilityToggle.checked) {
+        widgetContainer.classList.remove('widget-hidden');
+        await dbHelper.saveData('settingsStore', 'isWidgetVisible', true);
+    } else {
+        widgetContainer.classList.add('widget-hidden');
+        await dbHelper.saveData('settingsStore', 'isWidgetVisible', false);
+    }
+});
+
+// === 新增：消息 App 的导航事件 ===
+
+// 点击“消息”App图标：给父容器添加类名来触发动画
+messagesAppIcon.addEventListener('click', () => {
+    phoneFrame.classList.add('show-messages');
+});
+
+// 点击消息App的“返回”按钮：从父容器移除类名来触发返回动画
+messagesBackButton.addEventListener('click', () => {
+    phoneFrame.classList.remove('show-messages');
+});
+// === 新增：音乐App的导航事件 ===
+
+// 点击“音乐”App图标：给父容器添加类名来触发动画
+musicAppIcon.addEventListener('click', () => {
+    phoneFrame.classList.add('show-music');
+});
+
+// 点击音乐App的“返回”按钮：从父容器移除类名来触发返回动画
+musicBackButton.addEventListener('click', () => {
+    phoneFrame.classList.remove('show-music');
+});
+// === 音乐 App 歌单功能 ===
+
+// 1. 获取需要的 HTML 元素
+const addPlaylistBtn = document.getElementById('add-playlist-btn');
+const playlistGrid = document.getElementById('playlist-grid');
+
+// 2. 为“新建歌单”按钮添加点击事件
+// === 修改：“新建歌单”按钮的点击事件，增加保存功能 ===
+// === 修改：“新建歌单”按钮的点击事件，以适应新的数据结构 ===
+// === 替换为修复版：新建歌单时使用正确的新数据结构 ===
+addPlaylistBtn.addEventListener('click', async () => {
+    const playlistName = prompt("请输入新的歌单名称：");
+
+    if (playlistName && playlistName.trim() !== "") {
+        const newName = playlistName.trim();
+        try {
+            const existingData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
+            let playlists = (existingData && typeof existingData.value === 'object') ? existingData.value : {};
+            
+            if (playlists[newName]) {
+                alert("歌单名称已存在！");
+                return;
+            }
+
+            // --- 关键修复 ---
+            // 创建包含歌曲列表和封面URL的新结构
+            playlists[newName] = {
+                songs: [],
+                coverUrl: null 
+            };
+            
+            await dbHelper.saveData('musicPlaylists', 'allPlaylists', playlists);
+            
+            // 传入新建的空歌单对象
+            createPlaylistCard(newName, playlists[newName]);
+            
+        } catch (error) {
+            console.error("保存歌单失败:", error);
+            alert("无法保存歌单，请稍后重试。");
+        }
+    }
+});
+
+// 3. 定义一个函数，用于创建歌单卡片的 HTML 结构
+// === 这是 createPlaylistCard 函数的唯一正确版本 ===
+// 它创建卡片、异步更新歌曲数量，并为卡片绑定了正确的点击事件
+
+// === 替换为修复版：正确计算歌曲数量和显示封面 ===
+function createPlaylistCard(name, playlistData) {
+    const card = document.createElement('div');
+    card.className = 'playlist-card';
+    card.dataset.playlistName = name;
+
+    const coverDiv = document.createElement('div');
+    coverDiv.className = 'playlist-cover';
+    // 正确地从新结构中读取封面
+    if (playlistData && playlistData.coverUrl) {
+        coverDiv.style.backgroundImage = `url(${playlistData.coverUrl})`;
+        coverDiv.style.backgroundSize = 'cover'; // 确保封面完全填充
+    }
+
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'playlist-name';
+    nameDiv.textContent = name;
+
+    const countDiv = document.createElement('div');
+    countDiv.className = 'playlist-count';
+    // --- 关键修复 ---
+    // 正确地从新结构的 .songs 属性中获取歌曲数量
+    const songCount = (playlistData && Array.isArray(playlistData.songs)) ? playlistData.songs.length : 0;
+    countDiv.textContent = `${songCount} 首歌曲`;
+
+    card.append(coverDiv, nameDiv, countDiv);
+    playlistGrid.appendChild(card);
+
+    card.addEventListener('click', () => {
+        openPlaylistDetailView(name);
+    });
+}
+/// === 修改：从数据库加载并显示歌单（适配新数据结构） ===
+async function loadPlaylists() {
+    const playlistData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
+    if (playlistData && typeof playlistData.value === 'object') {
+        const playlists = playlistData.value;
+        playlistGrid.innerHTML = '';
+        Object.keys(playlists).forEach(name => {
+            // 将整个歌单对象传入，而不仅仅是名字
+            createPlaylistCard(name, playlists[name]);
+        });
+    }
+}
+// === 新增：歌单详情页的全部交互逻辑 ===
+
+// 1. 获取新页面的所有元素
+const playlistDetailScreen = document.getElementById('playlist-detail-screen');
+const playlistBackButton = document.getElementById('playlist-back-button');
+const playlistNameTitle = document.getElementById('playlist-name-title');
+const importMusicButton = document.getElementById('import-music-button');
+const musicFileInput = document.getElementById('music-file-input');
+const songList = document.getElementById('song-list');
+const uploadCoverBtn = document.getElementById('upload-cover-btn');
+const multiSelectBtn = document.getElementById('multi-select-btn');
+const coverUploadInput = document.getElementById('cover-upload-input');
+
+let isDeleteMode = false; // 用于跟踪是否处于删除模式
+
+let currentOpenPlaylist = null; // 存储当前打开的歌单的名称
+
+
+// 3. 打开歌单详情页的函数
+// === 修改：打开歌单详情页的函数（增加健壮性检查） ===
+// === 替换为修复版：正确显示歌曲列表 ===
+async function openPlaylistDetailView(playlistName) {
+    currentOpenPlaylist = playlistName; 
+    playlistNameTitle.textContent = playlistName; 
+    songList.innerHTML = ''; 
+
+    const allPlaylistsData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
+    
+    // --- 关键修复在这里 ---
+    // 检查新数据结构中的 .songs 属性是否是一个有效的数组
+    if (allPlaylistsData && allPlaylistsData.value && allPlaylistsData.value[playlistName] && Array.isArray(allPlaylistsData.value[playlistName].songs)) {
+        // 从 .songs 属性中获取歌曲列表
+        const songs = allPlaylistsData.value[playlistName].songs;
+        songs.forEach(song => {
+            appendSongToList(song);
+        });
+    } else {
+        // 这段代码现在只会在数据确实为空或损坏时触发
+        console.warn(`歌单 "${playlistName}" 的歌曲数据不是一个有效的数组，或者为空。`);
+    }
+
+    // 显示详情页
+    phoneFrame.classList.add('show-playlist-detail');
+}
+
+// 4. 关闭歌单详情页
+playlistBackButton.addEventListener('click', () => {
+    phoneFrame.classList.remove('show-playlist-detail');
+    currentOpenPlaylist = null; // 清理当前歌单记录
+});
+
+// 5. "导入歌曲" 按钮的点击事件
+importMusicButton.addEventListener('click', () => {
+    musicFileInput.click(); // 触发隐藏的文件选择框
+});
+
+// 6. 文件选择框检测到变化的事件
+// === 替换为修复版：向数据库存储文件对象本身 ===
+musicFileInput.addEventListener('change', async (event) => {
+    const files = event.target.files;
+    if (!files.length || !currentOpenPlaylist) return;
+
+    try {
+        const allPlaylistsData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
+        let allPlaylists = allPlaylistsData.value;
+        
+        for (const file of files) {
+            let title = file.name.replace(/\.(mp3|wav|flac)$/i, '');
+            let artist = '未知艺术家';
+            if (/\s*-\s*/.test(title)) {
+                [title, artist] = title.split(/\s*-\s*/).map(s => s.trim());
+            }
+
+            // --- 关键修改在这里 ---
+            // 我们不再创建和存储临时的 blob URL
+            // 而是直接存储 file 对象
+            const song = {
+                title: title,
+                artist: artist,
+                file: file // <--- 修改点
+            };
+            
+            allPlaylists[currentOpenPlaylist].songs.push(song);
+            appendSongToList(song);
+        }
+
+        // 更新歌曲数量
+        const cardToUpdate = playlistGrid.querySelector(`.playlist-card[data-playlist-name="${currentOpenPlaylist}"]`);
+        if (cardToUpdate) {
+            const countElement = cardToUpdate.querySelector('.playlist-count');
+            countElement.textContent = `${allPlaylists[currentOpenPlaylist].songs.length} 首歌曲`;
+        }
+
+        await dbHelper.saveData('musicPlaylists', 'allPlaylists', allPlaylists);
+
+    } catch (error) {
+        console.error("导入歌曲失败:", error);
+    } finally {
+        event.target.value = '';
+    }
+});
+
+// 7. 一个辅助函数，用于将歌曲对象添加到 HTML 列表中
+// === 替换为新版：添加歌曲到列表（带播放按钮） ===
+// === 替换为新版：为每首歌添加复选框和唯一标识 ===
+// === 替换为修复版：播放时动态生成URL，并更新删除逻辑的唯一标识 ===
+// === 替换为最终修复版：兼容新旧两种歌曲数据结构 ===
+// === 替换为新版：连接播放器到灵动岛 ===
+// === 替换为最终修复版：修复播放按钮的 ReferenceError ===
+function appendSongToList(song) {
+    const li = document.createElement('li');
+    li.className = 'song-item';
+    const songId = song.file ? `${song.file.name}-${song.file.lastModified}` : song.url;
+    li.dataset.songId = songId;
+    li.innerHTML = `
+        <input type="checkbox" class="song-checkbox">
+        <div class="song-info">
+            <div class="song-title">${song.title || '未知歌曲'}</div>
+            <div class="song-artist">${song.artist || '未知艺术家'}</div>
+        </div>
+        <button class="play-button">
+            <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="48" stroke="#ccc" stroke-width="4" fill="none"/>
+                <polygon points="35,25 75,50 35,75" fill="#555"/>
+            </svg>
+        </button>
+    `;
+    songList.appendChild(li);
+
+    const playButton = li.querySelector('.play-button');
+
+    if (song.file) {
+        // --- 关键修复：将事件处理函数标记为 async ---
+        playButton.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            
+            try {
+                // --- 关键修复：在点击时，主动从数据库加载数据 ---
+                const allPlaylistsData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
+                if (!allPlaylistsData || !allPlaylistsData.value) {
+                    throw new Error("无法加载播放列表数据。");
+                }
+                const allPlaylists = allPlaylistsData.value;
+
+                // 现在可以安全地获取歌曲列表和索引了
+                const currentPlaylistSongs = allPlaylists[currentOpenPlaylist].songs;
+                const songIndex = currentPlaylistSongs.findIndex(s => 
+                    s.file && s.file.name === song.file.name && s.file.lastModified === song.file.lastModified
+                );
+                
+                if (songIndex > -1) {
+                     startPlayback(currentPlaylistSongs, songIndex);
+                } else {
+                    throw new Error("在播放列表中找不到当前歌曲。");
+                }
+
+            } catch (error) {
+                console.error("播放时出错:", error);
+                alert("播放歌曲时出错，请查看控制台。");
+            }
+        });
+    } else {
+        playButton.disabled = true;
+        playButton.style.opacity = 0.3;
+        playButton.style.cursor = 'not-allowed';
+    }
+}
+// === 新增：上传封面和批量删除的事件逻辑 ===
+
+// --- 上传封面逻辑 ---
+uploadCoverBtn.addEventListener('click', () => {
+    if (isDeleteMode) {
+        // 如果在删除模式下，这个按钮会变成“删除所选”
+        handleBatchDelete();
+    } else {
+        // 正常模式下，触发文件选择
+        coverUploadInput.click();
+    }
+});
+
+// === 替换为最终修复版：能够处理旧数据并成功保存封面 ===
+coverUploadInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file || !currentOpenPlaylist) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const newCoverUrl = e.target.result;
+        try {
+            const allPlaylistsData = await dbHelper.loadData('musicPlaylists');
+            // 确保我们有一个对象可以操作，即使数据库是空的
+            let allPlaylists = (allPlaylistsData && allPlaylistsData.value) ? allPlaylistsData.value : {};
+            
+            // --- 关键修复在这里 ---
+            // 检查当前歌单是否存在，或者是否为旧格式（即一个数组而不是对象）
+            if (!allPlaylists[currentOpenPlaylist] || Array.isArray(allPlaylists[currentOpenPlaylist])) {
+                // 如果是旧格式，我们在这里把它“升级”为新格式
+                console.log(`正在升级旧格式歌单: "${currentOpenPlaylist}"`);
+                const oldSongs = Array.isArray(allPlaylists[currentOpenPlaylist]) ? allPlaylists[currentOpenPlaylist] : [];
+                allPlaylists[currentOpenPlaylist] = { songs: oldSongs, coverUrl: null };
+            }
+
+            // 现在可以安全地更新封面URL了
+            allPlaylists[currentOpenPlaylist].coverUrl = newCoverUrl;
+            await dbHelper.saveData('musicPlaylists', 'allPlaylists', allPlaylists);
+
+            // 实时更新主界面的封面
+            const cardToUpdate = playlistGrid.querySelector(`.playlist-card[data-playlist-name="${currentOpenPlaylist}"]`);
+            if (cardToUpdate) {
+                const coverDiv = cardToUpdate.querySelector('.playlist-cover');
+                coverDiv.style.backgroundImage = `url(${newCoverUrl})`;
+            }
+            alert('封面已更新！');
+
+        } catch (error) {
+            console.error('更新封面失败:', error);
+            alert('更新封面失败，请查看控制台获取详情。');
+        }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+});
+
+// --- 批量删除逻辑 ---
+multiSelectBtn.addEventListener('click', () => {
+    isDeleteMode = !isDeleteMode; // 切换删除模式状态
+
+    if (isDeleteMode) {
+        songList.classList.add('delete-mode');
+        multiSelectBtn.textContent = '取消';
+        uploadCoverBtn.textContent = '删除所选';
+        uploadCoverBtn.classList.add('delete'); // 添加红色样式
+    } else {
+        songList.classList.remove('delete-mode');
+        multiSelectBtn.textContent = '批';
+        uploadCoverBtn.textContent = '封';
+        uploadCoverBtn.classList.remove('delete'); // 移除红色样式
+        // 退出模式时，取消所有勾选
+        songList.querySelectorAll('.song-checkbox').forEach(cb => cb.checked = false);
+    }
+});
+
+// === 替换为已修复的版本：增加数据存在性检查 ===
+// === 替换为最终修复版：增加更严格的数据结构检查 ===
+// === 替换为修复版：使用新的 songId 进行删除 ===
+// === 替换为最终修复版：兼容新旧数据格式的删除逻辑 ===
+async function handleBatchDelete() {
+    const selectedCheckboxes = songList.querySelectorAll('.song-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('请至少选择一首歌曲。');
+        return;
+    }
+
+    if (!confirm(`确定要删除选中的 ${selectedCheckboxes.length} 首歌曲吗？`)) {
+        return;
+    }
+
+    const idsToDelete = new Set();
+    selectedCheckboxes.forEach(cb => {
+        const li = cb.closest('.song-item');
+        idsToDelete.add(li.dataset.songId);
+    });
+
+    try {
+        const allPlaylistsData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
+        if (!allPlaylistsData || !allPlaylistsData.value || !allPlaylistsData.value[currentOpenPlaylist]) {
+            alert('无法加载歌单数据，删除失败！');
+            return; 
+        }
+        let allPlaylists = allPlaylistsData.value;
+        if (!Array.isArray(allPlaylists[currentOpenPlaylist].songs)) {
+            alert('歌单数据格式不正确，无法删除歌曲！');
+            return; 
+        }
+        
+        // --- 关键修复在这里 ---
+        // 在过滤时，对新旧两种数据分别生成ID进行匹配
+        const originalSongs = allPlaylists[currentOpenPlaylist].songs;
+        allPlaylists[currentOpenPlaylist].songs = originalSongs.filter(song => {
+            let songId;
+            if (song.file) {
+                // 如果是新数据，用文件名和修改日期生成ID
+                songId = `${song.file.name}-${song.file.lastModified}`;
+            } else if (song.url) {
+                // 如果是旧数据，用它自己的URL作为ID
+                songId = song.url;
+            } else {
+                // 如果是无效数据，默认不删除（保留）
+                return true; 
+            }
+            // 如果生成的ID在我们待删除的集合中，则这首歌被过滤掉（不返回）
+            return !idsToDelete.has(songId);
+        });
+
+        await dbHelper.saveData('musicPlaylists', 'allPlaylists', allPlaylists);
+        
+        // 刷新UI
+        await openPlaylistDetailView(currentOpenPlaylist);
+        multiSelectBtn.click(); 
+        const cardToUpdate = playlistGrid.querySelector(`.playlist-card[data-playlist-name="${currentOpenPlaylist}"]`);
+        if (cardToUpdate) {
+            const countElement = cardToUpdate.querySelector('.playlist-count');
+            countElement.textContent = `${allPlaylists[currentOpenPlaylist].songs.length} 首歌曲`;
+        }
+        
+    } catch (error) {
+        console.error('删除歌曲失败:', error);
+    }
+}
+
+// === 新增：灵动岛和播放控制的全部函数 ===
+
+// 统一的播放入口函数
+function startPlayback(playlist, index) {
+    if (!playlist || index < 0 || index >= playlist.length) return;
+
+    // 更新全局播放状态
+    playbackState.playlist = playlist;
+    playbackState.currentIndex = index;
+    playbackState.currentSong = playlist[index];
+    
+    // 更新灵动岛上的歌曲信息
+    islandSongTitle.textContent = playbackState.currentSong.title;
+    islandSongArtist.textContent = playbackState.currentSong.artist;
+
+    // 播放音频
+    const songObjectUrl = URL.createObjectURL(playbackState.currentSong.file);
+    audioPlayer.src = songObjectUrl;
+    audioPlayer.play().catch(error => console.error("播放失败:", error));
+}
+
+// --- 灵动岛 UI 控制 ---
+function showDynamicIsland() {
+    dynamicIsland.classList.add('active');
+    playbackState.isPlaying = true;
+    islandPlayPauseBtn.classList.remove('play');
+    islandPlayPauseBtn.classList.add('pause');
+}
+
+function hideDynamicIsland() {
+    dynamicIsland.classList.remove('active', 'expanded');
+    playbackState.isPlaying = false;
+    islandPlayPauseBtn.classList.remove('pause');
+    islandPlayPauseBtn.classList.add('play');
+}
+
+function formatTime(seconds) {
+    const min = Math.floor(seconds / 60);
+    const sec = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${min}:${sec}`;
+}
+
+// --- 事件监听 ---
+
+// 监听音频播放器事件来控制灵动岛
+audioPlayer.addEventListener('play', showDynamicIsland);
+audioPlayer.addEventListener('pause', hideDynamicIsland);
+audioPlayer.addEventListener('ended', () => {
+    // 播放结束后自动播放下一首
+    islandNextBtn.click();
+});
+
+audioPlayer.addEventListener('timeupdate', () => {
+    const { currentTime, duration } = audioPlayer;
+    if (isNaN(duration)) return;
+
+    // 更新进度条
+    const progressPercent = (currentTime / duration) * 100;
+    progressBarFill.style.width = `${progressPercent}%`;
+
+    // 更新时间显示
+    progressCurrentTime.textContent = formatTime(currentTime);
+    progressRemainingTime.textContent = `-${formatTime(duration - currentTime)}`;
+});
+
+// 灵动岛自身的点击事件
+// === 用下面这个修复后的版本，替换掉您现有的代码 ===
+
+// 灵动岛自身的点击事件
+dynamicIsland.addEventListener('click', (e) => {
+    if (e.target.closest('.control-button')) {
+        return;
+    }
+    dynamicIsland.classList.toggle('expanded');
+});
+
+// 灵动岛内部控制按钮的点击事件
+islandPlayPauseBtn.addEventListener('click', () => {
+    if (audioPlayer.paused) {
+        audioPlayer.play();
+    } else {
+        audioPlayer.pause();
+    }
+});
+
+islandNextBtn.addEventListener('click', () => {
+    let nextIndex = playbackState.currentIndex + 1;
+    if (nextIndex >= playbackState.playlist.length) {
+        nextIndex = 0; // 循环播放
+    }
+    startPlayback(playbackState.playlist, nextIndex);
+});
+
+islandPrevBtn.addEventListener('click', () => {
+    // 如果歌曲播放超过3秒，则从头开始播放，否则播放上一首
+    if (audioPlayer.currentTime > 3) {
+        audioPlayer.currentTime = 0;
+    } else {
+        let prevIndex = playbackState.currentIndex - 1;
+        if (prevIndex < 0) {
+            prevIndex = playbackState.playlist.length - 1; // 循环播放
+        }
+        startPlayback(playbackState.playlist, prevIndex);
+    }
+});
+// === 新增：处理联系人弹出层的所有逻辑 ===
+
+// --- 功能 A: 打开和关闭弹出层 ---
+function openModal() {
+    addContactModal.style.display = 'flex';
+    // 使用一个短暂的延时来确保CSS动画能够触发
+    setTimeout(() => {
+        addContactModal.style.opacity = '1';
+        addContactModal.querySelector('.modal-content').style.transform = 'scale(1)';
+    }, 10);
+}
+
+function closeModal() {
+    addContactModal.style.opacity = '0';
+    addContactModal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+    // 等待动画结束后再隐藏元素
+    setTimeout(() => {
+        addContactModal.style.display = 'none';
+        // 重置表单内容
+        aiForm.reset();
+        userForm.reset();
+        aiAvatarPreview.src = 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=AI';
+        userAvatarPreview.src = 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=User';
+        roleSwitchCheckbox.checked = false;
+        aiForm.classList.add('active');
+        userForm.classList.remove('active');
+        switchLabels[0].classList.add('active');
+        switchLabels[1].classList.remove('active');
+    }, 300); // 300ms 对应CSS中的动画时长
+}
+
+modalCloseBtn.addEventListener('click', closeModal);
+addContactModal.addEventListener('click', (event) => {
+    // 如果点击的是遮罩背景本身，而不是对话框内容，则关闭
+    if (event.target === addContactModal) {
+        closeModal();
+    }
+});
+
+
+// --- 功能 B: 处理AI/用户表单切换 ---
+roleSwitchCheckbox.addEventListener('change', () => {
+    const isUser = roleSwitchCheckbox.checked;
+    aiForm.classList.toggle('active', !isUser);
+    userForm.classList.toggle('active', isUser);
+    switchLabels[0].classList.toggle('active', !isUser);
+    switchLabels[1].classList.toggle('active', isUser);
+});
+
+// --- 功能 C: 处理头像上传和预览 ---
+function handleAvatarUpload(inputElement, previewElement) {
+    const file = inputElement.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewElement.src = e.target.result; // e.target.result 包含图片的Base64编码
+        };
+        reader.readAsDataURL(file);
+    }
+}
+aiAvatarInput.addEventListener('change', () => handleAvatarUpload(aiAvatarInput, aiAvatarPreview));
+userAvatarInput.addEventListener('change', () => handleAvatarUpload(userAvatarInput, userAvatarPreview));
+
+
+// --- 功能 D: 保存联系人到数据库并更新UI ---
+saveContactBtn.addEventListener('click', async () => {
+    // 1. 数据校验
+    if (!aiNameInput.value.trim() || !userNameInput.value.trim()) {
+        alert('AI角色名和你的名字不能为空！');
+        return;
+    }
+
+    // 2. 收集所有数据
+    const newContact = {
+        id: Date.now(), // 使用时间戳作为唯一ID
+        ai: {
+            name: aiNameInput.value.trim(),
+            persona: aiPersonaInput.value.trim(),
+            avatar: aiAvatarPreview.src // 直接保存Base64编码的图片
+        },
+        user: {
+            name: userNameInput.value.trim(),
+            persona: userPersonaInput.value.trim(),
+            avatar: userAvatarPreview.src
+        },
+        contextMemory: parseInt(contextMemoryInput.value, 10) || 10,
+        lastMessage: "点击和我聊天吧！" // 默认的最后一条消息
+    };
+
+    // 3. 保存到数据库
+    try {
+        const existingData = await dbHelper.loadData('messageContacts', 'allContacts');
+        let contacts = (existingData && Array.isArray(existingData.value)) ? existingData.value : [];
+        contacts.push(newContact);
+        await dbHelper.saveData('messageContacts', 'allContacts', contacts);
+
+        // 4. 更新UI
+        appendContactToList(newContact);
+        
+        // 5. 关闭并重置弹出层
+        closeModal();
+
+    } catch (error) {
+        console.error("保存联系人失败:", error);
+        alert("保存失败，请查看控制台日志。");
+    }
+});
+
+
+// --- 功能 E: 将单个联系人数据显示在列表中 ---
+// --- 功能 E: 将单个联系人数据显示在列表中 (已更新，带复选框) ---
+function appendContactToList(contact) {
+    const li = document.createElement('li');
+    li.className = 'contact-item';
+    li.dataset.contactId = contact.id; // 为以后可能用到的功能（如删除）做准备
+
+    // --- 关键修改：在最前面加入了 input 复选框 ---
+    li.innerHTML = `
+        <input type="checkbox" class="contact-checkbox">
+        <img src="${contact.ai.avatar}" alt="avatar" class="contact-avatar">
+        <div class="contact-info">
+            <div class="contact-name">${contact.ai.name}</div>
+            <div class="contact-last-message">${contact.lastMessage}</div>
+        </div>
+    `;
+    contactList.appendChild(li);
+}
+
+
+// --- 功能 F: 从数据库加载所有联系人 ---
+async function loadContacts() {
+    const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+    if (contactsData && Array.isArray(contactsData.value)) {
+        contactList.innerHTML = ''; // 清空现有列表
+        contactsData.value.forEach(contact => {
+            appendContactToList(contact);
+        });
+    }
+}
+// === 新增：消息列表多选删除的全部逻辑 ===
+
+let isMessagesDeleteMode = false; // 用于跟踪是否处于删除模式
+
+// “多选删除”按钮的点击事件
+messagesMultiselectBtn.addEventListener('click', () => {
+    isMessagesDeleteMode = !isMessagesDeleteMode; // 切换模式状态
+
+    contactList.classList.toggle('delete-mode', isMessagesDeleteMode);
+
+    if (isMessagesDeleteMode) {
+        // 进入删除模式
+        messagesMultiselectBtn.textContent = '取消';
+        messagesAddBtn.textContent = '删除所选';
+        messagesAddBtn.classList.add('delete'); // 添加红色样式
+    } else {
+        // 退出删除模式
+        messagesMultiselectBtn.textContent = '多选';
+        messagesAddBtn.textContent = '添加';
+        messagesAddBtn.classList.remove('delete');
+        // 确保退出时所有复选框都恢复未选中状态
+        contactList.querySelectorAll('.contact-checkbox').forEach(cb => cb.checked = false);
+    }
+});
+
+// 修改“添加”按钮的点击事件，使其在删除模式下有不同行为
+messagesAddBtn.addEventListener('click', () => {
+    if (isMessagesDeleteMode) {
+        handleBatchDeleteContacts(); // 如果在删除模式，就执行删除
+    } else {
+        openModal(); // 否则，打开添加联系人对话框
+    }
+});
+
+// 真正执行删除操作的函数
+async function handleBatchDeleteContacts() {
+    const selectedCheckboxes = contactList.querySelectorAll('.contact-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('请至少选择一个要删除的对话。');
+        return;
+    }
+
+    if (!confirm(`确定要删除选中的 ${selectedCheckboxes.length} 个对话吗？`)) {
+        return;
+    }
+
+    const idsToDelete = new Set();
+    selectedCheckboxes.forEach(cb => {
+        // 从复选框向上找到父级 li 元素，并获取其 ID
+        const contactId = cb.closest('.contact-item').dataset.contactId;
+        idsToDelete.add(parseInt(contactId, 10)); // 将ID转为数字存入集合
+    });
+
+    try {
+        const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+        if (!contactsData || !Array.isArray(contactsData.value)) {
+            alert('无法加载联系人数据，删除失败！');
+            return;
+        }
+        let currentContacts = contactsData.value;
+
+        // 过滤掉需要删除的联系人
+        const updatedContacts = currentContacts.filter(contact => !idsToDelete.has(contact.id));
+
+        // 将更新后的联系人列表存回数据库
+        await dbHelper.saveData('messageContacts', 'allContacts', updatedContacts);
+
+        // 重新加载列表以刷新UI
+        await loadContacts();
+
+        // 操作完成后，主动退出删除模式
+        messagesMultiselectBtn.click();
+
+    } catch (error) {
+        console.error("删除联系人失败:", error);
+        alert("删除失败，请查看控制台日志。");
+    }
+}
+
+// === 新增：聊天界面的所有交互逻辑 ===
+
+let currentOpenContact = null; // 用于存储当前打开的联系人对象
+
+// === AI功能新增：System Prompt 定义 ===
+// === AI功能更新：System Prompt 定义 (支持多条消息) ===
+const systemPrompt = `
+你将扮演一个角色进行对话。请严格遵守以下所有指示：
+1.  你的角色信息是：{ai_persona}
+2.  与你对话的用户信息是：{user_persona}
+3.  你必须模仿角色的性格、语气和说话方式。
+4.  你的所有回复都必须是纯文本格式。
+5.  你可以一次性回复一条或多条消息。每一条独立的消息都必须用 [MESSAGE_START] 和 [MESSAGE_END] 包裹。
+
+回复格式示例 (单条消息):
+[MESSAGE_START]
+我收到你的消息了，知道了。
+[MESSAGE_END]
+
+回复格式示例 (多条消息):
+[MESSAGE_START]
+嗯...让我想想。
+[MESSAGE_END]
+[MESSAGE_START]
+好的，关于那件事，我的看法是...
+[MESSAGE_END]
+`;
+
+// === AI功能新增：消息格式化函数 ===
+
+/**
+ * 解释：
+ * 这个函数接收一个消息对象 (message)，判断是用户还是AI发送的，
+ * 然后转换成一个带说话人信息的字符串，例如：
+ * "[用户: 张三]\n你好啊！"
+ * 这样做能帮助AI更好地理解对话上下文。
+ * @param {object} message - 消息对象 { sender: 'user'/'ai', text: '...' }
+ * @returns {string} - 格式化后的字符串
+ */
+ function formatMessageForAI(message) {
+    if (!currentOpenContact) return ""; // 确保当前有打开的对话
+    
+    // 根据 sender 决定角色名称
+    const role = message.sender === 'user' ? '用户' : '角色';
+    // 根据 sender 获取对应的名字
+    const name = message.sender === 'user' ? currentOpenContact.user.name : currentOpenContact.ai.name;
+    
+    return `[${role}: ${name}]\n${message.text}`;
+}
+
+// === AI功能新增：调用AI的核心函数 ===
+
+/**
+ * 解释：
+ * 这是与AI交互的核心。它是一个异步函数（async），因为网络请求需要时间。
+ * @param {string} triggerMessage - 触发本次AI调用的特定消息或指令。
+ */
+ //
+// 这是 callAI 函数的最终修正版，请完整复制并替换掉您现有的版本
+//
+//
+// 这是 callAI 函数的【新版】，实现了立即显示加载动画
+//
+async function callAI(triggerMessage) {
+    if (isAiReplying) {
+        console.log("AI正在回复中，请稍候...");
+        return;
+    }
+    isAiReplying = true;
+
+    // 1. 立刻创建一个“正在输入”的占位气泡，不等AI回复
+    const initialTypingBubble = createTypingBubble();
+
+    try {
+        const settingsData = await dbHelper.loadData('settingsStore', 'apiSettings');
+        if (!settingsData || !settingsData.value.url || !settingsData.value.key) {
+            alert("请先在设置中配置有效的API URL和KEY。");
+            initialTypingBubble.closest('.message-row').remove(); // 出错时移除占位气泡
+            isAiReplying = false;
+            return;
+        }
+        // ... (省略部分同样的代码)
+        const { url, key, model, temperature } = settingsData.value;
+        if (!model) {
+            alert("请在设置中选择一个模型。");
+            initialTypingBubble.closest('.message-row').remove(); // 出错时移除占位气泡
+            isAiReplying = false;
+            return;
+        }
+
+        // 2. 准备请求数据 (这部分逻辑不变)
+        const finalSystemPrompt = systemPrompt
+            .replace('{ai_persona}', `姓名: ${currentOpenContact.ai.name}\n人设: ${currentOpenContact.ai.persona}`)
+            .replace('{user_persona}', `姓名: ${currentOpenContact.user.name}\n人设: ${currentOpenContact.user.persona}`);
+        const history = currentOpenContact.history || [];
+        const contextLimit = currentOpenContact.contextMemory || 10;
+        const recentHistory = history.slice(-contextLimit);
+        const messages = [{ role: "system", content: finalSystemPrompt }];
+        recentHistory.forEach(msg => {
+            messages.push({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
+                content: formatMessageForAI(msg)
+            });
+        });
+        messages.push({ role: "user", content: triggerMessage });
+        
+        // 3. 发起网络请求
+        const response = await fetch(`${url}/v1/chat/completions`, { /* ... fetch options ... */ 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+            body: JSON.stringify({
+                model: model,
+                messages: messages,
+                temperature: parseFloat(temperature) || 1.0,
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`API请求失败，状态码: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const aiContent = data.choices[0].message.content;
+        const aiMessagesText = aiContent
+            .split('[MESSAGE_START]')
+            .map(part => {
+                const endIndex = part.indexOf('[MESSAGE_END]');
+                if (endIndex !== -1) { return part.substring(0, endIndex).trim(); }
+                return null;
+            })
+            .filter(text => text && text.length > 0);
+
+        // 4. 判断AI是否有有效回复
+        if (aiMessagesText.length > 0) {
+            // 如果有，则将占位气泡和消息列表一起传给显示函数处理
+            await displayAiMessagesSequentially(aiMessagesText, initialTypingBubble);
+        } else {
+            // 如果没有有效回复，则移除占位气泡，并显示原始错误信息
+            initialTypingBubble.closest('.message-row').remove();
+            const rawAiMessage = { sender: 'ai', text: aiContent, timestamp: new Date() };
+            addMessageToView(rawAiMessage);
+            await saveMessageToHistory(rawAiMessage);
+        }
+
+    } catch (error) {
+        console.error("调用AI失败:", error);
+        alert(`AI回复失败: ${error.message}`);
+        // 确保在捕获到任何错误时，都移除占位气泡
+        initialTypingBubble.closest('.message-row').remove();
+    } finally {
+        // 5. 任务结束，解锁
+        isAiReplying = false;
+    }
+}
+// 你需要实现 saveMessageToHistory 函数，它应该像这样：
+async function saveMessageToHistory(message) {
+    if (!currentOpenContact) return;
+    
+    // 确保 history 数组存在
+    if (!Array.isArray(currentOpenContact.history)) {
+        currentOpenContact.history = [];
+    }
+    currentOpenContact.history.push(message);
+
+    // 更新"最后一条消息"用于消息列表预览
+    currentOpenContact.lastMessage = message.text;
+    
+    // 从数据库加载、更新、再存回
+    const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+    let allContacts = allContactsData.value;
+    const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
+    if (contactIndex > -1) {
+        allContacts[contactIndex] = currentOpenContact;
+    }
+    await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
+
+    // (可选) 更新消息列表UI
+    const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
+    if (contactItemInList) {
+        contactItemInList.querySelector('.contact-last-message').textContent = message.text;
+    }
+}
+// === AI功能修改：发送消息的总控函数 ===
+async function sendMessage(text) {
+    if (!text.trim() || !currentOpenContact) return;
+
+    const userMessage = {
+        sender: 'user',
+        text: text.trim(),
+        timestamp: new Date()
+    };
+
+    addMessageToView(userMessage); // 立即显示用户消息
+    await saveMessageToHistory(userMessage); // 保存用户消息
+    
+    // 清空输入框
+    chatMessageInput.value = '';
+}
+
+
+// === AI功能新增：逐条延时显示AI消息的函数 ===
+
+/**
+ * 解释：
+ * 这个函数接收一个包含多条消息文本的数组，然后逐条显示它们。
+ * 'async' 和 'await' 的使用让我们可以轻松地在循环中实现延时。
+ * @param {string[]} messages - AI回复的纯文本消息数组
+ */
+//
+// 粘贴这两个全新的函数
+//
+
+/**
+ * 功能1：创建一个包含“正在输入”动画的AI气泡，并返回该气泡元素的引用
+ */
+function createTypingBubble() {
+    const row = document.createElement('div');
+    row.className = 'message-row ai';
+
+    const avatar = document.createElement('img');
+    avatar.className = 'chat-avatar';
+    avatar.src = currentOpenContact.ai.avatar;
+    const avatarSettings = currentOpenContact.avatarSettings || { radius: '50%' };
+    avatar.style.borderRadius = avatarSettings.radius;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble ai-bubble';
+    bubble.innerHTML = `
+        <div class="typing-animation">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+        </div>
+    `;
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatMessagesContainer.appendChild(row);
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+
+    return bubble; // 返回这个新创建的气泡元素，以便后续修改
+}
+
+/**
+ * 功能2（全新版本）：逐条显示AI消息，并实现“先显示动画，再填充文字”的动态效果
+ */
+ 
+// 这是 displayAiMessagesSequentially 函数的【新版】，能处理预先创建的加载动画
+//
+async function displayAiMessagesSequentially(messages, initialBubble) {
+    // 使用 .entries() 来同时获取消息的索引和内容
+    for (const [index, text] of messages.entries()) {
+        if (!text) continue;
+
+        let currentBubble;
+
+        // 判断使用哪个气泡：
+        // 如果是第一条消息 (index === 0)，就使用 callAI 预先创建的那个
+        // 如果是后续消息，就新建一个
+        if (index === 0) {
+            currentBubble = initialBubble;
+        } else {
+            currentBubble = createTypingBubble();
+        }
+
+        // 模拟打字延迟
+        const typingDelay = Math.min(Math.max(text.length * 500, 400), 8000);
+        await new Promise(resolve => setTimeout(resolve, typingDelay));
+
+        // 将动画替换为真实的文字内容
+        currentBubble.innerHTML = '';
+        currentBubble.textContent = text;
+
+        // 保存到历史记录
+        const aiMessage = {
+            sender: 'ai',
+            text: text,
+            timestamp: new Date()
+        };
+        await saveMessageToHistory(aiMessage);
+    }
+}
+// --- 功能 A: 打开聊天界面 (已更新，会加载历史记录) ---
+async function openChatView(contactId) {
+    const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+    if (!contactsData || !Array.isArray(contactsData.value)) {
+        console.error("无法加载联系人数据");
+        return;
+    }
+    currentOpenContact = contactsData.value.find(c => c.id === contactId);
+    if (!currentOpenContact) {
+        console.error(`找不到 ID 为 ${contactId} 的联系人`);
+        return;
+    }
+
+    applyChatViewSettings(currentOpenContact);
+    chatContactName.textContent = currentOpenContact.ai.name;
+    chatMessagesContainer.innerHTML = ''; 
+
+    // --- 关键修改：加载并显示历史聊天记录 ---
+    if (Array.isArray(currentOpenContact.history)) {
+        currentOpenContact.history.forEach(message => {
+            addMessageToView(message);
+        });
+    }
+
+    phoneFrame.classList.add('show-chat');
+}
+
+// --- 功能 B: 关闭聊天界面 ---
+function closeChatView() {
+    phoneFrame.classList.remove('show-chat');
+    // 动画结束后清理数据，防止下次打开时闪烁旧内容
+    setTimeout(() => {
+        currentOpenContact = null; 
+    }, 350); // 动画时长为350ms
+}
+
+// --- 功能 C: 绑定事件 ---
+
+// 使用“事件委托”来处理联系人列表的点击事件。
+// 这样做的好处是，即使是动态添加的联系人，点击事件也同样有效。
+contactList.addEventListener('click', (event) => {
+    // 如果当前处于删除模式，并且点击的是复选框，则不进入聊天
+    if (contactList.classList.contains('delete-mode') && event.target.classList.contains('contact-checkbox')) {
+        return;
+    }
+
+    // 查找被点击的、最接近的父级 .contact-item 元素
+    const contactItem = event.target.closest('.contact-item');
+    if (contactItem) {
+        const contactId = parseInt(contactItem.dataset.contactId, 10);
+        openChatView(contactId);
+    }
+});
+
+// 为聊天界面的返回按钮绑定点击事件
+chatBackButton.addEventListener('click', closeChatView);
+
+// (可选) 为发送按钮添加一个简单的打印功能，为后续开发做准备
+// === 更新：“发送”按钮的点击事件 (最终版) ===
+chatSendButton.addEventListener('click', async () => {
+    const messageText = chatMessageInput.value.trim();
+    if (!messageText || !currentOpenContact) {
+        return; // 如果没输入内容或没有打开的对话，则不执行任何操作
+    }
+
+    // 1. 准备用户消息对象
+    const userMessage = {
+        sender: 'user',
+        text: messageText,
+        timestamp: new Date()
+    };
+
+    // 2. 清空输入框并立即在界面上显示用户消息
+    chatMessageInput.value = '';
+    addMessageToView(userMessage);
+
+    // 3. 更新并保存聊天记录到数据库
+    try {
+        // 确保联系人对象中有 history 数组
+        if (!Array.isArray(currentOpenContact.history)) {
+            currentOpenContact.history = [];
+        }
+        currentOpenContact.history.push(userMessage);
+        
+        // 更新“最后一条消息”
+        currentOpenContact.lastMessage = messageText;
+
+        // 从数据库加载所有联系人
+        const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+        if (!allContactsData || !Array.isArray(allContactsData.value)) {
+            throw new Error("无法加载联系人数据");
+        }
+        let allContacts = allContactsData.value;
+        
+        // 找到当前联系人并更新它
+        const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
+        if (contactIndex > -1) {
+            allContacts[contactIndex] = currentOpenContact;
+        } else {
+            // 如果找不到，这是一个新对话，直接添加
+            allContacts.push(currentOpenContact);
+        }
+        
+        // 将更新后的整个列表存回数据库
+        await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
+
+        // 4. (可选) 更新消息列表预览
+        const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
+        if (contactItemInList) {
+            contactItemInList.querySelector('.contact-last-message').textContent = messageText;
+        }
+
+    } catch (error) {
+        console.error("保存消息失败:", error);
+        alert("消息发送失败，无法保存到数据库。");
+    }
+});
+
+// === 新增：聊天设置弹出层的全部逻辑 ===
+
+const defaultBubbleCss = `.user-bubble {
+    background-color: #007AFF;
+    color: white;
+    border-bottom-right-radius: 4px;
+    align-self: flex-end;
+}
+.ai-bubble {
+    background-color: #E5E5EA;
+    color: black;
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+}`;
+
+// --- 功能 A: 打开和关闭设置弹出层 ---
+// --- 功能 A: 打开和关闭设置弹出层 (已修复数据加载) ---
+function openChatSettingsModal() {
+    if (!currentOpenContact) return;
+
+    // 1. 加载当前联系人的数据到表单
+    // AI 信息
+    aiAvatarPreviewSettings.src = currentOpenContact.ai.avatar;
+    aiNameInputSettings.value = currentOpenContact.ai.name;
+    aiPersonaInputSettings.value = currentOpenContact.ai.persona;
+    
+    // --- 关键修复：新增了下面三行，用于正确加载用户信息 ---
+    userAvatarPreviewSettings.src = currentOpenContact.user.avatar;
+    userNameInputSettings.value = currentOpenContact.user.name;
+    userPersonaInputSettings.value = currentOpenContact.user.persona;
+
+    // 其他设置
+    contextMemoryInputSettings.value = currentOpenContact.contextMemory || 10;
+    bubbleCssInput.value = currentOpenContact.customBubbleCss || defaultBubbleCss;
+    const avatarSettings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
+showAvatarsToggle.checked = avatarSettings.show;
+avatarRadiusInput.value = avatarSettings.radius;
+
+    // 2. 显示弹出层
+    chatSettingsModal.style.display = 'flex';
+    setTimeout(() => {
+        chatSettingsModal.style.opacity = '1';
+        chatSettingsModal.querySelector('.modal-content').style.transform = 'scale(1)';
+    }, 10);
+}
+
+function closeChatSettingsModal() {
+    chatSettingsModal.style.opacity = '0';
+    chatSettingsModal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        chatSettingsModal.style.display = 'none';
+    }, 300);
+}
+
+chatSettingsButton.addEventListener('click', openChatSettingsModal);
+chatSettingsCloseBtn.addEventListener('click', closeChatSettingsModal);
+
+// --- 功能 B: 绑定设置弹出层内部的各种交互 ---
+
+// 角色切换
+roleSwitchCheckboxSettings.addEventListener('change', () => {
+    const isUser = roleSwitchCheckboxSettings.checked;
+    aiFormSettings.classList.toggle('active', !isUser);
+    userFormSettings.classList.toggle('active', isUser);
+    const settingsSwitchLabels = chatSettingsModal.querySelectorAll('.switch-label');
+    settingsSwitchLabels[0].classList.toggle('active', !isUser);
+    settingsSwitchLabels[1].classList.toggle('active', isUser);
+});
+
+// 头像上传
+aiAvatarInputSettings.addEventListener('change', () => handleAvatarUpload(aiAvatarInputSettings, aiAvatarPreviewSettings));
+userAvatarInputSettings.addEventListener('change', () => handleAvatarUpload(userAvatarInputSettings, userAvatarPreviewSettings));
+
+// 恢复默认气泡样式
+restoreBubbleCssBtn.addEventListener('click', () => {
+    bubbleCssInput.value = defaultBubbleCss;
+});
+
+// 聊天背景
+uploadChatBgBtn.addEventListener('click', () => chatBgUploadInput.click());
+chatBgUploadInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            // 这是一个临时预览，保存时才会真正生效
+            chatScreen.style.backgroundImage = `url(${e.target.result})`;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+resetChatBgBtn.addEventListener('click', () => {
+    chatScreen.style.backgroundImage = 'none';
+    chatScreen.style.backgroundColor = '#f0f2f5';
+});
+
+// 清除聊天记录 (需要用户确认)
+clearHistoryBtn.addEventListener('click', () => {
+    if (confirm('警告：此操作将永久删除此对话的所有聊天记录，且无法恢复。确定要继续吗？')) {
+        if (currentOpenContact) {
+            currentOpenContact.history = []; // 假设聊天记录存在 history 字段
+            // 注意：这里只是清除了内存中的记录，需要点击“保存设置”才能真正写入数据库
+            alert('聊天记录已在内存中清除。请点击“保存设置”以应用更改。');
+            chatMessagesContainer.innerHTML = ''; // 立即清空界面
+        }
+    }
+});
+
+// --- 功能 C: 保存所有设置 ---
+// --- 功能 C: 保存所有设置 (已修复数据保存) ---
+// --- 功能 C: 保存所有设置 (最终修复版) ---
+saveChatSettingsBtn.addEventListener('click', async () => {
+    if (!currentOpenContact) return;
+
+    try {
+        const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+        if (!allContactsData || !Array.isArray(allContactsData.value)) {
+            throw new Error("无法加载联系人数据");
+        }
+        let allContacts = allContactsData.value;
+        
+        const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
+        if (contactIndex === -1) {
+            throw new Error("在数据库中找不到当前联系人");
+        }
+
+        // 1. 更新角色信息
+        allContacts[contactIndex].ai.name = aiNameInputSettings.value.trim();
+        allContacts[contactIndex].ai.persona = aiPersonaInputSettings.value.trim();
+        allContacts[contactIndex].ai.avatar = aiAvatarPreviewSettings.src;
+        allContacts[contactIndex].user.name = userNameInputSettings.value.trim();
+        allContacts[contactIndex].user.persona = userPersonaInputSettings.value.trim();
+        allContacts[contactIndex].user.avatar = userAvatarPreviewSettings.src;
+        allContacts[contactIndex].contextMemory = parseInt(contextMemoryInputSettings.value, 10);
+        
+        // 2. 更新个性化设置
+        allContacts[contactIndex].customBubbleCss = bubbleCssInput.value;
+        allContacts[contactIndex].avatarSettings = {
+            show: showAvatarsToggle.checked,
+            radius: avatarRadiusInput.value.trim() || '50%'
+        };
+        
+        // 3. 更新聊天背景
+        const bgImage = chatScreen.style.backgroundImage;
+        allContacts[contactIndex].chatBackground = bgImage.includes('url') ? bgImage : null;
+
+        // 4. 更新聊天记录
+        if (currentOpenContact.history && currentOpenContact.history.length === 0) {
+             allContacts[contactIndex].history = [];
+        }
+
+        // 5. 将更新后的整个联系人列表存回数据库
+        await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
+
+        // --- 关键修复：用保存后的最新数据，更新当前内存中的联系人对象 ---
+        currentOpenContact = allContacts[contactIndex];
+
+        // 6. 立即应用新设置到当前视图
+        applyChatViewSettings(currentOpenContact);
+        chatContactName.textContent = currentOpenContact.ai.name;
+
+        // 7. 关闭弹窗
+        closeChatSettingsModal();
+        alert('设置已保存！');
+
+    } catch (error) {
+        console.error("保存聊天设置失败:", error);
+        alert("保存失败，请查看控制台日志。");
+    }
+});
+
+// --- 功能 D: 应用所有聊天视图的个性化设置 (已更新) ---
+function applyChatViewSettings(contact) {
+    // 应用气泡样式
+    customBubbleStyles.innerHTML = contact.customBubbleCss || defaultBubbleCss;
+
+    // 应用聊天背景
+    if (contact.chatBackground) {
+        chatScreen.style.backgroundImage = contact.chatBackground;
+    } else {
+        chatScreen.style.backgroundImage = 'none';
+        chatScreen.style.backgroundColor = '#f0f2f5';
+    }
+
+    // 新增：应用头像显示设置
+    const avatarSettings = contact.avatarSettings || { show: true };
+    chatMessagesContainer.classList.toggle('hide-avatars', !avatarSettings.show);
+}
+
+// === 更新：将消息显示为带头像的聊天气泡 ===
+// === 这是 addMessageToView 函数的【最终修复版】 ===
+// 它创建了正确的 HTML 结构，以匹配 CSS 动画的需求
+function addMessageToView(message) {
+    const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
+
+    // 1. 创建最外层的行容器
+    const row = document.createElement('div');
+    row.className = 'message-row';
+    row.dataset.timestamp = message.timestamp.toString(); // 确保时间戳为字符串
+
+    const selectionIndicator = document.createElement('div');
+    selectionIndicator.className = 'selection-indicator';
+    row.appendChild(selectionIndicator);
+
+    // 2.【核心修复】创建内容包装层
+    const wrapper = document.createElement('div');
+    wrapper.className = 'message-content-wrapper'; // 添加基础类名
+
+    // 3. 创建头像和气泡
+    const avatar = document.createElement('img');
+    avatar.className = 'chat-avatar';
+    avatar.style.borderRadius = settings.radius;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.textContent = message.text;
+
+    // 4. 根据发送者，为不同的元素设置正确的类名
+    if (message.sender === 'user') {
+        wrapper.classList.add('user'); // 将 .user 类名添加到 wrapper 上
+        avatar.src = currentOpenContact.user.avatar;
+        bubble.classList.add('user-bubble');
+    } else {
+        wrapper.classList.add('ai'); // 将 .ai 类名添加到 wrapper 上
+        avatar.src = currentOpenContact.ai.avatar;
+        bubble.classList.add('ai-bubble');
+    }
+
+    // 5.【核心修复】按正确的父子关系组装元素
+    // 将头像和气泡放入 wrapper 中
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubble);
+
+    // 将 wrapper 放入 row 中
+    row.appendChild(wrapper);
+    
+    chatMessagesContainer.appendChild(row);
+
+    // 6. 自动滚动
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+}
+
+// === 新增：“正在输入”提示的JS函数 ===
+
+/**
+ * 功能：在聊天窗口显示一个“正在输入”的动画气泡
+ */
+ function showTypingIndicator() {
+    // 检查一下，如果已经存在一个提示，就不再重复添加
+    if (document.getElementById('typing-indicator')) return;
+
+    // 创建一个和普通AI消息类似的消息行
+    const row = document.createElement('div');
+    row.className = 'message-row ai';
+    row.id = 'typing-indicator'; // 给它一个唯一的ID，方便之后移除
+
+    // 从当前对话中获取AI的头像信息
+    const avatar = document.createElement('img');
+    avatar.className = 'chat-avatar';
+    avatar.src = currentOpenContact.ai.avatar;
+    const avatarSettings = currentOpenContact.avatarSettings || { radius: '50%' };
+    avatar.style.borderRadius = avatarSettings.radius;
+
+    // 创建一个包含动画点的气泡
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble ai-bubble';
+    bubble.innerHTML = `
+        <div class="typing-animation">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+        </div>
+    `;
+
+    // 组装并添加到聊天容器
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatMessagesContainer.appendChild(row);
+
+    // 自动滚动到底部，确保用户能看到这个提示
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+}
+
+/**
+ * 功能：从聊天窗口移除“正在输入”的动画气泡
+ */
+function hideTypingIndicator() {
+    const indicator = document.getElementById('typing-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
+// === 新增：更多功能面板的交互逻辑 ===
+
+// 1. 获取需要的HTML元素
+const moreFeaturesButton = document.getElementById('chat-add-attachment-button');
+const moreFeaturesPanel = document.getElementById('more-features-panel');
+const receiptFeatureButton = document.getElementById('receipt-feature');
+const chatMessageInputForReceipt = document.getElementById('chat-message-input'); // 复用聊天输入框的ID
+
+// === 修复方案：使用 touchend 替代 click 事件以增强移动端兼容性 ===
+moreFeaturesButton.addEventListener('touchend', (event) => {
+    // 1. 阻止默认行为。这很重要，可以防止在触摸之后浏览器可能产生的意外行为
+    //    （比如模拟一次额外的“鬼影”点击或者轻微的页面滚动）。
+    event.preventDefault(); 
+    
+    // 2. 阻止事件冒泡，这个逻辑保持不变。
+    event.stopPropagation();
+
+    // 3. 切换面板的显示/隐藏，核心功能不变。
+    moreFeaturesPanel.classList.toggle('active');
+});
+
+// 3. 为“回执”功能按钮添加点击事件
+// === 更新：“回执”功能按钮的事件监听 ===
+
+receiptFeatureButton.addEventListener('click', () => {
+    if (!currentOpenContact) {
+        alert("请先打开一个对话！");
+        return;
+    }
+
+    // === 修改这里的指令 ===
+    const instructionForAI = "现在轮到你了，请根据我们的历史对话，以及我刚刚发送的所有消息，以你的角色身份进行一次连贯的、不超过6条消息的回复。";
+    // 调用AI核心函数，并把指令传进去
+    callAI(instructionForAI);
+
+    // 点击后关闭面板
+    moreFeaturesPanel.classList.remove('active');
+});
+
+// 4. (可选但推荐) 添加一个全局点击事件，用于在点击面板外部区域时关闭面板
+document.addEventListener('click', (event) => {
+    // 检查点击的不是面板本身，也不是触发按钮
+    if (!moreFeaturesPanel.contains(event.target) && !moreFeaturesButton.contains(event.target)) {
+        if (moreFeaturesPanel.classList.contains('active')) {
+            moreFeaturesPanel.classList.remove('active');
+        }
+    }
+});
+
+// --- 新增：消息选择和删除功能的核心JS逻辑 ---
+
+// 1. 全局变量
+let isMessageSelectionMode = false;
+let longPressTimer = null;
+const chatScreenContainer = document.getElementById('chat-screen');
+
+// 2. 获取新添加的顶栏按钮
+const normalHeaderActions = document.getElementById('chat-header-actions-normal');
+const selectHeaderActions = document.getElementById('chat-header-actions-select');
+const deleteMessagesBtn = document.getElementById('delete-messages-btn');
+const cancelSelectionBtn = document.getElementById('cancel-selection-btn');
+
+
+// 3. 定义功能函数
+function enterMessageSelectionMode(targetMessageRow) {
+    if (isMessageSelectionMode) return;
+    isMessageSelectionMode = true;
+    chatScreenContainer.classList.add('selection-mode-active');
+
+    // 切换顶栏按钮
+    normalHeaderActions.style.display = 'none';
+    selectHeaderActions.style.display = 'flex';
+
+    // 选中长按的那条消息
+    toggleMessageSelection(targetMessageRow);
+}
+
+function exitMessageSelectionMode() {
+    isMessageSelectionMode = false;
+    chatScreenContainer.classList.remove('selection-mode-active');
+
+    // 切换回正常的顶栏按钮
+    normalHeaderActions.style.display = 'flex';
+    selectHeaderActions.style.display = 'none';
+
+    // 取消所有消息的选中状态
+    document.querySelectorAll('.message-row.selected').forEach(row => {
+        row.classList.remove('selected');
+    });
+}
+
+function toggleMessageSelection(messageRow) {
+    if (!messageRow) return;
+    messageRow.classList.toggle('selected');
+}
+
+// --- 这是 deleteSelectedMessages 函数的【全新修复版】---
+// --- 这是 deleteSelectedMessages 函数的【全新修复版】---
+async function deleteSelectedMessages() {
+    const selectedRows = document.querySelectorAll('.message-row.selected');
+    if (selectedRows.length === 0) {
+        alert('请至少选择一条要删除的消息。');
+        return;
+    }
+
+    if (!confirm(`确定要永久删除选中的 ${selectedRows.length} 条消息吗？`)) {
+        return;
+    }
+
+    try {
+        // 1. 收集所有待删除消息的时间戳
+        const timestampsToDelete = new Set();
+        selectedRows.forEach(row => {
+            timestampsToDelete.add(row.dataset.timestamp);
+        });
+
+        // 2.【核心修复】直接在数据库层面进行“加载-修改-保存”的原子操作
+        const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+        if (!allContactsData || !Array.isArray(allContactsData.value)) {
+            throw new Error("无法加载联系人数据");
+        }
+        let allContacts = allContactsData.value;
+        const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
+
+        if (contactIndex > -1) {
+            // a. 过滤掉被选中的消息
+            const originalHistory = allContacts[contactIndex].history || [];
+            // 这是修正后的代码行
+const updatedHistory = originalHistory.filter(
+    message => !timestampsToDelete.has(message.timestamp.toString())
+);
+            allContacts[contactIndex].history = updatedHistory;
+
+            // b.【新增逻辑】更新“最后一条消息”用于消息列表预览
+            if (updatedHistory.length > 0) {
+                // 如果还有剩余消息，取最后一条的文本
+                allContacts[contactIndex].lastMessage = updatedHistory[updatedHistory.length - 1].text;
+            } else {
+                // 如果消息已全部清空
+                allContacts[contactIndex].lastMessage = "对话已清空";
+            }
+            
+            // c.【关键】用更新后的数据，同步更新当前内存中的对象
+            currentOpenContact = allContacts[contactIndex];
+        } else {
+            throw new Error("在数据库中找不到当前联系人");
+        }
+        
+        // d. 将修改后的整个联系人列表，完整地保存回数据库
+        await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
+
+        // 3. 更新UI界面
+        // a. 从聊天界面移除被选中的DOM元素
+        selectedRows.forEach(row => row.remove());
+        
+        // b. 更新消息列表页的预览
+        const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
+        if (contactItemInList) {
+            contactItemInList.querySelector('.contact-last-message').textContent = currentOpenContact.lastMessage;
+        }
+
+        // 4. 退出选择模式
+        exitMessageSelectionMode();
+        alert('删除成功！');
+
+    } catch (error) {
+        console.error("删除消息失败:", error);
+        alert(`删除失败: ${error.message}`);
+    }
+}
+
+// 4. 绑定事件监听
+// --- 修复后：聊天容器的事件（长按、点击），兼容鼠标和触摸 ---
+
+// a. 取消和删除按钮的点击事件 (这部分不变)
+cancelSelectionBtn.addEventListener('click', exitMessageSelectionMode);
+deleteMessagesBtn.addEventListener('click', deleteSelectedMessages);
+
+// b. 定义统一的事件处理函数
+function handlePressStart(e) {
+    if (isMessageSelectionMode) return;
+    const targetRow = e.target.closest('.message-row');
+    if (!targetRow) return;
+
+    // 清除之前的计时器，以防万一
+    clearTimeout(longPressTimer);
+    
+    longPressTimer = setTimeout(() => {
+        enterMessageSelectionMode(targetRow);
+    }, 500); // 长按超过500毫秒触发
+}
+
+function handlePressEnd() {
+    clearTimeout(longPressTimer);
+}
+
+// c. 为聊天容器绑定鼠标和触摸事件
+chatMessagesContainer.addEventListener('mousedown', handlePressStart);
+chatMessagesContainer.addEventListener('touchstart', handlePressStart, { passive: true }); // 使用 passive 提升滚动性能
+
+chatMessagesContainer.addEventListener('mouseup', handlePressEnd);
+chatMessagesContainer.addEventListener('touchend', handlePressEnd);
+chatMessagesContainer.addEventListener('mouseleave', handlePressEnd); // 鼠标移出也要取消
+chatMessagesContainer.addEventListener('touchmove', handlePressEnd); // 手指滑动（滚动）时也要取消长按
+
+// d. 聊天容器的单击事件
+chatMessagesContainer.addEventListener('click', (e) => {
+    // 只有在选择模式下，单击才是为了切换选中状态
+    if (isMessageSelectionMode) {
+        const targetRow = e.target.closest('.message-row');
+        // 阻止事件传播，防止触发其他可能存在的点击效果
+        e.stopPropagation(); 
+        e.preventDefault();
+        toggleMessageSelection(targetRow);
+    }
+});
+    </script>
+
+</body>
+
+</html>
