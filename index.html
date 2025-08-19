@@ -159,6 +159,17 @@
             line-height: 1;
             /* 修正行高防止额外空间 */
         }
+        /* 冒号的特定样式，使其稳定不跳动 */
+.clock span:nth-child(2) {
+    font-weight: 700;
+    position: relative;
+    top: -0.1em; /* 微调垂直位置 */
+    animation: blink 1.5s infinite; /* 添加闪烁效果 */
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
 
         
 
@@ -1701,6 +1712,7 @@ transition: background-color 0.2s;
                 <div class="header-content">
                     <div class="clock">
                         <span id="clock-hours">--</span>
+                        <span>:</span>
                         <span id="clock-minutes">--</span>
                     </div>
                     <div class="motto-container">
@@ -2848,7 +2860,7 @@ coverUploadInput.addEventListener('change', async (event) => {
     reader.onload = async (e) => {
         const newCoverUrl = e.target.result;
         try {
-            const allPlaylistsData = await dbHelper.loadData('musicPlaylists');
+            const allPlaylistsData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
             // 确保我们有一个对象可以操作，即使数据库是空的
             let allPlaylists = (allPlaylistsData && allPlaylistsData.value) ? allPlaylistsData.value : {};
             
@@ -3093,16 +3105,24 @@ function closeModal() {
     setTimeout(() => {
         addContactModal.style.display = 'none';
         // 重置表单内容
-        aiForm.reset();
-        userForm.reset();
+        // 清空输入框和文本域
+        aiNameInput.value = '';
+        aiPersonaInput.value = '';
+        userNameInput.value = '';
+        userPersonaInput.value = '';
         aiAvatarPreview.src = 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=AI';
         userAvatarPreview.src = 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=User';
+        // 重置上下文记忆
+        contextMemoryInput.value = '10';
+
+        // 恢复切换开关和表单的默认显示状态
         roleSwitchCheckbox.checked = false;
         aiForm.classList.add('active');
         userForm.classList.remove('active');
         switchLabels[0].classList.add('active');
         switchLabels[1].classList.remove('active');
-    }, 300); // 300ms 对应CSS中的动画时长
+        // --- 重置代码结束 ---
+    }, 300);// 300ms 对应CSS中的动画时长
 }
 
 modalCloseBtn.addEventListener('click', closeModal);
@@ -3849,9 +3869,14 @@ saveChatSettingsBtn.addEventListener('click', async () => {
         // --- 关键修复：用保存后的最新数据，更新当前内存中的联系人对象 ---
         currentOpenContact = allContacts[contactIndex];
 
-        // 6. 立即应用新设置到当前视图
-        applyChatViewSettings(currentOpenContact);
-        chatContactName.textContent = currentOpenContact.ai.name;
+// 6. 立即应用新设置到当前视图
+applyChatViewSettings(currentOpenContact);
+// --- 新增：手动同步UI上的名字 ---
+chatContactName.textContent = currentOpenContact.ai.name;
+const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
+if (contactItemInList) {
+    contactItemInList.querySelector('.contact-name').textContent = currentOpenContact.ai.name;
+}
 
         // 7. 关闭弹窗
         closeChatSettingsModal();
