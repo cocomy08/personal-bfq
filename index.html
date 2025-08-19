@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 
@@ -4216,59 +4217,75 @@ clearHistoryBtn.addEventListener('click', async () => {
 });
 
 
+// 找到你已有的 saveChatSettingsBtn 事件监听器，并用下面的代码替换其内部逻辑：
+
 saveChatSettingsBtn.addEventListener('click', async () => {
     if (!currentOpenContact) return;
 
     try {
-        // --- 核心修改：收集所有被选中的世界书ID ---
-        const selectedBookIds = [];
-        const checkboxes = document.querySelectorAll('#worldbook-multiselect-container input[type="checkbox"]:checked');
-        checkboxes.forEach(cb => {
-            selectedBookIds.push(parseInt(cb.value, 10));
-        });
+        // --- 修复开始 ---
 
-        // 将新的ID数组存入当前联系人对象
-        currentOpenContact.linkedWorldBookIds = selectedBookIds;
+        // 步骤 1: 从数据库加载完整的联系人数组。
+        const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+        let allContacts = (allContactsData && Array.isArray(allContactsData.value)) ? allContactsData.value : [];
         
-        // --- 更新其他设置 (这部分不变) ---
-        currentOpenContact.ai.name = aiNameInputSettings.value.trim();
-        currentOpenContact.ai.persona = aiPersonaInputSettings.value.trim();
-        currentOpenContact.ai.avatar = aiAvatarPreviewSettings.src;
-        currentOpenContact.user.name = userNameInputSettings.value.trim();
-        currentOpenContact.user.persona = userPersonaInputSettings.value.trim();
-        currentOpenContact.user.avatar = userAvatarPreviewSettings.src;
-        currentOpenContact.contextMemory = parseInt(contextMemoryInputSettings.value, 10);
-        currentOpenContact.customBubbleCss = bubbleCssInput.value;
-        currentOpenContact.avatarSettings = {
-            show: showAvatarsToggle.checked,
-            radius: avatarRadiusInput.value.trim() || '50%'
-        };
-        const bgImage = chatScreen.style.backgroundImage;
-        currentOpenContact.chatBackground = bgImage.includes('url') ? bgImage : null;
-        if (currentOpenContact.history && currentOpenContact.history.length === 0) {
-             currentOpenContact.history = [];
+        // 步骤 2: 在该数组中找到我们需要更新的那个联系人。
+        const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
+
+        if (contactIndex > -1) {
+            // 步骤 3: 将设置弹窗中的所有新信息应用到那个联系人对象上。
+            
+            // 更新 AI/用户信息
+            allContacts[contactIndex].ai.name = aiNameInputSettings.value.trim();
+            allContacts[contactIndex].ai.persona = aiPersonaInputSettings.value.trim();
+            allContacts[contactIndex].ai.avatar = aiAvatarPreviewSettings.src;
+            allContacts[contactIndex].user.name = userNameInputSettings.value.trim();
+            allContacts[contactIndex].user.persona = userPersonaInputSettings.value.trim();
+            allContacts[contactIndex].user.avatar = userAvatarPreviewSettings.src;
+            allContacts[contactIndex].contextMemory = parseInt(contextMemoryInputSettings.value, 10);
+            
+            // 更新个性化设置
+            allContacts[contactIndex].customBubbleCss = bubbleCssInput.value;
+            allContacts[contactIndex].avatarSettings = {
+                show: showAvatarsToggle.checked,
+                radius: avatarRadiusInput.value.trim() || '50%'
+            };
+            const bgImage = chatScreen.style.backgroundImage;
+            allContacts[contactIndex].chatBackground = bgImage.includes('url') ? bgImage : null;
+
+            // 同时，也要更新内存中的 'currentOpenContact' 变量，这样UI可以立即正确刷新
+            currentOpenContact = allContacts[contactIndex];
+        } else {
+            // 如果因为某些原因找不到联系人，就停止并报错。
+            throw new Error("在数据库中找不到要保存的联系人。");
         }
+        
+        // 步骤 4: 将整个修改后的 'allContacts' 数组完整地保存回数据库。
+        await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
 
-        // --- 使用新的 updateRecord 函数来更新数据库中的这条联系人记录 ---
-        await dbHelper.updateRecord('messageContacts', currentOpenContact);
+        // --- 修复结束 ---
 
-        // --- 更新UI (这部分不变) ---
+
+        // 现在，你其余的UI更新代码可以照常运行。
+        // 它们会使用刚刚被更新过的 'currentOpenContact' 对象。
         applyChatViewSettings(currentOpenContact);
         chatContactName.textContent = currentOpenContact.ai.name;
+        
+        // 更新主消息列表中的名称和头像
         const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
         if (contactItemInList) {
             contactItemInList.querySelector('.contact-name').textContent = currentOpenContact.ai.name;
+            contactItemInList.querySelector('.contact-avatar').src = currentOpenContact.ai.avatar;
         }
 
         closeChatSettingsModal();
-        alert('设置已保存！');
+        alert('设置已成功保存！');
 
     } catch (error) {
         console.error("保存聊天设置失败:", error);
         alert(`保存失败: ${error.message}`);
     }
 });
-
 // --- 功能 D: 应用所有聊天视图的个性化设置 (已更新) ---
 function applyChatViewSettings(contact) {
     // 应用气泡样式
