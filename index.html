@@ -5033,7 +5033,7 @@ importDataBtn.addEventListener('click', () => importFileInput.click()); // 点�
 importFileInput.addEventListener('change', handleFileImport);
 
 // === 新增：歌单名称编辑功能 ===
-// === 修正版：歌单名称编辑功能 (确保数据正确持久化) ===
+// === 最终修正版：歌单名称编辑功能 (采用重新渲染策略，确保状态同步) ===
 editPlaylistNameBtn.addEventListener('click', async () => {
     if (!currentOpenPlaylist) return;
 
@@ -5045,41 +5045,34 @@ editPlaylistNameBtn.addEventListener('click', async () => {
     if (trimmedNewName === currentOpenPlaylist) return;
 
     try {
-        // 1. **从数据库加载最新的完整歌单列表**
+        // 1. 从数据库加载最新的完整歌单列表
         const allPlaylistsData = await dbHelper.loadData('musicPlaylists', 'allPlaylists');
         if (!allPlaylistsData || typeof allPlaylistsData.value !== 'object') {
             throw new Error("无法加载歌单数据库。");
         }
         let allPlaylists = allPlaylistsData.value;
 
-        // 2. **检查新名称是否冲突**
+        // 2. 检查新名称是否冲突
         if (allPlaylists[trimmedNewName]) {
             alert("错误：该歌单名称已存在！");
             return;
         }
 
-        // 3. **在内存中执行重命名操作**
-        // a. 复制旧歌单的数据到新名称下
+        // 3. 在内存中执行重命名操作
         allPlaylists[trimmedNewName] = allPlaylists[currentOpenPlaylist];
-        // b. 删除旧名称的歌单
         delete allPlaylists[currentOpenPlaylist];
 
-        // 4. **将修改后的完整歌单列表，一次性存回数据库**
+        // 4. 将修改后的完整歌单列表，一次性存回数据库
         await dbHelper.saveData('musicPlaylists', 'allPlaylists', allPlaylists);
 
-        // 5. **确认数据成功保存后，再更新UI**
+        // --- 5. 核心修复：不再手动修改UI，而是直接调用加载函数来重新渲染 ---
+        await loadPlaylists(); // 这会根据最新的数据库数据，重新绘制整个歌单列表
+
+        // 6. 更新详情页的标题和全局状态变量
         const titleElement = document.getElementById('playlist-name-title');
         if (titleElement) {
             titleElement.textContent = trimmedNewName;
         }
-        
-        const cardToUpdate = playlistGrid.querySelector(`.playlist-card[data-playlist-name="${currentOpenPlaylist}"]`);
-        if (cardToUpdate) {
-            cardToUpdate.querySelector('.playlist-name').textContent = trimmedNewName;
-            cardToUpdate.dataset.playlistName = trimmedNewName;
-        }
-
-        // 6. **最后更新全局状态变量**
         currentOpenPlaylist = trimmedNewName;
 
         alert("歌单名称已更新！");
