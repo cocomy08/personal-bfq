@@ -3571,7 +3571,6 @@ let currentOpenContact = null; // 用于存储当前打开的联系人对象
 // === AI功能新增：System Prompt 定义 ===
 const systemPrompt = `
 ### 角色扮演核心指令
-
 你将严格扮演一个角色进行对话。
 
 ---
@@ -3585,60 +3584,35 @@ const systemPrompt = `
     ---
 4.  **模仿**: 你必须始终模仿角色的性格、语气和说话方式。
 5.  **输出格式**: 你的所有回复都必须是纯文本。你可以一次回复一条或多条消息。
+6.  **【【绝对规则】】**: 你在历史记录中看到的 "[角色: ...]" 或 "[用户: ...]" 是对话上下文，仅供你参考。**你自己的回复永远不准包含 "[角色: ...]" 或 "[用户: ...]" 这种前缀。** 你必须严格使用下面的技能格式来包裹你的回复。
 
 ---
 
-### 特殊技能：转账
+### 特殊技能 (必须严格使用)
 
-这是你的一个核心能力，必须在合适的时机使用。
+**1. 普通消息:**
+* 你的每一句普通对话，都**必须**用 [MESSAGE_START] 和 [MESSAGE_END]包裹。
+* **格式**: [MESSAGE_START]你的对话内容[MESSAGE_END]
 
-**1. 使用时机 (包括但不限于):**
-* 当用户明确请求金钱时。
-* 当你想为用户购买礼物或支付费用时 (例如请客吃饭、买蛋糕)。
-* 当对话情节涉及到金钱交易时。
-
-**2. 使用格式 (必须严格遵守):**
+**2. 转账:**
 * 当你决定转账时，你的回复中**必须包含**一个转账区块。
-* 格式为 [TRANSFER_START]，换行后是 备注-金额，再换行后是 [TRANSFER_END]。
-* 金额必须是数字。
-
-**格式示例:**
-[TRANSFER_START]
-零食费-500
-[TRANSFER_END]
+* **格式**: [TRANSFER_START]备注-金额[TRANSFER_END] (注意，备注和金额在同一行)
 
 ---
 
 ### 总体回复示例
 
-**示例1 (普通消息):**
-[MESSAGE_START]
-我收到你的消息了，知道了。
-[MESSAGE_END]
+**示例1 (单条消息):**
+[MESSAGE_START]我收到你的消息了，知道了。[MESSAGE_END]
 
 **示例2 (混合消息):**
-[MESSAGE_START]
-好呀，那我们去买点好吃的吧！
-[MESSAGE_END]
-[TRANSFER_START]
-买零食的钱-80
-[TRANSFER_END]
-[MESSAGE_START]
-这些应该够了！
-[MESSAGE_END]
+[MESSAGE_START]好呀，那我们去买点好吃的吧！[MESSAGE_END]
+[TRANSFER_START]买零食的钱-80[TRANSFER_END]
+[MESSAGE_START]这些应该够了！[MESSAGE_END]
 `;
 
 // === AI功能新增：消息格式化函数 ===
 
-/**
- * 解释：
- * 这个函数接收一个消息对象 (message)，判断是用户还是AI发送的，
- * 然后转换成一个带说话人信息的字符串，例如：
- * "[用户: 张三]\n你好啊！"
- * 这样做能帮助AI更好地理解对话上下文。
- * @param {object} message - 消息对象 { sender: 'user'/'ai', text: '...' }
- * @returns {string} - 格式化后的字符串
- */
  function formatMessageForAI(message, contact) {
     if (!contact) return ""; 
     
@@ -3665,19 +3639,18 @@ const systemPrompt = `
 // === 这是 callAI 函数的【最终修复版】，解决了UI不更新和加载动画的问题 ===
 // === callAI 函数的最终版, 完美融合后台处理和“转换气泡”UI效果 ===
 // === callAI 函数的最终版(V3), 完美实现“初始加载动画 -> 转换”效果 ===
+// === callAI 函数的最终版 (V5)，增加了强大的混合消息分割逻辑 ===
 async function callAI(triggerMessage, contact) {
     if (isAiReplying) return;
     isAiReplying = true;
     const contactId = contact.id;
-    let initialTypingIndicator = null; // 准备一个变量来存放初始的加载动画
+    let initialTypingIndicator = null;
 
     try {
-        // --- 第1步：立刻显示初始加载动画 ---
         if (currentOpenContact && currentOpenContact.id === contactId) {
             initialTypingIndicator = showTypingIndicator();
         }
 
-        // --- 第2步：后台执行所有的数据获取和保存 ---
         const settingsData = await dbHelper.loadData('settingsStore', 'apiSettings');
         if (!settingsData || !settingsData.value.url || !settingsData.value.key || !settingsData.value.model) {
             throw new Error("API未完整配置，请在设置中检查。");
@@ -3686,7 +3659,8 @@ async function callAI(triggerMessage, contact) {
         const { url, key, model, temperature } = settingsData.value;
         const finalSystemPrompt = systemPrompt
             .replace('{ai_persona}', `姓名: ${contact.ai.name}\n人设: ${contact.ai.persona}`)
-            .replace('{user_persona}', `姓名: ${contact.user.name}\n人设: ${contact.user.persona}`);
+            .replace('{user_persona}', `姓名: ${contact.user.name}\n人设: ${contact.user.persona}`)
+            .replace('{world_book_content}', contact.worldBookContent || '无特定世界观设定，请自由发挥。');
         
         const history = contact.history || [];
         const recentHistory = history.slice(-contact.contextMemory || -10);
@@ -3713,34 +3687,30 @@ async function callAI(triggerMessage, contact) {
         const data = await response.json();
         const aiContent = data.choices[0].message.content;
 
-        const aiMessagesText = aiContent
-            .split('[MESSAGE_START]')
-            .map(part => part.substring(0, part.indexOf('[MESSAGE_END]')).trim())
-            .filter(text => text);
+        // --- 核心修改：分割混合消息 ---
+        // 这个正则表达式会根据 [MESSAGE_START] 或 [TRANSFER_START] 来分割字符串
+        const messageBlocks = aiContent.split(/(?=\[(?:MESSAGE_START|TRANSFER_START)\])/g).filter(block => block.trim());
 
         const savedMessages = [];
-        if (aiMessagesText.length > 0) {
-            for (const text of aiMessagesText) {
-                const aiMessage = { sender: 'ai', text: text, timestamp: new Date() };
+        if (messageBlocks.length > 0) {
+            for (const block of messageBlocks) {
+                // 我们现在处理的是分割好的、干净的单个消息块
+                const aiMessage = { sender: 'ai', text: block.trim(), timestamp: new Date() };
                 await saveMessageToHistory(aiMessage, contactId);
                 savedMessages.push(aiMessage);
             }
         } else {
+            // 如果分割失败，作为整体保存
             const rawAiMessage = { sender: 'ai', text: aiContent, timestamp: new Date() };
             await saveMessageToHistory(rawAiMessage, contactId);
             savedMessages.push(rawAiMessage);
         }
 
-        // --- 第3步：触发UI更新 ---
-        // 将后台处理好的消息 和 初始的加载动画 一起交给UI函数处理
         updateChatViewWithAIResponse(contactId, savedMessages, initialTypingIndicator);
 
     } catch (error) {
         console.error("调用AI失败:", error);
-        // 如果出错，也要确保移除初始加载动画
-        if (initialTypingIndicator) {
-            initialTypingIndicator.remove();
-        }
+        if (initialTypingIndicator) initialTypingIndicator.remove();
         alert(`AI回复失败: ${error.message}`);
     } finally {
         isAiReplying = false;
