@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>手机框界面</title>
+    <title>我的手机</title>
     <style>
 
         /* 页面基础样式，用于将手机框居中显示 */
@@ -258,7 +258,7 @@
             /* 创建4个等宽的列 */
             grid-template-columns: repeat(4, 1fr);
             /* 定义行与列之间的间距 */
-            row-gap: 25px;
+            row-gap: 30px;
             column-gap: 15px;
             padding: 20px;
         }
@@ -827,6 +827,28 @@ transition: background-color 0.2s;
 .header-text-button:hover {
     background-color: rgba(0, 122, 255, 0.2);
 }
+
+
+/* === 新增：世界书App的动画控制 === */
+/* 默认状态：世界书页完全透明，并且无法交互 */
+#worldbook-screen {
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1; /* 默认在下层 */
+}
+
+/* 当 phone-frame 拥有 .show-worldbook 类名时 */
+.phone-frame.show-worldbook #home-screen {
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.phone-frame.show-worldbook #worldbook-screen {
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 2; /* 世界书页浮上来 */
+}
 /* === 新增：消息App的动画控制 === */
 /* 默认状态：消息页完全透明，并且无法交互 */
 #messages-screen {
@@ -1130,6 +1152,7 @@ transition: background-color 0.2s;
 }
 .contact-info {
     flex-grow: 1;
+    min-width: 0;
 }
 .contact-name {
     font-size: 16px;
@@ -1249,23 +1272,6 @@ transition: background-color 0.2s;
 }
 
 
-/* 4. 固定的底部输入区域 */
-/* 4. 固定的底部输入区域 (已更新) */
-.chat-input-area {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    padding-bottom: 20px; 
-    background-color: #ffffff;
-    border-top: 1px solid #dcdcdc;
-    gap: 10px; /* 新增：为所有子元素之间添加间距 */
-    box-sizing: border-box;
-}
-
 /* 新增：为左右两个圆形按钮创建一个通用样式 */
 .chat-action-button {
     display: flex;
@@ -1324,16 +1330,7 @@ transition: background-color 0.2s;
 #chat-send-button svg path {
     fill: currentColor; /* 关键：让SVG的路径颜色继承父按钮的color属性 (白色) */
 }
-.chat-input-area input {
-    flex-grow: 1;
-    height: 40px;
-    border: none;
-    background-color: #f0f2f5;
-    border-radius: 20px;
-    padding: 0 15px;
-    font-size: 15px;
-    outline: none;
-}
+
 /* === 新增：聊天设置、气泡、输入栏的最终正确样式 === */
 
 /* --- 1. 聊天设置对话框 --- */
@@ -1373,18 +1370,8 @@ transition: background-color 0.2s;
     flex-grow: 0; /* 禁止它伸展 */
 }
 
-/* --- 2. 聊天气泡和头像 --- */
-.chat-bubble {
-    max-width: 100%;
-    padding: 10px 15px; border-radius: 18px;
-    line-height: 1.4; word-wrap: break-word;
-    font-size: 13.5px;
-    
-}
-.user-bubble {
-    background-color: #007AFF; color: white;
-    border-bottom-right-radius: 4px;
-}
+
+
 .ai-bubble {
     background-color: #E5E5EA; color: black;
     border-bottom-left-radius: 4px;
@@ -1398,14 +1385,6 @@ transition: background-color 0.2s;
 }
 .message-row.user { flex-direction: row-reverse; transform-origin: bottom right; padding-left: 15%;  }
 .message-row.ai { transform-origin: bottom left;padding-right: 15%; }
-.chat-avatar {
-    width: 40px;
-    height: 40px;
-    object-fit: cover;
-    flex-shrink: 0;
-    margin: 0 8px;
-    
-}
 .hide-avatars .chat-avatar { display: none; }
 .hide-avatars .message-row { max-width: 75%; }
 .chat-messages-container { display: flex; flex-direction: column; }
@@ -1588,7 +1567,7 @@ transition: background-color 0.2s;
 /* 2. 新增！内容包装层：负责对齐和限制宽度 */
 .message-content-wrapper {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     max-width: 85%; /* 约束内容最大宽度 */
     transition: transform 0.3s ease; /* 动画效果 */
 }
@@ -1606,10 +1585,6 @@ transition: background-color 0.2s;
     word-wrap: break-word;
     font-size: 13.5px;
     min-width: 0; /* 确保能正确换行 */
-}
-.user-bubble {
-    background-color: #007AFF; color: white;
-    border-bottom-right-radius: 4px;
 }
 .ai-bubble {
     background-color: #E5E5EA; color: black;
@@ -1663,7 +1638,75 @@ transition: background-color 0.2s;
 #chat-screen.selection-mode-active .message-content-wrapper.ai {
     transform: translateX(30px) !important;
 }
+
+/* === 新增：全屏模式的样式 === */
+body.fullscreen-mode {
+    /* 1. 取消强制居中，让内容从左上角开始 */
+    display: block;
+    /* 2. 背景设为干净的白色 */
+    background-color: #fff; 
+}
+
+body.fullscreen-mode .phone-frame {
+    /* 3. 覆盖固定的宽高，让它占满整个屏幕 */
+    width: 100%;
+    height: 100vh; /* vh 单位代表视口高度 */
+    max-width: none;
+    max-height: none;
+
+    /* 4. 移除所有手机框的视觉样式 */
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: #fff; /* 背景也设为白色 */
+
+    /* 5. 强制覆盖掉针对小屏幕的 transform: scale 缩放效果 */
+    transform: none !important;
+}
     
+/* === 最终版：独立转账卡片样式 === */
+
+/* 1. 卡片主容器 */
+.transfer-card {
+    background-color: #F0F0F0; /* 独立的浅灰色背景 */
+    border: 1px solid #E5E5EA;
+    border-radius: 12px;       /* 使用更像卡片的直角一些的圆角 */
+    padding: 16px;
+    width: 240px;              /* 宽度调整为240px，不会显得太大 */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;                  /* 调整内部元素间距 */
+    color: #000;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 添加轻微阴影增加质感 */
+}
+
+/* 2. 卡片内部元素的样式 */
+.transfer-card .card-title {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.transfer-card .card-remark {
+    font-size: 14px;
+    color: #8A8A8E;
+}
+
+.transfer-card .card-amount {
+    font-size: 32px;
+    font-weight: 400;
+    margin-top: 8px;
+}
+
+.transfer-card .card-icon {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 34px; /* 直接为图标容器设置尺寸 */
+    height: 28px;
+}
+
     </style>
 
 <style id="custom-bubble-styles"></style>
@@ -1726,6 +1769,12 @@ transition: background-color 0.2s;
                 </div>
 
                 <div class="app-grid">
+                    <div class="app-container" id="worldbook-app-icon">
+                        <div class="app-icon">
+                            <img src="https://i.postimg.cc/50WLGSrN/Icon-pages-2.png" alt="世界书">
+                        </div>
+                        <span class="app-name">世界书</span>
+                    </div>
                     <div class="app-container" id="messages-app-icon">
                         <div class="app-icon">
                             <img src="https://i.postimg.cc/bJnwpTQR/app.png" alt="消息图标">
@@ -1802,6 +1851,14 @@ transition: background-color 0.2s;
                             <input type="checkbox" id="toggle-widget-visibility" checked>
                             <span class="slider round"></span>
                         </label>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>启用全屏模式</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-frame-visibility">
+                            </label>
                     </label>
                 </div>
                 <div class="form-group"> <label>主页壁纸</label>
@@ -1939,6 +1996,15 @@ transition: background-color 0.2s;
 
     <div id="more-features-panel" class="features-panel">
         <div class="features-grid">
+            <div class="feature-item" id="transfer-feature">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 1C9.82441 1 7.69767 1.64514 5.88873 2.85383C4.07979 4.06253 2.66989 5.78049 1.83733 7.79048C1.00477 9.80047 0.786929 12.0122 1.21137 14.146C1.6358 16.2798 2.68345 18.2398 4.22183 19.7782C5.76021 21.3166 7.72022 22.3642 9.85401 22.7886C11.9878 23.2131 14.1995 22.9952 16.2095 22.1627C18.2195 21.3301 19.9375 19.9202 21.1462 18.1113C22.3549 16.3023 23 14.1756 23 12C23 9.08262 21.8411 6.28473 19.7782 4.22183C17.7153 2.15893 14.9174 1 12 1ZM12 21C10.22 21 8.47992 20.4722 6.99987 19.4832C5.51983 18.4943 4.36628 17.0887 3.68509 15.4442C3.0039 13.7996 2.82567 11.99 3.17294 10.2442C3.5202 8.49836 4.37737 6.89471 5.63604 5.63604C6.89472 4.37737 8.49836 3.5202 10.2442 3.17293C11.99 2.82567 13.7996 3.0039 15.4442 3.68508C17.0887 4.36627 18.4943 5.51983 19.4832 6.99987C20.4722 8.47991 21 10.22 21 12C21 14.3869 20.0518 16.6761 18.364 18.364C16.6761 20.0518 14.387 21 12 21ZM14.83 6.45L12 10.7L9.17 6.45C9.09736 6.34007 9.0037 6.24559 8.89441 6.17198C8.78513 6.09836 8.66238 6.04707 8.53321 6.02105C8.40404 5.99503 8.271 5.9948 8.14174 6.02036C8.01248 6.04592 7.88955 6.09677 7.78 6.17C7.56079 6.31662 7.40838 6.5439 7.35593 6.80236C7.30349 7.06082 7.35527 7.32954 7.5 7.55L9.61 10.72H9C8.73479 10.72 8.48043 10.8254 8.2929 11.0129C8.10536 11.2004 8 11.4548 8 11.72C8 11.9852 8.10536 12.2396 8.2929 12.4271C8.48043 12.6146 8.73479 12.72 9 12.72H11L11.05 12.8V13.72H9C8.73479 13.72 8.48043 13.8254 8.2929 14.0129C8.10536 14.2004 8 14.4548 8 14.72C8 14.9852 8.10536 15.2396 8.2929 15.4271C8.48043 15.6146 8.73479 15.72 9 15.72H11V18C11 18.2652 11.1054 18.5196 11.2929 18.7071C11.4804 18.8946 11.7348 19 12 19C12.2652 19 12.5196 18.8946 12.7071 18.7071C12.8946 18.5196 13 18.2652 13 18V15.72H15C15.2652 15.72 15.5196 15.6146 15.7071 15.4271C15.8946 15.2396 16 14.9852 16 14.72C16 14.4548 15.8946 14.2004 15.7071 14.0129C15.5196 13.8254 15.2652 13.72 15 13.72H13V12.8L13.05 12.72H15C15.2652 12.72 15.5196 12.6146 15.7071 12.4271C15.8946 12.2396 16 11.9852 16 11.72C16 11.4548 15.8946 11.2004 15.7071 11.0129C15.5196 10.8254 15.2652 10.72 15 10.72H14.39L16.5 7.55C16.6447 7.32954 16.6965 7.06082 16.6441 6.80236C16.5916 6.5439 16.4392 6.31662 16.22 6.17C16.1105 6.09677 15.9875 6.04592 15.8583 6.02036C15.729 5.9948 15.596 5.99503 15.4668 6.02105C15.3376 6.04707 15.2149 6.09836 15.1056 6.17198C14.9963 6.24559 14.9027 6.34007 14.83 6.45Z" fill="black"/>
+                        </svg>
+                        
+                </div>
+                <span class="feature-name">转账</span>
+            </div>
             <div class="feature-item" id="receipt-feature">
                 <div class="feature-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1947,10 +2013,12 @@ transition: background-color 0.2s;
                 </div>
                 <span class="feature-name">接收</span>
             </div>
+            
             </div>
-    </div>
+            
+            </div>
 
-    <!-- 3. 底部输入区域 -->
+            <!-- 3. 底部输入区域 -->
     <div class="chat-input-area">
         <!-- 用下面的 SVG 替换掉原来的加号按钮 -->
 <button id="chat-add-attachment-button" class="chat-action-button">
@@ -1966,7 +2034,24 @@ transition: background-color 0.2s;
             <svg t="1755525428099" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6198"><path d="M815.744 74.752a587.52 587.52 0 0 0-84.864 5.632 958.976 958.976 0 0 0-63.616 10.496 1597.44 1597.44 0 0 0-138.752 33.6A2104.384 2104.384 0 0 0 258.112 221.44a1344.576 1344.576 0 0 0-55.616 26.496 652.672 652.672 0 0 0-67.84 39.104 313.6 313.6 0 0 0-17.664 12.8 201.984 201.984 0 0 0-22.016 19.968 110.08 110.08 0 0 0-11.2 14.72 58.368 58.368 0 0 0-8.768 38.272 85.12 85.12 0 0 0 4.736 21.12 92.928 92.928 0 0 0 12.992 24.64 142.08 142.08 0 0 0 29.376 29.12 198.4 198.4 0 0 0 23.04 15.232 379.52 379.52 0 0 0 40 19.2c9.344 3.968 19.008 7.552 28.8 10.944a723.456 723.456 0 0 0 60.16 18.112c10.24 2.688 20.352 5.12 30.4 7.552 20.096 4.736 39.808 8.96 57.984 12.736l24.896 5.12c12.736 2.56 24.192 4.992 34.112 7.104 9.92 2.176 18.304 4.032 24.96 5.888a200.192 200.192 0 0 1 22.912 8.128c1.088 0.512 1.728 0.96 2.624 1.472 1.088 0.64 2.432 1.28 3.2 1.92l0.576 0.32a22.912 22.912 0 0 1 5.952 6.784 44.352 44.352 0 0 1 3.2 6.4c1.024 2.624 2.176 5.952 3.328 9.984 1.152 4.032 2.368 8.768 3.648 14.464 5.824 26.752 11.392 51.968 16.704 75.648 5.312 23.68 10.432 45.824 15.36 66.368 4.992 20.544 9.856 39.68 14.656 56.96a975.616 975.616 0 0 0 14.4 47.168 453.568 453.568 0 0 0 15.744 38.848c2.816 5.952 5.76 11.52 8.832 16.768a114.816 114.816 0 0 0 28.224 33.28 80.128 80.128 0 0 0 14.912 8.96 71.232 71.232 0 0 0 32.384 6.272 49.024 49.024 0 0 0 15.872-3.84 69.12 69.12 0 0 0 16.768-9.536 104.128 104.128 0 0 0 14.016-12.352c4.48-4.608 8.896-9.6 13.12-14.912a459.072 459.072 0 0 0 39.04-59.776 882.24 882.24 0 0 0 26.56-50.816 1349.12 1349.12 0 0 0 27.008-58.496 1841.28 1841.28 0 0 0 39.744-98.048 2304.128 2304.128 0 0 0 67.52-210.112 1653.568 1653.568 0 0 0 22.848-100.224 816 816 0 0 0 12.352-89.28c0.704-9.152 1.152-18.048 1.28-26.624a340.608 340.608 0 0 0-0.384-24.704 239.104 239.104 0 0 0-4.224-33.536 148.8 148.8 0 0 0-10.88-31.104 87.104 87.104 0 0 0-12.288-17.408 77.44 77.44 0 0 0-16.832-13.76 100.224 100.224 0 0 0-20.032-9.472 168.064 168.064 0 0 0-21.76-5.888 223.488 223.488 0 0 0-22.464-3.2 315.52 315.52 0 0 0-24.64-1.408z m-1.344 64c7.04 0.128 13.696 0.384 19.84 1.024 6.528 0.64 12.16 1.472 16.896 2.496 4.736 0.96 8.64 2.048 11.84 3.2 3.2 1.152 5.76 2.432 7.68 3.52 1.92 1.152 3.2 2.112 3.968 3.008a19.584 19.584 0 0 1 2.752 4.352 48.192 48.192 0 0 1 3.136 8 166.72 166.72 0 0 1 4.48 29.632 406.336 406.336 0 0 1-3.2 68.352 744.32 744.32 0 0 1-9.024 57.024 1181.888 1181.888 0 0 1-13.632 62.72 1617.664 1617.664 0 0 1-27.52 100.672 2179.712 2179.712 0 0 1-84.608 231.04 1579.008 1579.008 0 0 1-38.528 81.088 807.552 807.552 0 0 1-24.256 42.752 398.464 398.464 0 0 1-21.376 30.976 130.944 130.944 0 0 1-8.832 10.048 58.432 58.432 0 0 1-6.528 5.824l-0.256 0.256a16 16 0 0 1-3.712-2.56 40.832 40.832 0 0 1-5.376-5.952 83.2 83.2 0 0 1-5.76-8.448 148.672 148.672 0 0 1-6.016-11.392 383.744 383.744 0 0 1-19.52-52.864c-2.176-7.36-4.48-15.104-6.72-23.296a1712.64 1712.64 0 0 1-13.888-54.208c-4.8-19.84-9.728-41.472-14.976-64.896-5.312-23.424-10.88-48.704-16.896-75.84a296.128 296.128 0 0 0-4.48-18.048 163.392 163.392 0 0 0-9.408-24.96c-1.28-2.624-2.688-5.12-4.224-7.68l-0.64-0.96 127.04-126.976a32.192 32.192 0 0 0 6.976-10.688 31.36 31.36 0 0 0 0-24 32 32 0 0 0-12.032-14.72 32.192 32.192 0 0 0-23.68-4.608 31.36 31.36 0 0 0-16.576 8.704L484.096 494.72l-2.944-1.28a273.6 273.6 0 0 0-17.408-5.376 516.48 516.48 0 0 0-28.864-7.04 2955.072 2955.072 0 0 0-36.608-7.616l-22.912-4.608a2065.92 2065.92 0 0 1-84.992-19.456 888.192 888.192 0 0 1-55.744-16.768 466.624 466.624 0 0 1-25.152-9.536 314.56 314.56 0 0 1-22.208-10.112 201.472 201.472 0 0 1-19.008-10.88 120 120 0 0 1-18.368-14.848 57.28 57.28 0 0 1-6.912-8.64 25.472 25.472 0 0 1-4.096-11.264l1.024-1.472a60.16 60.16 0 0 1 6.08-6.656 136.32 136.32 0 0 1 10.368-8.96 393.984 393.984 0 0 1 52.032-33.024 799.68 799.68 0 0 1 48.64-24.768 1277.44 1277.44 0 0 1 56.448-25.216 1997.952 1997.952 0 0 1 95.488-36.992 2169.216 2169.216 0 0 1 102.656-34.048 2061.632 2061.632 0 0 1 102.656-28.096 1537.408 1537.408 0 0 1 64.832-14.272 1111.232 1111.232 0 0 1 60.16-9.856 705.728 705.728 0 0 1 52.608-4.864 371.2 371.2 0 0 1 22.528-0.256z" fill="#ffffff" p-id="6199"></path></svg>
         </button>
     </div>
-</div> 
+            
+    </div>
+
+    <div id="worldbook-screen" class="screen">
+        <div class="settings-header">
+            <button id="worldbook-back-button" class="header-text-button">返回</button>
+            <h1>世界书</h1>
+            <div class="header-actions">
+                <button id="worldbook-multiselect-btn" class="header-button">多选</button>
+            </div>
+        </div>
+        <div class="music-content">
+            <button id="add-worldbook-btn" class="add-playlist-button">新建世界书</button>
+            <div id="worldbook-list" class="contact-list" style="margin-top: 20px;">
+                </div>
+        </div>
+    </div>
+
 
 <!-- === 新增：聊天设置弹出层 (Modal) === -->
 <div id="chat-settings-modal" class="modal-overlay" style="display: none;">
@@ -2012,9 +2097,16 @@ transition: background-color 0.2s;
                     <input type="text" id="user-name-input-settings" class="form-input" placeholder="你的名字">
                     <textarea id="user-persona-input-settings" class="form-textarea" placeholder="你的人设..."></textarea>
                 </div>
-                 <div class="form-group-inline">
+                <div class="form-group-inline">
                     <label>上下文记忆:</label>
                     <input type="number" id="context-memory-input-settings" class="form-input" value="10" min="0" max="100">
+                </div>
+                
+                <div class="form-group-inline">
+                    <label for="worldbook-select-settings">世界书:</label>
+                    <select id="worldbook-select-settings" class="form-select" style="width: 180px;">
+                        <option value="">不使用</option>
+                        </select>
                 </div>
             </div>
 
@@ -2066,6 +2158,51 @@ transition: background-color 0.2s;
     </div>
 </div>
 
+
+
+<div id="add-worldbook-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>新建世界书</h2>
+            <button id="worldbook-modal-close-btn" class="modal-close-button">&times;</button>
+        </div>
+        <div class="modal-body" style="gap: 15px; padding: 15px 0;">
+            <div class="form-group">
+                <label for="worldbook-name-input">世界书名称</label>
+                <input type="text" id="worldbook-name-input" class="form-input" placeholder="例如：艾泽拉斯编年史">
+            </div>
+            <div class="form-group">
+                <label for="worldbook-content-input">世界书内容</label>
+                <textarea id="worldbook-content-input" class="form-textarea" placeholder="输入关于这个世界的设定..." style="height: 200px;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="save-worldbook-btn" class="save-button">保存</button>
+        </div>
+    </div>
+</div>
+<div id="transfer-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>发起转账</h2>
+            <button id="transfer-modal-close-btn" class="modal-close-button">&times;</button>
+        </div>
+        <div class="modal-body" style="gap: 15px; padding: 15px 0;">
+            <div class="form-group">
+                <label for="transfer-amount-input">转账金额 (¥)</label>
+                <input type="number" id="transfer-amount-input" class="form-input" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label for="transfer-remark-input">备注</label>
+                <input type="text" id="transfer-remark-input" class="form-input" placeholder="最多20个字">
+            </div>
+        </div>
+        <div class="modal-footer" style="align-items: center;">
+            <button id="confirm-transfer-btn" class="save-button">确认转账</button>
+        </div>
+    </div>
+</div>
+
     </div>
 
     <script>
@@ -2085,7 +2222,7 @@ const dbHelper = {
                 return;
             }
             // 数据库版本提升到 2，以确保 onupgradeneeded 事件被触发，从而创建新的数据仓库
-            const request = indexedDB.open(this.dbName, 2);
+            const request = indexedDB.open(this.dbName, 3);
 
             request.onerror = (event) => {
                 console.error("数据库打开失败:", event);
@@ -2101,7 +2238,7 @@ const dbHelper = {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 // 我们App需要的所有数据仓库列表
-                const stores = ['settingsStore', 'messageContacts', 'musicPlaylists'];
+                const stores = ['settingsStore', 'messageContacts', 'musicPlaylists', 'worldBooks'];
                 stores.forEach(storeName => {
                     if (!db.objectStoreNames.contains(storeName)) {
                         db.createObjectStore(storeName, { keyPath: 'id' });
@@ -2230,8 +2367,26 @@ const chatBgUploadInput = document.getElementById('chat-bg-upload-input');
 const clearHistoryBtn = document.getElementById('clear-history-btn');
 const customBubbleStyles = document.getElementById('custom-bubble-styles');
 
+const fullscreenToggle = document.getElementById('toggle-frame-visibility');
+        const bodyElement = document.body; // 获取 body 元素
+
+
+        const worldbookAppIcon = document.getElementById('worldbook-app-icon');
+const worldbookBackButton = document.getElementById('worldbook-back-button');
+const addWorldbookBtn = document.getElementById('add-worldbook-btn');
+const addWorldbookModal = document.getElementById('add-worldbook-modal');
+const worldbookModalCloseBtn = document.getElementById('worldbook-modal-close-btn');
+const saveWorldbookBtn = document.getElementById('save-worldbook-btn');
+const worldbookNameInput = document.getElementById('worldbook-name-input');
+const worldbookContentInput = document.getElementById('worldbook-content-input');
+const worldbookListContainer = document.getElementById('worldbook-list');
+const worldbookMultiselectBtn = document.getElementById('worldbook-multiselect-btn');
+let isWorldbookDeleteMode = false; // 删除模式的状态
+let currentEditingBookId = null; // null 表示新建，有值表示编辑
+
 const showAvatarsToggle = document.getElementById('show-avatars-toggle');
 const avatarRadiusInput = document.getElementById('avatar-radius-input');
+const worldbookSelectSettings = document.getElementById('worldbook-select-settings');
         
         // === 新增：API 设置所需的元素 ===
         
@@ -2344,6 +2499,11 @@ async function loadData() {
     if (!isWidgetVisible) {
         widgetContainer.classList.add('widget-hidden');
     }
+    const fullscreenData = await dbHelper.loadData('settingsStore', 'isFullscreenEnabled');
+    // 默认是关闭的 (false)
+    const isFullscreenEnabled = fullscreenData ? fullscreenData.value : false;
+    fullscreenToggle.checked = isFullscreenEnabled;
+    applyFullscreenMode(isFullscreenEnabled); // 页面加载时应用一次
 }
 
         // 功能B: 保存语录 (当编辑完成时触发)
@@ -2556,6 +2716,16 @@ widgetVisibilityToggle.addEventListener('change', async () => { // 改为 async
         widgetContainer.classList.add('widget-hidden');
         await dbHelper.saveData('settingsStore', 'isWidgetVisible', false);
     }
+});
+
+// === 新增：世界书 App 的导航事件 ===
+worldbookAppIcon.addEventListener('click', () => {
+    phoneFrame.classList.add('show-worldbook');
+    loadAndRenderWorldBooks();
+});
+
+worldbookBackButton.addEventListener('click', () => {
+    phoneFrame.classList.remove('show-worldbook');
 });
 
 // === 新增：消息 App 的导航事件 ===
@@ -2774,12 +2944,6 @@ musicFileInput.addEventListener('change', async (event) => {
 });
 
 // 7. 一个辅助函数，用于将歌曲对象添加到 HTML 列表中
-// === 替换为新版：添加歌曲到列表（带播放按钮） ===
-// === 替换为新版：为每首歌添加复选框和唯一标识 ===
-// === 替换为修复版：播放时动态生成URL，并更新删除逻辑的唯一标识 ===
-// === 替换为最终修复版：兼容新旧两种歌曲数据结构 ===
-// === 替换为新版：连接播放器到灵动岛 ===
-// === 替换为最终修复版：修复播放按钮的 ReferenceError ===
 function appendSongToList(song) {
     const li = document.createElement('li');
     li.className = 'song-item';
@@ -3025,6 +3189,24 @@ function formatTime(seconds) {
 
 // --- 事件监听 ---
 
+// *** 在这里新增下面的代码 ***
+
+// === 新增：点击世界书列表项以进行编辑 ===
+worldbookListContainer.addEventListener('click', async (event) => {
+    // 如果当前是删除模式，或者点击的是复选框，则不执行编辑操作
+    if (isWorldbookDeleteMode || event.target.type === 'checkbox') {
+        return;
+    }
+
+    const bookItem = event.target.closest('.contact-item');
+    if (bookItem) {
+        const bookId = parseInt(bookItem.dataset.bookId, 10);
+        openWorldbookModal(bookId); // 调用弹窗函数，并传入书籍ID
+    }
+});
+
+// *** 新增代码结束 ***
+
 // 监听音频播放器事件来控制灵动岛
 audioPlayer.addEventListener('play', showDynamicIsland);
 audioPlayer.addEventListener('pause', hideDynamicIsland);
@@ -3124,7 +3306,24 @@ function closeModal() {
         // --- 重置代码结束 ---
     }, 300);// 300ms 对应CSS中的动画时长
 }
-
+/**
+/**
+         * 功能：根据传入的布尔值，切换全屏模式
+         * @param {boolean} isEnabled - true为启用全屏, false为手机模式
+         */
+         function applyFullscreenMode(isEnabled) {
+            if (isEnabled) {
+                bodyElement.classList.add('fullscreen-mode');
+            } else {
+                bodyElement.classList.remove('fullscreen-mode');
+            }
+        }
+        fullscreenToggle.addEventListener('change', async () => {
+            const isEnabled = fullscreenToggle.checked;
+            applyFullscreenMode(isEnabled);
+            // 使用新的键名保存状态
+            await dbHelper.saveData('settingsStore', 'isFullscreenEnabled', isEnabled);
+        });
 modalCloseBtn.addEventListener('click', closeModal);
 addContactModal.addEventListener('click', (event) => {
     // 如果点击的是遮罩背景本身，而不是对话框内容，则关闭
@@ -3322,9 +3521,13 @@ const systemPrompt = `
 你将扮演一个角色进行对话。请严格遵守以下所有指示：
 1.  你的角色信息是：{ai_persona}
 2.  与你对话的用户信息是：{user_persona}
-3.  你必须模仿角色的性格、语气和说话方式。
-4.  你的所有回复都必须是纯文本格式。
-5.  你可以一次性回复一条或多条消息。每一条独立的消息都必须用 [MESSAGE_START] 和 [MESSAGE_END] 包裹。
+3.  【世界观设定】：你必须参考以下的世界观设定来进行对话，你的所有行为和认知都不能超出这个设定的范畴。设定内容如下：
+    ---
+    {world_book_content}
+    ---
+4.  你必须模仿角色的性格、语气和说话方式。
+5.  你的所有回复都必须是纯文本格式。
+6.  你可以一次性回复一条或多条消息。每一条独立的消息都必须用 [MESSAGE_START] 和 [MESSAGE_END] 包裹。转账操作使用 [TRANSFER_START] 和 [TRANSFER_END] 包裹。
 
 回复格式示例 (单条消息):
 [MESSAGE_START]
@@ -3335,8 +3538,11 @@ const systemPrompt = `
 [MESSAGE_START]
 嗯...让我想想。
 [MESSAGE_END]
+[TRANSFER_START]
+零食费-500
+[TRANSFER_END]
 [MESSAGE_START]
-好的，关于那件事，我的看法是...
+吃得开心...
 [MESSAGE_END]
 `;
 
@@ -3351,13 +3557,11 @@ const systemPrompt = `
  * @param {object} message - 消息对象 { sender: 'user'/'ai', text: '...' }
  * @returns {string} - 格式化后的字符串
  */
- function formatMessageForAI(message) {
-    if (!currentOpenContact) return ""; // 确保当前有打开的对话
+ function formatMessageForAI(message, contact) {
+    if (!contact) return ""; 
     
-    // 根据 sender 决定角色名称
     const role = message.sender === 'user' ? '用户' : '角色';
-    // 根据 sender 获取对应的名字
-    const name = message.sender === 'user' ? currentOpenContact.user.name : currentOpenContact.ai.name;
+    const name = message.sender === 'user' ? contact.user.name : contact.ai.name;
     
     return `[${role}: ${name}]\n${message.text}`;
 }
@@ -3375,123 +3579,121 @@ const systemPrompt = `
 //
 // 这是 callAI 函数的【新版】，实现了立即显示加载动画
 //
-async function callAI(triggerMessage) {
-    if (isAiReplying) {
-        console.log("AI正在回复中，请稍候...");
-        return;
-    }
+// === 修正版：AI 调用函数，使其能在后台安全运行 ===
+// === 这是 callAI 函数的【最终修复版】，解决了UI不更新和加载动画的问题 ===
+// === callAI 函数的最终版, 完美融合后台处理和“转换气泡”UI效果 ===
+// === callAI 函数的最终版(V3), 完美实现“初始加载动画 -> 转换”效果 ===
+async function callAI(triggerMessage, contact) {
+    if (isAiReplying) return;
     isAiReplying = true;
-
-    // 1. 立刻创建一个“正在输入”的占位气泡，不等AI回复
-    const initialTypingBubble = createTypingBubble();
+    const contactId = contact.id;
+    let initialTypingIndicator = null; // 准备一个变量来存放初始的加载动画
 
     try {
-        const settingsData = await dbHelper.loadData('settingsStore', 'apiSettings');
-        if (!settingsData || !settingsData.value.url || !settingsData.value.key) {
-            alert("请先在设置中配置有效的API URL和KEY。");
-            initialTypingBubble.closest('.message-row').remove(); // 出错时移除占位气泡
-            isAiReplying = false;
-            return;
-        }
-        // ... (省略部分同样的代码)
-        const { url, key, model, temperature } = settingsData.value;
-        if (!model) {
-            alert("请在设置中选择一个模型。");
-            initialTypingBubble.closest('.message-row').remove(); // 出错时移除占位气泡
-            isAiReplying = false;
-            return;
+        // --- 第1步：立刻显示初始加载动画 ---
+        if (currentOpenContact && currentOpenContact.id === contactId) {
+            initialTypingIndicator = showTypingIndicator();
         }
 
-        // 2. 准备请求数据 (这部分逻辑不变)
+        // --- 第2步：后台执行所有的数据获取和保存 ---
+        const settingsData = await dbHelper.loadData('settingsStore', 'apiSettings');
+        if (!settingsData || !settingsData.value.url || !settingsData.value.key || !settingsData.value.model) {
+            throw new Error("API未完整配置，请在设置中检查。");
+        }
+        
+        const { url, key, model, temperature } = settingsData.value;
         const finalSystemPrompt = systemPrompt
-            .replace('{ai_persona}', `姓名: ${currentOpenContact.ai.name}\n人设: ${currentOpenContact.ai.persona}`)
-            .replace('{user_persona}', `姓名: ${currentOpenContact.user.name}\n人设: ${currentOpenContact.user.persona}`);
-        const history = currentOpenContact.history || [];
-        const contextLimit = currentOpenContact.contextMemory || 10;
-        const recentHistory = history.slice(-contextLimit);
+            .replace('{ai_persona}', `姓名: ${contact.ai.name}\n人设: ${contact.ai.persona}`)
+            .replace('{user_persona}', `姓名: ${contact.user.name}\n人设: ${contact.user.persona}`);
+        
+        const history = contact.history || [];
+        const recentHistory = history.slice(-contact.contextMemory || -10);
         const messages = [{ role: "system", content: finalSystemPrompt }];
+        
         recentHistory.forEach(msg => {
             messages.push({
                 role: msg.sender === 'user' ? 'user' : 'assistant',
-                content: formatMessageForAI(msg)
+                content: formatMessageForAI(msg, contact)
             });
         });
-        messages.push({ role: "user", content: triggerMessage });
         
-        // 3. 发起网络请求
-        const response = await fetch(`${url}/v1/chat/completions`, { /* ... fetch options ... */ 
+        const currentUserMessage = { sender: 'user', text: triggerMessage };
+        messages.push({ role: "user", content: formatMessageForAI(currentUserMessage, contact) });
+
+        const response = await fetch(`${url}/v1/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-            body: JSON.stringify({
-                model: model,
-                messages: messages,
-                temperature: parseFloat(temperature) || 1.0,
-            })
+            body: JSON.stringify({ model, messages, temperature: parseFloat(temperature) || 1.0 })
         });
 
-        if (!response.ok) {
-            throw new Error(`API请求失败，状态码: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`API请求失败: ${response.status}`);
+        
         const data = await response.json();
         const aiContent = data.choices[0].message.content;
+
         const aiMessagesText = aiContent
             .split('[MESSAGE_START]')
-            .map(part => {
-                const endIndex = part.indexOf('[MESSAGE_END]');
-                if (endIndex !== -1) { return part.substring(0, endIndex).trim(); }
-                return null;
-            })
-            .filter(text => text && text.length > 0);
+            .map(part => part.substring(0, part.indexOf('[MESSAGE_END]')).trim())
+            .filter(text => text);
 
-        // 4. 判断AI是否有有效回复
+        const savedMessages = [];
         if (aiMessagesText.length > 0) {
-            // 如果有，则将占位气泡和消息列表一起传给显示函数处理
-            await displayAiMessagesSequentially(aiMessagesText, initialTypingBubble);
+            for (const text of aiMessagesText) {
+                const aiMessage = { sender: 'ai', text: text, timestamp: new Date() };
+                await saveMessageToHistory(aiMessage, contactId);
+                savedMessages.push(aiMessage);
+            }
         } else {
-            // 如果没有有效回复，则移除占位气泡，并显示原始错误信息
-            initialTypingBubble.closest('.message-row').remove();
             const rawAiMessage = { sender: 'ai', text: aiContent, timestamp: new Date() };
-            addMessageToView(rawAiMessage);
-            await saveMessageToHistory(rawAiMessage);
+            await saveMessageToHistory(rawAiMessage, contactId);
+            savedMessages.push(rawAiMessage);
         }
+
+        // --- 第3步：触发UI更新 ---
+        // 将后台处理好的消息 和 初始的加载动画 一起交给UI函数处理
+        updateChatViewWithAIResponse(contactId, savedMessages, initialTypingIndicator);
 
     } catch (error) {
         console.error("调用AI失败:", error);
+        // 如果出错，也要确保移除初始加载动画
+        if (initialTypingIndicator) {
+            initialTypingIndicator.remove();
+        }
         alert(`AI回复失败: ${error.message}`);
-        // 确保在捕获到任何错误时，都移除占位气泡
-        initialTypingBubble.closest('.message-row').remove();
     } finally {
-        // 5. 任务结束，解锁
         isAiReplying = false;
     }
 }
 // 你需要实现 saveMessageToHistory 函数，它应该像这样：
-async function saveMessageToHistory(message) {
-    if (!currentOpenContact) return;
+async function saveMessageToHistory(message, contactId) { // 增加 contactId 参数
+    if (!contactId) return;
     
-    // 确保 history 数组存在
-    if (!Array.isArray(currentOpenContact.history)) {
-        currentOpenContact.history = [];
-    }
-    currentOpenContact.history.push(message);
-
-    // 更新"最后一条消息"用于消息列表预览
-    currentOpenContact.lastMessage = message.text;
-    
-    // 从数据库加载、更新、再存回
+    // 从数据库加载、更新、再存回 (这是后台安全的核心)
     const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
-    let allContacts = allContactsData.value;
-    const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
-    if (contactIndex > -1) {
-        allContacts[contactIndex] = currentOpenContact;
-    }
-    await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
+    let allContacts = allContactsData.value || [];
+    const contactIndex = allContacts.findIndex(c => c.id === contactId);
 
-    // (可选) 更新消息列表UI
-    const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
-    if (contactItemInList) {
-        contactItemInList.querySelector('.contact-last-message').textContent = message.text;
+    if (contactIndex > -1) {
+        // 确保 history 数组存在
+        if (!Array.isArray(allContacts[contactIndex].history)) {
+            allContacts[contactIndex].history = [];
+        }
+        allContacts[contactIndex].history.push(message);
+        // 更新"最后一条消息"用于消息列表预览
+        allContacts[contactIndex].lastMessage = message.text;
+        
+        // 将更新后的整个列表存回数据库
+        await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
+
+        // 如果用户在消息列表页，实时更新那里的最后一条消息
+        const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${contactId}"]`);
+        if (contactItemInList) {
+            contactItemInList.querySelector('.contact-last-message').textContent = message.text;
+        }
+        // 如果用户正好在当前聊天页，也更新内存中的对象
+        if(currentOpenContact && currentOpenContact.id === contactId) {
+            currentOpenContact = allContacts[contactIndex];
+        }
     }
 }
 // === AI功能修改：发送消息的总控函数 ===
@@ -3729,7 +3931,7 @@ const defaultBubbleCss = `.user-bubble {
 
 // --- 功能 A: 打开和关闭设置弹出层 ---
 // --- 功能 A: 打开和关闭设置弹出层 (已修复数据加载) ---
-function openChatSettingsModal() {
+async function openChatSettingsModal() {
     if (!currentOpenContact) return;
 
     // 1. 加载当前联系人的数据到表单
@@ -3749,6 +3951,32 @@ function openChatSettingsModal() {
     const avatarSettings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
 showAvatarsToggle.checked = avatarSettings.show;
 avatarRadiusInput.value = avatarSettings.radius;
+
+// --- 2.【核心新增】加载并填充世界书下拉框 ---
+    try {
+        const worldbookData = await dbHelper.loadData('worldBooks', 'allWorldBooks');
+        const books = (worldbookData && Array.isArray(worldbookData.value)) ? worldbookData.value : [];
+
+        // 清空旧选项，保留“不使用”
+        worldbookSelectSettings.innerHTML = '<option value="">不使用</option>';
+
+        books.forEach(book => {
+            const option = document.createElement('option');
+            option.value = book.id;
+            option.textContent = book.name;
+            worldbookSelectSettings.appendChild(option);
+        });
+        // 设置当前对话已选择的世界书
+        if (currentOpenContact.linkedWorldBookId) {
+            worldbookSelectSettings.value = currentOpenContact.linkedWorldBookId;
+        } else {
+            worldbookSelectSettings.value = ""; // 默认选中“不使用”
+        }
+    } catch (error) {
+        console.error("加载世界书到设置失败:", error);
+    }
+    // --- 世界书加载结束 ---
+
 
     // 2. 显示弹出层
     chatSettingsModal.style.display = 'flex';
@@ -3853,7 +4081,8 @@ saveChatSettingsBtn.addEventListener('click', async () => {
             show: showAvatarsToggle.checked,
             radius: avatarRadiusInput.value.trim() || '50%'
         };
-        
+        const selectedBookId = worldbookSelectSettings.value;
+allContacts[contactIndex].linkedWorldBookId = selectedBookId ? parseInt(selectedBookId, 10) : null;
         // 3. 更新聊天背景
         const bgImage = chatScreen.style.backgroundImage;
         allContacts[contactIndex].chatBackground = bgImage.includes('url') ? bgImage : null;
@@ -3909,78 +4138,124 @@ function applyChatViewSettings(contact) {
 // === 更新：将消息显示为带头像的聊天气泡 ===
 // === 这是 addMessageToView 函数的【最终修复版】 ===
 // 它创建了正确的 HTML 结构，以匹配 CSS 动画的需求
+// === 这是 addMessageToView 函数的【最终正确版本】 ===
+/**
+ * 功能：将消息添加到视图中
+ * (最终修复版：重构了类名添加逻辑，彻底解决转账框透明的Bug)
+ */
+ /**
+ * 功能：将消息添加到视图中
+ * (最终修复版V2：使用if/else彻底分离普通气泡和转账卡片的样式)
+ */
+/**
+ * 功能：将消息添加到视图中
+ * (最终修复版V4：直接使用用户提供的HTML蓝图构建转账卡片，彻底解决所有样式和布局问题)
+ */
+ /**
+ * 功能：将消息添加到视图中
+ * (最终修复版V5：根据用户提供的最新设计蓝图更新转账卡片样式)
+ */
 function addMessageToView(message) {
     const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
 
-    // 1. 创建最外层的行容器
     const row = document.createElement('div');
     row.className = 'message-row';
-    row.dataset.timestamp = message.timestamp.toString(); // 确保时间戳为字符串
+    row.dataset.timestamp = message.timestamp.toString();
 
-    const selectionIndicator = document.createElement('div');
-    selectionIndicator.className = 'selection-indicator';
-    row.appendChild(selectionIndicator);
-
-    // 2.【核心修复】创建内容包装层
     const wrapper = document.createElement('div');
-    wrapper.className = 'message-content-wrapper'; // 添加基础类名
+    wrapper.className = 'message-content-wrapper';
 
-    // 3. 创建头像和气泡
     const avatar = document.createElement('img');
     avatar.className = 'chat-avatar';
     avatar.style.borderRadius = settings.radius;
 
-    const bubble = document.createElement('div');
-    bubble.className = 'chat-bubble';
-    bubble.textContent = message.text;
-
-    // 4. 根据发送者，为不同的元素设置正确的类名
+    // 1. 根据发送者，先设置好头像和左右对齐
     if (message.sender === 'user') {
-        wrapper.classList.add('user'); // 将 .user 类名添加到 wrapper 上
+        wrapper.classList.add('user');
         avatar.src = currentOpenContact.user.avatar;
-        bubble.classList.add('user-bubble');
-    } else {
-        wrapper.classList.add('ai'); // 将 .ai 类名添加到 wrapper 上
+    } else { // sender is 'ai'
+        wrapper.classList.add('ai');
         avatar.src = currentOpenContact.ai.avatar;
-        bubble.classList.add('ai-bubble');
     }
-
-    // 5.【核心修复】按正确的父子关系组装元素
-    // 将头像和气泡放入 wrapper 中
-    wrapper.appendChild(avatar);
-    wrapper.appendChild(bubble);
-
-    // 将 wrapper 放入 row 中
-    row.appendChild(wrapper);
     
-    chatMessagesContainer.appendChild(row);
+    // 2. 决定在wrapper中放置“卡片”还是“气泡”
+    const transferRegex = /\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/;
+    const transferMatch = message.text.match(transferRegex);
 
-    // 6. 自动滚动
+    if (transferMatch) {
+        // --- 情况一：渲染您最新的转账卡片设计 ---
+        const remark = transferMatch[1].trim();
+        const amount = parseFloat(transferMatch[2]).toFixed(2);
+        
+        const card = document.createElement('div');
+        
+        // 应用您提供的新版内联样式
+        card.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
+        
+        // 使用您提供的新版HTML结构，并填入动态数据和新SVG图标
+        card.innerHTML = `
+            <div style="left: 23px; top: 11px; position: absolute; color: black; font-size: 16px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">转账</div>
+            <div style="left: 23px; top: 42px; position: absolute; color: #AFAFAF; font-size: 11px; font-family: sans-serif; font-weight: 400; word-wrap: break-word">${remark}</div>
+            <div style="width: 130px; height: 22px; left: 20px; top: 64px; position: absolute; color: black; font-size: 20px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">¥ ${amount}</div>
+            <div style="width: 160px; height: 0px; left: 20px; top: 37px; position: absolute; border: 0.5px solid rgba(118, 118, 128, 0.12);"></div>
+            <div style="width: 24px; height: 24px; left: 156px; top: 8px; position: absolute;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.295 16.705L12.585 12.415L8.295 8.125C8.1067 7.9367 8.00091 7.6813 8.00091 7.415C8.00091 7.1487 8.1067 6.89331 8.295 6.705C8.48331 6.5167 8.7387 6.41091 9.005 6.41091C9.2713 6.41091 9.5267 6.5167 9.715 6.705L14.715 11.705C14.8087 11.798 14.8831 11.9086 14.9339 12.0304C14.9847 12.1523 15.0108 12.283 15.0108 12.415C15.0108 12.547 14.9847 12.6777 14.9339 12.7996C14.8831 12.9214 14.8087 13.032 14.715 13.125L9.715 18.125C9.62204 18.2187 9.50144 18.2931 9.36958 18.3439C9.23772 18.3947 9.09699 18.4208 8.955 18.4208C8.81301 18.4208 8.67228 18.3947 8.54042 18.3439C8.40856 18.2931 8.28796 18.2187 8.195 18.125C8.0067 17.9367 7.90091 17.6813 7.90091 17.415C7.90091 17.1487 8.0067 16.8933 8.195 16.705L8.295 16.705Z" fill="#363636"/>
+                </svg>
+            </div>
+        `;
+        
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(card);
+
+    } else {
+        // --- 情况二：渲染普通文本气泡 ---
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble';
+        if (message.sender === 'user') {
+            bubble.classList.add('user-bubble');
+        } else {
+            bubble.classList.add('ai-bubble');
+        }
+
+        let visibleText = message.text;
+        const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
+        const messageMatch = message.text.match(messageRegex);
+        if (messageMatch && messageMatch[1]) {
+            visibleText = messageMatch[1].trim();
+        }
+        bubble.textContent = visibleText;
+        
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(bubble);
+    }
+    
+    // --- 最后的组装 ---
+    row.appendChild(wrapper);
+    chatMessagesContainer.appendChild(row);
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 }
-
 // === 新增：“正在输入”提示的JS函数 ===
 
 /**
  * 功能：在聊天窗口显示一个“正在输入”的动画气泡
  */
- function showTypingIndicator() {
-    // 检查一下，如果已经存在一个提示，就不再重复添加
-    if (document.getElementById('typing-indicator')) return;
-
-    // 创建一个和普通AI消息类似的消息行
+ /**
+ * 功能：在聊天窗口显示“正在输入”动画，并返回该动画的DOM元素
+ * (已修改：移除重复检查，并返回元素本身)
+ */
+function showTypingIndicator() {
     const row = document.createElement('div');
     row.className = 'message-row ai';
-    row.id = 'typing-indicator'; // 给它一个唯一的ID，方便之后移除
+    // 给它一个class而不是ID，因为可能会有多个动画在排队
+    row.classList.add('typing-indicator');
 
-    // 从当前对话中获取AI的头像信息
     const avatar = document.createElement('img');
     avatar.className = 'chat-avatar';
     avatar.src = currentOpenContact.ai.avatar;
     const avatarSettings = currentOpenContact.avatarSettings || { radius: '50%' };
     avatar.style.borderRadius = avatarSettings.radius;
 
-    // 创建一个包含动画点的气泡
     const bubble = document.createElement('div');
     bubble.className = 'chat-bubble ai-bubble';
     bubble.innerHTML = `
@@ -3991,45 +4266,45 @@ function addMessageToView(message) {
         </div>
     `;
 
-    // 组装并添加到聊天容器
     row.appendChild(avatar);
     row.appendChild(bubble);
     chatMessagesContainer.appendChild(row);
 
-    // 自动滚动到底部，确保用户能看到这个提示
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+
+    // 关键：返回创建的行元素，以便之后替换它
+    return row;
 }
 
-/**
- * 功能：从聊天窗口移除“正在输入”的动画气泡
- */
-function hideTypingIndicator() {
-    const indicator = document.getElementById('typing-indicator');
-    if (indicator) {
-        indicator.remove();
-    }
-}
 
-// === 新增：更多功能面板的交互逻辑 ===
-
-// 1. 获取需要的HTML元素
 const moreFeaturesButton = document.getElementById('chat-add-attachment-button');
 const moreFeaturesPanel = document.getElementById('more-features-panel');
 const receiptFeatureButton = document.getElementById('receipt-feature');
+const transferFeatureButton = document.getElementById('transfer-feature');
 const chatMessageInputForReceipt = document.getElementById('chat-message-input'); // 复用聊天输入框的ID
 
-// === 修复方案：使用 touchend 替代 click 事件以增强移动端兼容性 ===
-moreFeaturesButton.addEventListener('touchend', (event) => {
-    // 1. 阻止默认行为。这很重要，可以防止在触摸之后浏览器可能产生的意外行为
-    //    （比如模拟一次额外的“鬼影”点击或者轻微的页面滚动）。
-    event.preventDefault(); 
-    
-    // 2. 阻止事件冒泡，这个逻辑保持不变。
-    event.stopPropagation();
 
-    // 3. 切换面板的显示/隐藏，核心功能不变。
+// === 新增：转账功能所需元素 ===
+const transferModal = document.getElementById('transfer-modal');
+const transferModalCloseBtn = document.getElementById('transfer-modal-close-btn');
+const confirmTransferBtn = document.getElementById('confirm-transfer-btn');
+const transferAmountInput = document.getElementById('transfer-amount-input');
+const transferRemarkInput = document.getElementById('transfer-remark-input');
+
+
+// === 最终修复：同时兼容桌面鼠标和移动端触摸 ===
+function toggleFeaturesPanel(event) {
+    // 阻止默认行为，如链接跳转或表单提交
+    event.preventDefault(); 
+    // 阻止事件冒泡，防止触发父元素的事件
+    event.stopPropagation();
+    // 切换面板的显示/隐藏
     moreFeaturesPanel.classList.toggle('active');
-});
+}
+
+// 为同一个函数绑定两个事件
+moreFeaturesButton.addEventListener('click', toggleFeaturesPanel);
+moreFeaturesButton.addEventListener('touchend', toggleFeaturesPanel);
 
 // 3. 为“回执”功能按钮添加点击事件
 // === 更新：“回执”功能按钮的事件监听 ===
@@ -4040,14 +4315,25 @@ receiptFeatureButton.addEventListener('click', () => {
         return;
     }
 
-    // === 修改这里的指令 ===
-    const instructionForAI = "现在轮到你了，请根据我们的历史对话，以及我刚刚发送的所有消息，以你的角色身份进行一次连贯的、不超过6条消息的回复。";
-    // 调用AI核心函数，并把指令传进去
-    callAI(instructionForAI);
+    const instructionForAI = "现在轮到你了，请根据我们的历史对话，以及我刚刚发送的所有消息，以你的角色身份进行一次1到6条消息的回复。";
+    // 新的调用方式：传入指令和当前的 contact 对象
+    callAI(instructionForAI, currentOpenContact);
 
-    // 点击后关闭面板
     moreFeaturesPanel.classList.remove('active');
 });
+
+// *** 在这里新增下面的代码 ***
+
+// === 最终正确版：用户向AI转账功能的事件监听 ===
+// === 最新版：用户向AI转账功能的事件监听（使用超简化格式） ===
+// === 更新：“转账”功能按钮，使其打开新弹窗 ===
+transferFeatureButton.addEventListener('click', () => {
+    openTransferModal();
+    // 点击后立即关闭“更多功能”面板
+    moreFeaturesPanel.classList.remove('active');
+});
+
+// *** 新增代码结束 ***
 
 // 4. (可选但推荐) 添加一个全局点击事件，用于在点击面板外部区域时关闭面板
 document.addEventListener('click', (event) => {
@@ -4226,6 +4512,313 @@ chatMessagesContainer.addEventListener('click', (e) => {
         toggleMessageSelection(targetRow);
     }
 });
+
+// *** 在这里新增下面的代码 ***
+
+// === 新增：世界书对话框的控制函数 ===
+// === 升级版：世界书对话框控制函数（支持新建和编辑） ===
+async function openWorldbookModal(bookId = null) {
+    const modalTitle = addWorldbookModal.querySelector('h2');
+
+    if (bookId) {
+        // --- 编辑模式 ---
+        currentEditingBookId = bookId; // 记录正在编辑的ID
+        modalTitle.textContent = '编辑世界书';
+
+        // 从数据库加载并填充内容
+        const existingData = await dbHelper.loadData('worldBooks', 'allWorldBooks');
+        const book = existingData.value.find(b => b.id === bookId);
+        if (book) {
+            worldbookNameInput.value = book.name;
+            worldbookContentInput.value = book.content;
+        }
+    } else {
+        // --- 新建模式 ---
+        currentEditingBookId = null; // 确保是null
+        modalTitle.textContent = '新建世界书';
+        // 清空输入框（虽然关闭时会清，但这里再清一次更保险）
+        worldbookNameInput.value = '';
+        worldbookContentInput.value = '';
+    }
+
+    // 显示弹窗
+    addWorldbookModal.style.display = 'flex';
+    setTimeout(() => {
+        addWorldbookModal.style.opacity = '1';
+        addWorldbookModal.querySelector('.modal-content').style.transform = 'scale(1)';
+    }, 10);
+}
+
+function closeWorldbookModal() {
+    addWorldbookModal.style.opacity = '0';
+    addWorldbookModal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        addWorldbookModal.style.display = 'none';
+        // 重置输入框内容
+        worldbookNameInput.value = '';
+        worldbookContentInput.value = '';
+        currentEditingBookId = null;
+    }, 300);
+}
+
+// --- 事件绑定 ---
+worldbookModalCloseBtn.addEventListener('click', closeWorldbookModal);
+
+// --- 保存世界书的逻辑 ---
+// === 升级版：保存世界书的逻辑（支持新建和编辑） ===
+saveWorldbookBtn.addEventListener('click', async () => {
+    const name = worldbookNameInput.value.trim();
+    const content = worldbookContentInput.value.trim();
+
+    if (!name) {
+        alert('世界书名称不能为空！');
+        return;
+    }
+
+    try {
+        const existingData = await dbHelper.loadData('worldBooks', 'allWorldBooks');
+        let books = (existingData && Array.isArray(existingData.value)) ? existingData.value : [];
+
+        if (currentEditingBookId) {
+            // --- 编辑逻辑 ---
+            const bookIndex = books.findIndex(b => b.id === currentEditingBookId);
+            if (bookIndex > -1) {
+                books[bookIndex].name = name;
+                books[bookIndex].content = content;
+            }
+        } else {
+            // --- 新建逻辑 ---
+            const newBook = {
+                id: Date.now(),
+                name: name,
+                content: content,
+                createdAt: new Date()
+            };
+            books.push(newBook);
+        }
+
+        // 将更新后的整个数组存回数据库
+        await dbHelper.saveData('worldBooks', 'allWorldBooks', books);
+
+        alert('世界书已保存！');
+        closeWorldbookModal();
+        loadAndRenderWorldBooks(); // 刷新列表以显示更改
+
+    } catch (error) {
+        console.error("保存世界书失败:", error);
+        alert("保存失败，请查看控制台日志。");
+    }
+});
+
+// *** 新增代码结束 ***
+
+// *** 在这里新增下面的代码 ***
+
+// === 新增：世界书渲染与加载函数 ===
+
+/**
+ * 渲染世界书列表到界面上
+ * @param {Array} books - 从数据库读取的世界书对象数组
+ */
+ function renderWorldBooks(books) {
+    worldbookListContainer.innerHTML = ''; // 先清空列表
+    if (!books || books.length === 0) {
+        worldbookListContainer.innerHTML = '<p style="text-align:center; color:#888;">还没有创建任何世界书。</p>';
+        return;
+    }
+
+    books.forEach(book => {
+        const bookItem = document.createElement('div');
+        bookItem.className = 'contact-item'; // 复用联系人列表项的样式
+        bookItem.dataset.bookId = book.id;
+        bookItem.innerHTML = `
+            <input type="checkbox" class="contact-checkbox">
+            <div class="contact-info">
+                <div class="contact-name">${book.name}</div>
+                <div class="contact-last-message" style="white-space: normal;">${book.content.substring(0, 50)}...</div>
+            </div>
+        `;
+        worldbookListContainer.appendChild(bookItem);
+    });
+}
+
+/**
+ * 从数据库加载数据并调用渲染函数
+ */
+async function loadAndRenderWorldBooks() {
+    const existingData = await dbHelper.loadData('worldBooks', 'allWorldBooks');
+    const books = (existingData && Array.isArray(existingData.value)) ? existingData.value : [];
+    renderWorldBooks(books);
+}
+
+// *** 新增代码结束 ***
+
+// *** 在这里新增下面的代码 ***
+
+// === 新增：世界书多选删除逻辑 ===
+worldbookMultiselectBtn.addEventListener('click', () => {
+    isWorldbookDeleteMode = !isWorldbookDeleteMode; // 切换模式
+    worldbookListContainer.classList.toggle('delete-mode', isWorldbookDeleteMode);
+
+    if (isWorldbookDeleteMode) {
+        worldbookMultiselectBtn.textContent = '取消';
+        addWorldbookBtn.textContent = '删除所选';
+        addWorldbookBtn.classList.add('delete');
+    } else {
+        worldbookMultiselectBtn.textContent = '多选';
+        addWorldbookBtn.textContent = '新建世界书';
+        addWorldbookBtn.classList.remove('delete');
+        // 退出时取消所有勾选
+        worldbookListContainer.querySelectorAll('.contact-checkbox').forEach(cb => cb.checked = false);
+    }
+});
+
+// --- 修改“新建”按钮的行为，使其在删除模式下执行删除 ---
+addWorldbookBtn.addEventListener('click', () => {
+    if (isWorldbookDeleteMode) {
+        handleBatchDeleteWorldBooks();
+    } else {
+        openWorldbookModal();
+    }
+});
+
+// --- 批量删除的执行函数 ---
+async function handleBatchDeleteWorldBooks() {
+    const selectedCheckboxes = worldbookListContainer.querySelectorAll('.contact-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('请至少选择一个要删除的世界书。');
+        return;
+    }
+
+    if (!confirm(`确定要删除选中的 ${selectedCheckboxes.length} 个世界书吗？此操作无法撤销。`)) {
+        return;
+    }
+
+    const idsToDelete = new Set();
+    selectedCheckboxes.forEach(cb => {
+        const bookId = cb.closest('.contact-item').dataset.bookId;
+        idsToDelete.add(parseInt(bookId, 10));
+    });
+
+    try {
+        const existingData = await dbHelper.loadData('worldBooks', 'allWorldBooks');
+        let books = (existingData && Array.isArray(existingData.value)) ? existingData.value : [];
+        
+        // 过滤掉需要删除的书籍
+        const updatedBooks = books.filter(book => !idsToDelete.has(book.id));
+
+        // 将更新后的列表存回数据库
+        await dbHelper.saveData('worldBooks', 'allWorldBooks', updatedBooks);
+
+        // 重新加载列表并退出删除模式
+        await loadAndRenderWorldBooks();
+        worldbookMultiselectBtn.click(); // 模拟点击“取消”按钮
+
+    } catch (error) {
+        console.error("删除世界书失败:", error);
+        alert("删除失败，请查看控制台日志。");
+    }
+}
+// *** 新增代码结束 ***
+
+// === 更新：转账功能，使其打开弹窗并发送正确格式的消息 ===
+function openTransferModal() {
+    transferModal.style.display = 'flex';
+    setTimeout(() => {
+        transferModal.style.opacity = '1';
+        transferModal.querySelector('.modal-content').style.transform = 'scale(1)';
+    }, 10);
+}
+
+function closeTransferModal() {
+    transferModal.style.opacity = '0';
+    transferModal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        transferModal.style.display = 'none';
+        transferAmountInput.value = '';
+        transferRemarkInput.value = '';
+    }, 300);
+}
+
+transferFeatureButton.addEventListener('click', () => {
+    openTransferModal();
+    moreFeaturesPanel.classList.remove('active');
+});
+
+transferModalCloseBtn.addEventListener('click', closeTransferModal);
+
+confirmTransferBtn.addEventListener('click', async () => {
+    const amount = parseFloat(transferAmountInput.value);
+    const remark = transferRemarkInput.value.trim();
+
+    if (isNaN(amount) || amount <= 0) {
+        alert("请输入有效的转账金额。");
+        return;
+    }
+    if (!remark) {
+        alert("备注不能为空。");
+        return;
+    }
+
+    // 构造符合你 systemPrompt 要求的文本格式: 备注-金额
+    const messageText = `[TRANSFER_START]${remark}-${amount}[TRANSFER_END]`;
+
+    const userMessage = {
+        sender: 'user',
+        text: messageText,
+        timestamp: new Date()
+    };
+    
+    addMessageToView(userMessage);
+    await saveMessageToHistory(userMessage, currentOpenContact.id);
+
+    closeTransferModal();
+});
+
+/**
+/**
+/**
+ /**
+ * 最终版UI更新函数(V3):
+ * 能够接收一个已存在的加载动画元素，并将其转换为第一条消息。
+ * 后续消息则会自己创建新的加载动画。
+ * @param {number} contactId - The ID of the conversation to update.
+ * @param {Array} newMessages - An array of the new message objects.
+ * @param {HTMLElement|null} initialIndicator - The pre-existing "typing" element for the first message.
+ */
+async function updateChatViewWithAIResponse(contactId, newMessages, initialIndicator) {
+    if (currentOpenContact && currentOpenContact.id === contactId) {
+        
+        for (const [index, message] of newMessages.entries()) {
+            let currentTypingIndicator;
+
+            if (index === 0 && initialIndicator) {
+                // 对于第一条消息，我们使用预先创建好的那个加载动画
+                currentTypingIndicator = initialIndicator;
+            } else {
+                // 对于后续的消息，我们自己创建一个新的加载动画
+                currentTypingIndicator = showTypingIndicator();
+            }
+
+            // 根据消息长度计算动态延迟
+            const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
+            let visibleText = message.text;
+            const match = message.text.match(messageRegex);
+            if (match && match[1]) {
+                visibleText = match[1].trim();
+            }
+            const typingDelay = Math.min(visibleText.length * 800 + 1000, 4000);
+
+            // 等待
+            await new Promise(resolve => setTimeout(resolve, typingDelay));
+
+            // 移除加载动画并显示最终消息
+            currentTypingIndicator.remove();
+            addMessageToView(message);
+        }
+    }
+
+}
     </script>
 
 </body>
