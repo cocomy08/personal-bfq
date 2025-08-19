@@ -1581,9 +1581,7 @@ transition: background-color 0.2s;
     max-width: 85%; /* 约束内容最大宽度 */
     transition: transform 0.3s ease; /* 动画效果 */
 }
-.message-content-wrapper.ai {
-    /* AI的默认靠左，无需特殊处理 */
-}
+
 .message-content-wrapper.user {
     margin-left: auto; /* 关键：将用户的内容推到最右边 */
     flex-direction: row-reverse; /* 头像在右，气泡在左 */
@@ -2400,13 +2398,16 @@ async function initializeApp() {
             phoneFrame.classList.remove('show-settings');
         });
         // === 新增：连接按钮的事件监听 ===
+        // === 新增：连接按钮的事件监听 (已增强错误提示) ===
         connectButton.addEventListener('click', async () => {
             const apiUrl = apiUrlInput.value.trim();
             const apiKey = apiKeyInput.value.trim();
+
             if (!apiUrl || !apiKey) {
                 apiStatusSpan.textContent = "URL和Key不能为空";
                 return;
             }
+
             connectButton.textContent = "连接中...";
             connectButton.disabled = true;
             apiStatusSpan.textContent = "";
@@ -2415,8 +2416,15 @@ async function initializeApp() {
                 const response = await fetch(`${apiUrl}/v1/models`, {
                     headers: { 'Authorization': `Bearer ${apiKey}` }
                 });
-                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
+                // --- 变化从这里开始 ---
+
+                if (!response.ok) {
+                    // 如果响应状态不是 2xx，我们根据状态码抛出具体的错误
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+
+                // 如果请求成功...
                 const data = await response.json();
                 modelSelect.innerHTML = '<option value="" disabled selected>选择一个模型</option>';
                 data.data.forEach(model => {
@@ -2425,11 +2433,41 @@ async function initializeApp() {
                 modelSelect.disabled = false;
                 apiStatusSpan.textContent = "✓ 连接成功";
                 apiStatusSpan.style.color = "green";
+
             } catch (error) {
-                console.error("API 连接失败:", error);
-                apiStatusSpan.textContent = "✗ 连接失败";
-                apiStatusSpan.style.color = "red";
+                console.error("API 连接失败:", error); // 在控制台保留详细错误供开发者查看
+
+                // 根据错误类型，显示不同的用户提示
+                if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+                    // 这是最常见的网络或CORS错误
+                    apiStatusSpan.textContent = "✗ 网络错误或跨域问题";
+                    apiStatusSpan.style.color = "red";
+                    alert("连接失败！最常见的原因是：\n\n1. API服务器未开启CORS跨域许可。\n2. 浏览器插件拦截了请求 (如广告拦截器)。\n3. 您的网络无法访问该URL地址。\n\n请按 F12 打开开发者工具，在“控制台(Console)”中查看详细的错误信息。");
+                } else if (error.message.startsWith('HTTP Error:')) {
+                    // 这是我们自己抛出的HTTP状态码错误
+                    const status = error.message.split(':')[1].trim();
+                    let tip = `(状态码: ${status})`;
+                    if (status === '401') {
+                        tip = "✗ 认证失败 (401)，请检查您的API Key是否正确。";
+                    } else if (status === '404') {
+                        tip = "✗ 未找到 (404)，请检查您的URL地址是否正确。";
+                    } else if (status >= 500) {
+                        tip = `✗ 服务器错误 (${status})，API服务可能暂时不可用。`;
+                    } else {
+                        tip = `✗ 请求失败 ${tip}，请检查API文档。`;
+                    }
+                    apiStatusSpan.textContent = tip;
+                    apiStatusSpan.style.color = "red";
+                } else {
+                    // 其他未知错误
+                    apiStatusSpan.textContent = "✗ 未知错误，请查看控制台";
+                    apiStatusSpan.style.color = "red";
+                }
+
                 modelSelect.innerHTML = '<option value="" disabled selected>连接失败</option>';
+            
+            // --- 变化在这里结束 ---
+
             } finally {
                 connectButton.textContent = "连接测试";
                 connectButton.disabled = false;
