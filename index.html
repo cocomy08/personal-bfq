@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的手机</title>
+    <style id="custom-font-style"></style>
     <style>
 
         /* 页面基础样式，用于将手机框居中显示 */
@@ -1948,6 +1949,14 @@ body.fullscreen-mode .phone-frame {
                         </div>
                     </div>
                 </div>
+                <!-- === 新增：全局字体更换功能 === -->
+<div class="form-group">
+    <label>全局字体</label>
+    <div class="wallpaper-buttons"> <!-- 复用壁纸按钮的布局 -->
+        <button id="change-font-btn" class="form-button-secondary">更换字体</button>
+        <button id="restore-font-btn" class="form-button-secondary">恢复默认</button>
+    </div>
+</div>
                 <div class="form-group">
                     <label>数据管理</label>
                     <div class="wallpaper-buttons"> <button id="backup-data-btn" class="form-button-secondary">备份</button>
@@ -2247,7 +2256,8 @@ body.fullscreen-mode .phone-frame {
     </div>
 </div>
 
-
+<!-- 隐藏的文件选择框，用于导入字体 -->
+<input type="file" id="font-import-input" accept=".ttf,.otf" style="display: none;">
 
 <div id="add-worldbook-modal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
@@ -2519,6 +2529,11 @@ const avatarRadiusInput = document.getElementById('avatar-radius-input');
 const backupDataBtn = document.getElementById('backup-data-btn');
 const importDataBtn = document.getElementById('import-data-btn');
 const importFileInput = document.getElementById('import-file-input');
+// === 新增：字体更换功能所需元素 ===
+const customFontStyle = document.getElementById('custom-font-style');
+const changeFontBtn = document.getElementById('change-font-btn');
+const restoreFontBtn = document.getElementById('restore-font-btn');
+const fontImportInput = document.getElementById('font-import-input');
 const worldbookSelectSettings = document.getElementById('worldbook-select-settings');
         
         // === 新增：API 设置所需的元素 ===
@@ -2681,6 +2696,11 @@ async function initializeApp() {
             // 时钟功能不受影响
             updateClock();
             setInterval(updateClock, 30000);
+
+            const fontData = await dbHelper.loadData('settingsStore', 'customFont');
+         if (fontData && fontData.value) {
+            applyCustomFont(fontData.value);
+        }
 
         } catch (error) {
             console.error("应用初始化失败:", error);
@@ -4154,22 +4174,48 @@ resetChatBgBtn.addEventListener('click', () => {
     chatScreen.style.backgroundColor = '#f0f2f5';
 });
 
-// 清除聊天记录 (需要用户确认)
-clearHistoryBtn.addEventListener('click', () => {
+// === 修正版：清空聊天记录功能 (增加数据库操作) ===
+clearHistoryBtn.addEventListener('click', async () => {
+    if (!currentOpenContact) return;
+
     if (confirm('警告：此操作将永久删除此对话的所有聊天记录，且无法恢复。确定要继续吗？')) {
-        if (currentOpenContact) {
-            currentOpenContact.history = []; // 假设聊天记录存在 history 字段
-            // 注意：这里只是清除了内存中的记录，需要点击“保存设置”才能真正写入数据库
-            alert('聊天记录已在内存中清除。请点击“保存设置”以应用更改。');
-            chatMessagesContainer.innerHTML = ''; // 立即清空界面
+        try {
+            // 1. **从数据库加载最新的完整联系人列表**
+            const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+            let allContacts = allContactsData.value || [];
+            const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
+
+            if (contactIndex > -1) {
+                // 2. **清空该联系人的历史记录，并更新最后一条消息**
+                allContacts[contactIndex].history = [];
+                allContacts[contactIndex].lastMessage = "聊天记录已清空";
+
+                // 3. **将修改后的完整联系人列表，存回数据库**
+                await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
+
+                // 4. **更新当前内存中的数据和UI**
+                currentOpenContact.history = [];
+                currentOpenContact.lastMessage = "聊天记录已清空";
+                chatMessagesContainer.innerHTML = ''; // 清空聊天界面
+
+                // 5. 更新消息列表页的预览
+                const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
+                if (contactItemInList) {
+                    contactItemInList.querySelector('.contact-last-message').textContent = "聊天记录已清空";
+                }
+                
+                alert('聊天记录已成功清除！');
+            } else {
+                throw new Error("在数据库中找不到当前联系人。");
+            }
+        } catch (error) {
+            console.error("清除聊天记录失败:", error);
+            alert(`操作失败: ${error.message}`);
         }
     }
 });
 
-// --- 功能 C: 保存所有设置 ---
-// --- 功能 C: 保存所有设置 (已修复数据保存) ---
-// --- 功能 C: 保存所有设置 (最终修复版) ---
-// === 更新 saveChatSettingsBtn (支持世界书多选保存) ===
+
 saveChatSettingsBtn.addEventListener('click', async () => {
     if (!currentOpenContact) return;
 
@@ -5168,6 +5214,79 @@ async function handleBatchDeletePlaylists() {
         alert("删除失败，请查看控制台日志。");
     }
 }
+// === 新增：全局字体更换的全部逻辑 ===
+
+const defaultFontFamily = "sans-serif"; // 定义一个默认字体
+
+/**
+ * 应用自定义字体或恢复默认字体的核心函数
+ * @param {string | null} fontDataUrl - Base64格式的字体数据URL，或 null 以恢复默认
+ */
+function applyCustomFont(fontDataUrl) {
+    if (fontDataUrl) {
+        // 如果有自定义字体数据，则创建 @font-face 规则并应用
+        const fontFaceRule = `
+            @font-face {
+                font-family: 'CustomGlobalFont';
+                src: url(${fontDataUrl});
+            }
+        `;
+        customFontStyle.innerHTML = fontFaceRule;
+        phoneFrame.style.fontFamily = "'CustomGlobalFont', " + defaultFontFamily;
+    } else {
+        // 如果没有数据，则清空规则并恢复默认字体
+        customFontStyle.innerHTML = '';
+        phoneFrame.style.fontFamily = defaultFontFamily;
+    }
+}
+
+// --- 事件监听 ---
+
+// 1. 点击“更换字体”按钮
+changeFontBtn.addEventListener('click', () => {
+    fontImportInput.click(); // 触发隐藏的文件选择框
+});
+
+// 2. 当用户选择了字体文件后
+fontImportInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const fontDataUrl = e.target.result;
+        try {
+            // a. 将字体数据保存到数据库
+            await dbHelper.saveData('settingsStore', 'customFont', fontDataUrl);
+            // b. 立即应用新字体
+            applyCustomFont(fontDataUrl);
+            alert('字体已成功应用！');
+        } catch (error) {
+            console.error("保存或应用字体失败:", error);
+            alert("字体应用失败，请查看控制台。");
+        }
+    };
+    // 将字体文件读取为Base64 Data URL
+    reader.readAsDataURL(file);
+    event.target.value = ''; // 清空输入，以便下次能选择同一个文件
+});
+
+// 3. 点击“恢复默认”按钮
+restoreFontBtn.addEventListener('click', async () => {
+    if (confirm("确定要恢复为默认字体吗？")) {
+        try {
+            // a. 从数据库删除自定义字体记录
+            await dbHelper.deleteData('settingsStore', 'customFont');
+            // b. 立即恢复默认字体
+            applyCustomFont(null);
+            alert('已恢复默认字体！');
+        } catch (error) {
+            console.error("恢复默认字体失败:", error);
+            alert("恢复失败，请查看控制台。");
+        }
+    }
+});
+
 
     </script>
 
