@@ -118,8 +118,6 @@
 
         /* 内容区域新样式 */
         .content {
-            padding: 40px 0 50px 0;
-            /* 稍微增加底部内边距，让它更好看 */
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
@@ -1787,6 +1785,73 @@ body.fullscreen-mode .phone-frame {
 .playlist-grid.delete-mode .playlist-checkbox {
     display: block;
 }
+
+/* === 最终版 V2：使用专属类名 chatsearch-content === */
+
+/* 1. 外部容器样式 (保持不变) */
+.search-result-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+    background-color: #e9e9eb;
+}
+
+/* 2. 第一行容器样式 (保持不变) */
+.search-result-item .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 3. 发送者和时间样式 (保持不变) */
+.search-result-item .sender-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1c1c1e;
+}
+
+.search-result-item .time {
+    font-size: 12px;
+    color: #8a8a8e;
+}
+
+/* 4. 【核心修改】第二行内容摘要样式，应用到新的类名上 */
+.search-result-item .chatsearch-content {
+    font-size: 13px;
+    color: #333;
+    white-space: nowrap;     /* 禁止换行 */
+    overflow: hidden;        /* 隐藏溢出部分 */
+    text-overflow: ellipsis; /* 显示省略号 */
+}
+
+/* 5. 高亮样式 (保持不变) */
+.search-result-item .highlight {
+    background-color: rgba(0, 122, 255, 0.15);
+    color: rgb(0, 0, 0);
+    border-radius: 3px;
+    padding: 0 2px;
+}
+
+/* 其他相关样式 (保持不变) ... */
+@keyframes temporary-highlight {
+    0%, 100% { background-color: transparent; }
+    20%, 80% { background-color: rgba(0, 122, 255, 0.15); }
+}
+
+.message-highlight {
+    animation: temporary-highlight 1.5s ease-out;
+}
+/* 新增：隐藏搜索框内自带的清除按钮(x) */
+#search-input::-webkit-search-cancel-button {
+    display: none;
+}
     </style>
 
 <style id="custom-bubble-styles"></style>
@@ -2079,7 +2144,12 @@ body.fullscreen-mode .phone-frame {
     <div class="chat-header">
     <button id="chat-back-button" class="header-text-button">返回</button>
     <h1 id="chat-contact-name">角色名</h1>
-    <div id="chat-header-actions-normal" style="margin-left: auto;">
+    <div id="chat-header-actions-normal" style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+        <button id="chat-search-button" class="header-text-button">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.4733 13.5267L12 11.0733C12.9601 9.87627 13.425 8.35686 13.2992 6.82753C13.1734 5.2982 12.4664 3.87519 11.3237 2.85109C10.1809 1.827 8.6892 1.27967 7.15528 1.32164C5.62136 1.36362 4.16181 1.99171 3.07676 3.07676C1.99171 4.16181 1.36362 5.62136 1.32164 7.15528C1.27967 8.6892 1.827 10.1809 2.85109 11.3237C3.87519 12.4664 5.2982 13.1734 6.82753 13.2992C8.35686 13.425 9.87627 12.9601 11.0733 12L13.5267 14.4533C13.5886 14.5158 13.6624 14.5654 13.7436 14.5993C13.8249 14.6331 13.912 14.6505 14 14.6505C14.088 14.6505 14.1751 14.6331 14.2564 14.5993C14.3376 14.5654 14.4114 14.5158 14.4733 14.4533C14.5935 14.329 14.6607 14.1629 14.6607 13.99C14.6607 13.8171 14.5935 13.651 14.4733 13.5267V13.5267ZM7.33333 12C6.41035 12 5.5081 11.7263 4.74067 11.2135C3.97324 10.7007 3.3751 9.97191 3.02189 9.11919C2.66868 8.26646 2.57627 7.32815 2.75633 6.42291C2.9364 5.51766 3.38085 4.68614 4.0335 4.0335C4.68614 3.38085 5.51766 2.9364 6.42291 2.75633C7.32815 2.57627 8.26646 2.66868 9.11919 3.02189C9.97191 3.3751 10.7007 3.97324 11.2135 4.74067C11.7263 5.5081 12 6.41035 12 7.33333C12 8.57101 11.5083 9.75799 10.6332 10.6332C9.75799 11.5083 8.57101 12 7.33333 12V12Z" fill="#007AFF"/>
+                </svg>       
+        </button>
         <button id="chat-settings-button" class="header-text-button">设置</button>
     </div>
     <div id="chat-header-actions-select" style="margin-left: auto; display: none;">
@@ -2090,11 +2160,20 @@ body.fullscreen-mode .phone-frame {
 
     <!-- 2. 聊天消息容器 -->
     <div id="chat-messages-container" class="chat-messages-container">
+
         <!-- 聊天气泡将通过 JS 动态添加到这里 -->
     </div>
 
     <div id="more-features-panel" class="features-panel">
         <div class="features-grid">
+            <div class="feature-item" id="time-perception-feature">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 11H13V7C13 6.73478 12.8946 6.48043 12.7071 6.29289C12.5196 6.10536 12.2652 6 12 6C11.7348 6 11.4804 6.10536 11.2929 6.29289C11.1054 6.48043 11 6.73478 11 7V12C11 12.2652 11.1054 12.5196 11.2929 12.7071C11.4804 12.8946 11.7348 13 12 13H15C15.2652 13 15.5196 12.8946 15.7071 12.7071C15.8946 12.5196 16 12.2652 16 12C16 11.7348 15.8946 11.4804 15.7071 11.2929C15.5196 11.1054 15.2652 11 15 11ZM12 2C10.0222 2 8.08879 2.58649 6.4443 3.6853C4.79981 4.78412 3.51809 6.3459 2.76121 8.17317C2.00433 10.0004 1.8063 12.0111 2.19215 13.9509C2.578 15.8907 3.53041 17.6725 4.92894 19.0711C6.32746 20.4696 8.10929 21.422 10.0491 21.8079C11.9889 22.1937 13.9996 21.9957 15.8268 21.2388C17.6541 20.4819 19.2159 19.2002 20.3147 17.5557C21.4135 15.9112 22 13.9778 22 12C21.9971 9.34874 20.9425 6.80691 19.0678 4.93219C17.1931 3.05746 14.6513 2.00295 12 2ZM12 20C10.4178 20 8.87104 19.5308 7.55544 18.6518C6.23985 17.7727 5.21447 16.5233 4.60897 15.0615C4.00347 13.5997 3.84504 11.9911 4.15372 10.4393C4.4624 8.88743 5.22433 7.46197 6.34315 6.34315C7.46197 5.22433 8.88743 4.4624 10.4393 4.15372C11.9911 3.84504 13.5997 4.00346 15.0615 4.60896C16.5233 5.21447 17.7727 6.23984 18.6518 7.55544C19.5308 8.87103 20 10.4177 20 12C19.9976 14.121 19.1539 16.1544 17.6542 17.6542C16.1544 19.1539 14.121 19.9976 12 20Z" fill="black"/>
+                        </svg>
+                </div>
+                <span class="feature-name">时间</span>
+            </div>
             <div class="feature-item" id="transfer-feature">
                 <div class="feature-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2301,6 +2380,21 @@ body.fullscreen-mode .phone-frame {
             <button id="confirm-transfer-btn" class="save-button">确认转账</button>
         </div>
     </div>
+
+    
+</div>
+<div id="search-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h2>搜索聊天记录</h2>
+            <button id="search-modal-close-btn" class="modal-close-button">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 15px;">
+            <input type="search" id="search-input" class="form-input" placeholder="输入关键词..." style="width: 100%; box-sizing: border-box; margin-bottom: 15px;">
+            <div id="search-results-container">
+                </div>
+        </div>
+    </div>
 </div>
 
     </div>
@@ -2467,6 +2561,7 @@ const userPersonaInput = document.getElementById('user-persona-input');
 const contextMemoryInput = document.getElementById('context-memory-input');
 const saveContactBtn = document.getElementById('save-contact-btn');
 const messagesMultiselectBtn = document.getElementById('messages-multiselect-btn');
+const loadMoreMessagesBtn = document.getElementById('load-more-messages-btn');
 
 // === 新增：聊天界面所需的所有元素 ===
 const chatScreen = document.getElementById('chat-screen');
@@ -3203,10 +3298,6 @@ multiSelectBtn.addEventListener('click', () => {
         songList.querySelectorAll('.song-checkbox').forEach(cb => cb.checked = false);
     }
 });
-
-// === 替换为已修复的版本：增加数据存在性检查 ===
-// === 替换为最终修复版：增加更严格的数据结构检查 ===
-// === 替换为修复版：使用新的 songId 进行删除 ===
 // === 替换为最终修复版：兼容新旧数据格式的删除逻辑 ===
 async function handleBatchDelete() {
     const selectedCheckboxes = songList.querySelectorAll('.song-checkbox:checked');
@@ -3641,9 +3732,11 @@ async function handleBatchDeleteContacts() {
 // === 新增：聊天界面的所有交互逻辑 ===
 
 let currentOpenContact = null; // 用于存储当前打开的联系人对象
+let displayedMessageCount = 0; // 添加一个全局变量来跟踪加载更多消息的按钮状态
 
 // === AI功能新增：System Prompt 定义 ===
 const systemPrompt = `
+{time_info}
 ### 角色扮演核心指令
 你将严格扮演一个角色进行对话。
 
@@ -3716,6 +3809,19 @@ async function callAI(triggerMessage, contact) {
         if (currentOpenContact && currentOpenContact.id === contactId) {
             initialTypingIndicator = showTypingIndicator();
         }
+        // --- ▼▼▼ 新增的时间感知逻辑 ▼▼▼ ---
+        let timeInfo = ""; // 默认时间信息为空字符串
+        // 如果当前联系人开启了时间感知
+        if (contact.timePerceptionEnabled) {
+            const now = new Date();
+            // 格式化一个对AI友好的、详细的中文时间字符串
+            const formattedDateTime = now.toLocaleString('zh-CN', {
+                year: 'numeric', month: 'long', day: 'numeric',
+                weekday: 'long', hour: '2-digit', minute: '2-digit'
+            });
+            // 准备要注入到 systemPrompt 中的文本
+            timeInfo = `### 现实时间参考\n当前用户的现实时间是：${formattedDateTime}\n---\n\n`;
+        }
 
         let worldBookContent = "无特定世界观设定，请自由发挥。";
         if (contact.linkedWorldBookIds && contact.linkedWorldBookIds.length > 0) {
@@ -3741,6 +3847,7 @@ async function callAI(triggerMessage, contact) {
         
         const { url, key, model, temperature } = settingsData.value;
         const finalSystemPrompt = systemPrompt
+            .replace('{time_info}', timeInfo)
             .replace('{ai_persona}', `姓名: ${contact.ai.name}\n人设: ${contact.ai.persona}`)
             .replace('{user_persona}', `姓名: ${contact.user.name}\n人设: ${contact.user.persona}`)
             .replace('{world_book_content}', worldBookContent);
@@ -3933,7 +4040,7 @@ async function displayAiMessagesSequentially(messages, initialBubble) {
         await saveMessageToHistory(aiMessage);
     }
 }
-// --- 功能 A: 打开聊天界面 (已更新，会加载历史记录) ---
+// --- 功能 A: 打开聊天界面 (已更新，只加载最新的30条) ---
 async function openChatView(contactId) {
     const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
     if (!contactsData || !Array.isArray(contactsData.value)) {
@@ -3948,16 +4055,148 @@ async function openChatView(contactId) {
 
     applyChatViewSettings(currentOpenContact);
     chatContactName.textContent = currentOpenContact.ai.name;
-    chatMessagesContainer.innerHTML = ''; 
+    chatMessagesContainer.innerHTML = ''; // 清空所有旧消息和按钮
 
-    // --- 关键修改：加载并显示历史聊天记录 ---
-    if (Array.isArray(currentOpenContact.history)) {
-        currentOpenContact.history.forEach(message => {
-            addMessageToView(message);
-        });
+    const history = Array.isArray(currentOpenContact.history) ? currentOpenContact.history : [];
+    
+    // 如果消息总数超过30条，则动态创建并添加按钮
+    if (history.length > 30) {
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.id = 'load-more-messages-btn';
+        loadMoreBtn.className = 'header-text-button';
+        loadMoreBtn.textContent = '查看更早的消息';
+        loadMoreBtn.style.margin = '15px auto'; // 居中样式
+        
+        // 绑定事件监听器
+        loadMoreBtn.addEventListener('click', loadMoreMessages);
+        
+        // 将按钮添加到消息容器的最前面
+        chatMessagesContainer.appendChild(loadMoreBtn);
     }
+    
+    const initialMessages = history.slice(-30);
+    initialMessages.forEach(message => {
+        addMessageToView(message);
+    });
 
     phoneFrame.classList.add('show-chat');
+    // 滚动到底部
+    setTimeout(() => {
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    }, 100);
+}
+
+// 重新修改 loadMoreMessages 函数
+
+
+
+// 替换掉旧的 loadMoreMessages 函数
+async function loadMoreMessages() {
+    if (!currentOpenContact) return;
+
+    const loadMoreBtn = document.getElementById('load-more-messages-btn');
+    if (!loadMoreBtn) return;
+
+    // 1. 保存当前的滚动高度，以便之后恢复视图
+    const oldScrollHeight = chatMessagesContainer.scrollHeight;
+
+    const history = Array.isArray(currentOpenContact.history) ? currentOpenContact.history : [];
+    
+    // 2. 正确计算需要加载的下一批消息
+    const messagesInViewCount = chatMessagesContainer.querySelectorAll('.message-row').length;
+    const endIndex = history.length - messagesInViewCount;
+
+    if (endIndex <= 0) {
+        loadMoreBtn.remove(); // 没有更多消息了，移除按钮
+        return;
+    }
+
+    const startIndex = Math.max(0, endIndex - 30); // 一次加载30条
+    const messagesToAdd = history.slice(startIndex, endIndex);
+
+    // 3. 将新消息插入到列表顶部（在按钮之后，但在旧消息之前）
+    const firstOldMessage = loadMoreBtn.nextSibling;
+    messagesToAdd.forEach(message => {
+        // 使用一个不会产生副作用（如自动滚动）的辅助函数来创建消息元素
+        const messageElement = createMessageElement(message); 
+        chatMessagesContainer.insertBefore(messageElement, firstOldMessage);
+    });
+
+    // 4. 恢复滚动条位置，让用户感觉不到界面跳动
+    const newScrollHeight = chatMessagesContainer.scrollHeight;
+    chatMessagesContainer.scrollTop += (newScrollHeight - oldScrollHeight);
+
+    // 5. 如果已经加载完所有历史记录，则移除按钮
+    if (startIndex === 0) {
+        loadMoreBtn.remove();
+    }
+}
+// 新增这个辅助函数
+function createMessageElement(message) {
+    const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
+
+    const row = document.createElement('div');
+    row.className = 'message-row';
+    row.dataset.timestamp = message.timestamp.toString();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'message-content-wrapper';
+
+    const avatar = document.createElement('img');
+    avatar.className = 'chat-avatar';
+    avatar.style.borderRadius = settings.radius;
+
+    if (message.sender === 'user') {
+        wrapper.classList.add('user');
+        avatar.src = currentOpenContact.user.avatar;
+    } else {
+        wrapper.classList.add('ai');
+        avatar.src = currentOpenContact.ai.avatar;
+    }
+    
+    const transferRegex = /\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/;
+    const transferMatch = message.text.match(transferRegex);
+
+    if (transferMatch) {
+        const remark = transferMatch[1].trim();
+        const amount = parseFloat(transferMatch[2]).toFixed(2);
+        
+        const card = document.createElement('div');
+        card.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
+        card.innerHTML = `
+            <div style="left: 23px; top: 11px; position: absolute; color: black; font-size: 16px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">转账</div>
+            <div style="left: 23px; top: 42px; position: absolute; color: #AFAFAF; font-size: 11px; font-family: sans-serif; font-weight: 400; word-wrap: break-word">${remark}</div>
+            <div style="width: 130px; height: 22px; left: 20px; top: 64px; position: absolute; color: black; font-size: 20px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">¥ ${amount}</div>
+            <div style="width: 160px; height: 0px; left: 20px; top: 37px; position: absolute; border: 0.5px solid rgba(118, 118, 128, 0.12);"></div>
+            <div style="width: 24px; height: 24px; left: 156px; top: 8px; position: absolute;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.295 16.705L12.585 12.415L8.295 8.125C8.1067 7.9367 8.00091 7.6813 8.00091 7.415C8.00091 7.1487 8.1067 6.89331 8.295 6.705C8.48331 6.5167 8.7387 6.41091 9.005 6.41091C9.2713 6.41091 9.5267 6.5167 9.715 6.705L14.715 11.705C14.8087 11.798 14.8831 11.9086 14.9339 12.0304C14.9847 12.1523 15.0108 12.283 15.0108 12.415C15.0108 12.547 14.9847 12.6777 14.9339 12.7996C14.8831 12.9214 14.8087 13.032 14.715 13.125L9.715 18.125C9.62204 18.2187 9.50144 18.2931 9.36958 18.3439C9.23772 18.3947 9.09699 18.4208 8.955 18.4208C8.81301 18.4208 8.67228 18.3947 8.54042 18.3439C8.40856 18.2931 8.28796 18.2187 8.195 18.125C8.0067 17.9367 7.90091 17.6813 7.90091 17.415C7.90091 17.1487 8.0067 16.8933 8.195 16.705L8.295 16.705Z" fill="#363636"/>
+                </svg>
+            </div>
+        `;
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(card);
+    } else {
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble';
+        if (message.sender === 'user') {
+            bubble.classList.add('user-bubble');
+        } else {
+            bubble.classList.add('ai-bubble');
+        }
+        let visibleText = message.text;
+        const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
+        const messageMatch = message.text.match(messageRegex);
+        if (messageMatch && messageMatch[1]) {
+            visibleText = messageMatch[1].trim();
+        }
+        bubble.textContent = visibleText;
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(bubble);
+    }
+    
+    row.appendChild(wrapper);
+    return row;
 }
 
 // --- 功能 B: 关闭聊天界面 ---
@@ -4311,25 +4550,9 @@ function applyChatViewSettings(contact) {
     });
 }
 
-// === 更新：将消息显示为带头像的聊天气泡 ===
-// === 这是 addMessageToView 函数的【最终修复版】 ===
-// 它创建了正确的 HTML 结构，以匹配 CSS 动画的需求
-// === 这是 addMessageToView 函数的【最终正确版本】 ===
-/**
- * 功能：将消息添加到视图中
- * (最终修复版：重构了类名添加逻辑，彻底解决转账框透明的Bug)
- */
  /**
  * 功能：将消息添加到视图中
- * (最终修复版V2：使用if/else彻底分离普通气泡和转账卡片的样式)
- */
-/**
- * 功能：将消息添加到视图中
- * (最终修复版V4：直接使用用户提供的HTML蓝图构建转账卡片，彻底解决所有样式和布局问题)
- */
- /**
- * 功能：将消息添加到视图中
- * (最终修复版V5：根据用户提供的最新设计蓝图更新转账卡片样式)
+ * (根据用户提供的最新设计蓝图更新转账卡片样式)
  */
 function addMessageToView(message) {
     const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
@@ -4410,6 +4633,8 @@ function addMessageToView(message) {
     row.appendChild(wrapper);
     chatMessagesContainer.appendChild(row);
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    displayedMessageCount++;
+    return row; 
 }
 // === 新增：“正在输入”提示的JS函数 ===
 
@@ -4455,6 +4680,7 @@ function showTypingIndicator() {
 
 const moreFeaturesButton = document.getElementById('chat-add-attachment-button');
 const moreFeaturesPanel = document.getElementById('more-features-panel');
+const timePerceptionButton = document.getElementById('time-perception-feature');
 const receiptFeatureButton = document.getElementById('receipt-feature');
 const transferFeatureButton = document.getElementById('transfer-feature');
 const chatMessageInputForReceipt = document.getElementById('chat-message-input'); // 复用聊天输入框的ID
@@ -4921,6 +5147,8 @@ transferFeatureButton.addEventListener('click', () => {
     moreFeaturesPanel.classList.remove('active');
 });
 
+timePerceptionButton.addEventListener('click', handleTimePerceptionToggle);
+
 transferModalCloseBtn.addEventListener('click', closeTransferModal);
 
 confirmTransferBtn.addEventListener('click', async () => {
@@ -5304,6 +5532,230 @@ restoreFontBtn.addEventListener('click', async () => {
     }
 });
 
+// === 新增：聊天记录搜索功能的全部逻辑 ===
+
+// 1. 获取新添加的HTML元素
+const chatSearchButton = document.getElementById('chat-search-button');
+const searchModal = document.getElementById('search-modal');
+const searchModalCloseBtn = document.getElementById('search-modal-close-btn');
+const searchInput = document.getElementById('search-input');
+const searchResultsContainer = document.getElementById('search-results-container');
+let searchDebounceTimer;
+
+// 2. 打开和关闭搜索对话框的函数
+function openSearchModal() {
+    searchModal.style.display = 'flex';
+    setTimeout(() => {
+        searchModal.style.opacity = '1';
+        searchModal.querySelector('.modal-content').style.transform = 'scale(1)';
+        searchInput.focus(); // 自动聚焦到输入框
+    }, 10);
+}
+
+function closeSearchModal() {
+    searchModal.style.opacity = '0';
+    searchModal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        searchModal.style.display = 'none';
+        searchInput.value = ''; // 清空输入
+        searchResultsContainer.innerHTML = ''; // 清空结果
+    }, 300);
+}
+
+// 3. 绑定打开/关闭事件
+chatSearchButton.addEventListener('click', openSearchModal);
+searchModalCloseBtn.addEventListener('click', closeSearchModal);
+
+
+/**
+ * 【最终版】根据关键词创建居中、带省略号的消息摘要
+ * (已集成移除换行符功能，确保单行显示)
+ */
+/**
+ * 【最终版 V2】根据关键词创建居中、带省略号的消息摘要
+ * (截取长度已根据要求调整为3)
+ */
+ function createSnippet(fullText, keyword, contextLength = 3) { // <--- 核心修改在这里
+    // 首先，移除原始文本中的所有换行符，将其替换为空格
+    const cleanText = fullText.replace(/(\r\n|\n|\r)/gm, " ");
+
+    const keywordIndex = cleanText.toLowerCase().indexOf(keyword.toLowerCase());
+    
+    if (keywordIndex === -1) {
+        let snippet = cleanText.substring(0, contextLength * 2 + keyword.length);
+        return snippet + '...';
+    }
+
+    const startIndex = Math.max(0, keywordIndex - contextLength);
+    const endIndex = Math.min(cleanText.length, keywordIndex + keyword.length + contextLength);
+
+    let snippet = cleanText.substring(startIndex, endIndex);
+
+    if (startIndex > 0) {
+        snippet = '...' + snippet;
+    }
+    
+    if (endIndex < cleanText.length) {
+        snippet = snippet + '...';
+    }
+
+    return snippet;
+}
+
+/**
+ * 【最终版】渲染搜索结果的函数
+ * (使用专属类名 chatsearch-content)
+ */
+ function renderSearchResults(results, keyword, regex) {
+    if (results.length === 0) {
+        searchResultsContainer.innerHTML = '<p style="text-align:center; color:#888;">在此对话中未找到相关记录</p>';
+        return;
+    }
+
+    searchResultsContainer.innerHTML = results.map(result => {
+        const messageDate = new Date(result.message.timestamp);
+        const formattedTime = `${String(messageDate.getMonth() + 1).padStart(2, '0')}-${String(messageDate.getDate()).padStart(2, '0')} ${String(messageDate.getHours()).padStart(2, '0')}:${String(messageDate.getMinutes()).padStart(2, '0')}`;
+
+        const snippet = createSnippet(result.message.text, keyword);
+        const highlightedSnippet = snippet.replace(regex, `<span class="highlight">$&</span>`);
+
+        return `
+            <div class="search-result-item" data-contact-id="${currentOpenContact.id}" data-timestamp="${result.message.timestamp}">
+                <div class="result-header">
+                    <div class="sender-name">${result.senderName}:</div>
+                    <div class="time">${formattedTime}</div>
+                </div>
+                <div class="chatsearch-content">${highlightedSnippet}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 4. 核心：执行搜索并渲染结果
+// 替换为新版 performSearch 函数
+async function performSearch(keyword) {
+    // 检查是否有关键词或当前联系人
+    if (!keyword || keyword.length < 1 || !currentOpenContact) {
+        searchResultsContainer.innerHTML = '';
+        return;
+    }
+
+    // 搜索范围限定为当前联系人的 history
+    const history = Array.isArray(currentOpenContact.history) ? currentOpenContact.history : [];
+    const results = [];
+    
+    // 在当前联系人历史记录中查找
+    for (const message of history) {
+        if (message.text.toLowerCase().includes(keyword.toLowerCase())) {
+            results.push({
+                message: message,
+                senderName: message.sender === 'user' ? currentOpenContact.user.name : currentOpenContact.ai.name
+            });
+        }
+    }
+
+    // 将关键词和正则表达式一起传递给渲染函数
+    const searchRegex = new RegExp(keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+    renderSearchResults(results, keyword, searchRegex);
+}
+
+
+// 5. 监听搜索框的输入事件 (使用防抖优化性能)
+searchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        performSearch(searchInput.value.trim());
+    }, 300); // 停止输入300毫秒后执行搜索
+});
+
+// 6. 监听搜索结果的点击事件 (使用事件委托)
+searchResultsContainer.addEventListener('click', (event) => {
+    const resultItem = event.target.closest('.search-result-item');
+    if (resultItem) {
+        const contactId = parseInt(resultItem.dataset.contactId, 10);
+        const timestamp = resultItem.dataset.timestamp;
+        
+        closeSearchModal();
+        
+        // 调用一个增强版的 openChatView 来跳转
+        jumpToMessage(contactId, timestamp);
+    }
+});
+
+// 7. 核心：跳转到指定消息的函数
+async function jumpToMessage(contactId, timestamp) {
+    // a. 打开对应的聊天窗口，并加载所有消息
+    const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+    currentOpenContact = contactsData.value.find(c => c.id === contactId);
+    if (!currentOpenContact) return;
+
+    applyChatViewSettings(currentOpenContact);
+    chatContactName.textContent = currentOpenContact.ai.name;
+    chatMessagesContainer.innerHTML = ''; 
+
+    // **关键：加载全部历史记录，而不是分页**
+    const history = Array.isArray(currentOpenContact.history) ? currentOpenContact.history : [];
+    history.forEach(message => addMessageToView(message));
+
+    phoneFrame.classList.add('show-chat');
+
+    // b. 滚动到目标消息并高亮
+    setTimeout(() => {
+        const targetMessage = chatMessagesContainer.querySelector(`.message-row[data-timestamp="${timestamp}"]`);
+        if (targetMessage) {
+            targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            targetMessage.classList.add('message-highlight');
+            
+            // 1.5秒后移除高亮效果
+            setTimeout(() => {
+                targetMessage.classList.remove('message-highlight');
+            }, 1500);
+        }
+    }, 100); // 稍作延迟确保DOM渲染完成
+}
+/**
+ * 【新增】处理时间感知功能开启/关闭的函数
+ */
+ async function handleTimePerceptionToggle() {
+    if (!currentOpenContact) {
+        alert("请先打开一个对话。");
+        return;
+    }
+
+    // 检查当前状态 (如果属性不存在，则默认为false)
+    const isEnabled = currentOpenContact.timePerceptionEnabled || false;
+
+    const message = isEnabled ?
+        "要关闭此AI的时间感知功能吗？关闭后它将不再知晓现实时间。" :
+        "要为此AI开启感知现实时间的功能吗？开启后AI的回复会结合当前时间。";
+
+    if (confirm(message)) {
+        try {
+            // 切换状态
+            currentOpenContact.timePerceptionEnabled = !isEnabled;
+
+            // 使用“加载-修改-保存”模式安全地更新数据库
+            const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+            let allContacts = allContactsData.value || [];
+            const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
+
+            if (contactIndex > -1) {
+                allContacts[contactIndex] = currentOpenContact;
+                await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
+                alert(`时间感知功能已成功${currentOpenContact.timePerceptionEnabled ? '开启' : '关闭'}！`);
+            } else {
+                throw new Error("在数据库中找不到当前联系人。");
+            }
+
+        } catch (error) {
+            console.error("更新时间感知状态失败:", error);
+            alert(`操作失败: ${error.message}`);
+        } finally {
+            // 操作完成后关闭面板
+            moreFeaturesPanel.classList.remove('active');
+        }
+    }
+}
 
     </script>
 
