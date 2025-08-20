@@ -4325,7 +4325,7 @@ async function saveMessageToHistory(message, contactId) { // 增加 contactId �
         }
         allContacts[contactIndex].history.push(message);
         // 更新"最后一条消息"用于消息列表预览
-        allContacts[contactIndex].lastMessage = message.text;
+        allContacts[contactIndex].lastMessage = cleanMessageForPreview(message.text);
         
         // 将更新后的整个列表存回数据库
         await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
@@ -4333,7 +4333,7 @@ async function saveMessageToHistory(message, contactId) { // 增加 contactId �
         // 如果用户在消息列表页，实时更新那里的最后一条消息
         const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${contactId}"]`);
         if (contactItemInList) {
-            contactItemInList.querySelector('.contact-last-message').textContent = message.text;
+            contactItemInList.querySelector('.contact-last-message').textContent = cleanMessageForPreview(message.text);
         }
         // 如果用户正好在当前聊天页，也更新内存中的对象
         if(currentOpenContact && currentOpenContact.id === contactId) {
@@ -4693,6 +4693,18 @@ chatSendButton.addEventListener('click', async () => {
     }
 });
 
+
+// === 监听聊天输入框的回车键事件 ===
+chatMessageInput.addEventListener('keydown', (event) => {
+    // 检查按下的键是否是 "Enter"
+    if (event.key === 'Enter') {
+        // 阻止 "Enter" 键的默认行为（例如换行或提交表单）
+        event.preventDefault();
+        
+        // 模拟一次点击发送按钮的操作
+        chatSendButton.click();
+    }
+});
 // === 新增：聊天设置弹出层的全部逻辑 ===
 
 const defaultBubbleCss = `.user-bubble {
@@ -4966,7 +4978,33 @@ function applyChatViewSettings(contact) {
         avatar.style.borderRadius = avatarSettings.radius;
     });
 }
+/**
+ * 新增：净化消息文本，用于在联系人列表生成预览
+ * @param {string} text - 原始消息文本
+ * @returns {string} - 清理掉特殊标签后的预览文本
+ */
+ function cleanMessageForPreview(text) {
+    if (typeof text !== 'string') return '';
 
+    // 优先匹配 [MESSAGE_START]...[MESSAGE_END] 格式，并提取中间的内容
+    const messageMatch = text.match(/\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/);
+    if (messageMatch && messageMatch[1]) {
+        return messageMatch[1].trim(); // 返回指令中间的纯文本
+    }
+
+    // 如果是转账指令，显示为 "[转账]"
+    if (text.includes('[TRANSFER_START]')) {
+        return '[转账]';
+    }
+    
+    // 如果是一起听邀请，显示为 "[一起听邀请]"
+    if (text.includes('[MUSIC_SHARE]')) {
+        return '[一起听邀请]';
+    }
+
+    // 如果没有匹配到任何特殊指令（例如用户自己发的消息），则原样返回
+    return text;
+}
  /**
  * 功能：将消息添加到视图中
  * (根据用户提供的最新设计蓝图更新转账卡片样式)
