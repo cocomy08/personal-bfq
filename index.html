@@ -1187,6 +1187,7 @@ transition: background-color 0.2s;
     background-size: cover;         /* 关键：让背景图缩放以完全覆盖容器 */
     background-position: center;    /* 辅助：让图片在容器里居中显示 */
     background-repeat: no-repeat;   /* 辅助：防止图片在尺寸不匹配时平铺 */
+    --emoji-panel-height: 200px;
 }
 /* 当 phone-frame 拥有 .show-chat 类名时 */
 .phone-frame.show-chat #chat-screen {
@@ -1291,13 +1292,6 @@ transition: background-color 0.2s;
     padding: 0 15px;
     font-size: 15px;
     outline: none;
-}
-
-/* 更新：发送按钮的特定样式 */
-#chat-send-button {
-    background-color: #007AFF;
-    color: white; /* 这个颜色会被SVG继承 */
-    
 }
 
 /* 新增：控制发送按钮内部SVG的样式 */
@@ -2113,6 +2107,230 @@ body.fullscreen-mode .phone-frame {
     width: fit-content; 
     pointer-events: none; 
 }
+
+/* --- 输入框包装层的正确样式 --- */
+.chat-input-wrapper {
+    position: relative; /* 这是最关键的一步！为内部的按钮提供定位参考 */
+    flex-grow: 1; 
+    display: flex;
+    align-items: center;
+}
+
+/* --- 表情按钮的正确样式 --- */
+#chat-emoji-button {
+    position: absolute; /* 绝对定位，会根据上面那个 relative 的父级来定位 */
+    right: 5px; 
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #e9e9eb; 
+    color: #333;
+    width: 32px;
+    height: 32px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#chat-emoji-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* --- 输入框的正确样式 --- */
+.chat-input-area input {
+    width: 100%; 
+    padding-right: 42px; /* 在右侧留出空间给按钮 */
+    box-sizing: border-box; 
+}
+
+
+/* --- 新增：表情选择面板的样式 --- */
+
+#emoji-panel {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background-color: #ffffff;
+    border-top: 1px solid #dcdcdc;
+    z-index: 15;
+    
+    /* 使用变量来控制高度 */
+    height: var(--emoji-panel-height);
+    
+    /* 使用 calc() 函数和变量来计算它的初始隐藏位置 */
+    bottom: calc(var(--emoji-panel-height) * -1); 
+    
+    transition: bottom 0.3s ease-in-out;
+
+    /* === 新增：将其变为垂直弹性布局容器 === */
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* 3. 让其他元素的动画也使用这个变量 */
+.chat-input-area,
+.chat-messages-container {
+    transition: bottom 0.3s ease-in-out, padding-bottom 0.3s ease-in-out;
+}
+
+
+/* --- 激活状态：所有距离都将根据变量自动计算 --- */
+
+/* 表情面板上移 */
+#chat-screen.emoji-panel-active #emoji-panel {
+    bottom: 0;
+}
+
+/* 输入栏上移，移动的距离就是变量的值 */
+#chat-screen.emoji-panel-active .chat-input-area {
+    bottom: var(--emoji-panel-height);
+}
+
+/* 消息容器增加内边距，使用 calc() 自动计算总高度 */
+#chat-screen.emoji-panel-active .chat-messages-container {
+    padding-bottom: calc(70px + var(--emoji-panel-height)); 
+}
+
+/* --- 新增：表情面板内部的样式 --- */
+
+/* 1. 面板头部的 flex 布局，让按钮分布在两端 */
+.emoji-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 15px; /* 上下6px, 左右15px */
+    flex-shrink: 0; /* 防止头部被压缩 */
+}
+
+/* 2. 头部按钮的简单样式 */
+.panel-header-button {
+    background: none;
+    border: none;
+    color: #007AFF; /* 苹果蓝 */
+    font-size: 14px;
+    cursor: pointer;
+    padding: 5px;
+}
+
+/* 3. 表情显示的网格容器 */
+/* 3. 表情显示的网格容器 (修正版) */
+#emoji-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+    gap: 15px;
+    row-gap: 20px; 
+    
+    padding: 15px;
+    box-sizing: border-box;
+
+    /* === 新增/修改：让它占据剩余空间并可以垂直滚动 === */
+    flex-grow: 1; 
+    overflow-y: auto;
+}
+
+/* 4. 单个表情图片的样式 */
+/* 2. 单个表情图片的样式 (核心修改) */
+.emoji-item {
+    width: 100%;
+    /* 【关键】强制图片的容器为1:1的正方形 */
+    aspect-ratio: 1 / 1; 
+    /* 【关键】让图片在正方形容器内保持自身比例并完整显示，多余部分留白 */
+    object-fit: contain; 
+    
+    cursor: pointer;
+    border-radius: 4px;
+    background-color: #fff; /* 给图片一个白色背景板，更好看 */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); /* 添加轻微阴影 */
+    transition: transform 0.2s;
+}
+.emoji-item:hover {
+    transform: scale(1.1); /* 鼠标悬浮时放大一点 */
+}
+
+/* 3. 表情项外层容器的样式 (保持不变) */
+.emoji-item-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 4. 可编辑备注的样式 (保持不变) */
+.emoji-remark {
+    font-size: 11px;
+    color: #555;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: 0;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.emoji-remark:focus {
+    background-color: #fff;
+    border: 1px solid #007AFF;
+    outline: none;
+    white-space: normal;
+    overflow: visible;
+}
+
+/* (可选) 添加这个 CSS 来美化你的表情包 */
+.sticker-bubble {
+    padding: 0; /* 移除继承自 chat-bubble 的内边距 */
+    background-color: transparent; /* 移除背景色 */
+    max-width: 120px; /* 限制表情包最大宽度 */
+    max-height: 120px; /* 限制表情包最大高度 */
+    border-radius: 8px; /* 给图片也加个小圆角 */
+    object-fit: contain; /* 确保图片内容完整显示 */
+}
+
+/* === 新增：表情包删除模式的样式 === */
+
+/* 1. 让每个表情包的容器成为复选框的定位基准 */
+.emoji-item-container {
+    position: relative;
+}
+
+/* 2. 复选框的样式，默认隐藏 */
+.emoji-checkbox {
+    display: none; /* 默认不显示 */
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 20px;
+    height: 20px;
+    z-index: 5; /* 确保在图片之上，可以被点击 */
+}
+
+/* 3. 当网格进入删除模式时，显示复选框 */
+.emoji-grid-container.delete-mode .emoji-checkbox {
+    display: block;
+}
+
+/* 4. (可选) 删除模式下，给选中的表情一个视觉反馈 */
+/* 请只保留下面这一段关于选中样式的 CSS */
+
+#emoji-grid-container.delete-mode .emoji-item-container.selected {
+    aspect-ratio: 1 / 1; 
+    /* 为了确保这次一定能看到效果，我们使用了一个非常强烈的样式。
+    如果这个样式生效了，您可以再把它改成您喜欢的样子。
+    */
+    border: 3px solid #007AFF !important; /* 一个3px宽、不透明的蓝色实线边框 */
+    background-color: rgba(0, 122, 255, 0.15) !important; /* 一个更明显的淡蓝色背景 */
+    
+    border-radius: 8px; /* 圆角 */
+    transform: scale(0.95); /* 轻微缩小以示区别 */
+    box-shadow: none !important; /* 确保没有其他阴影覆盖边框 */
+}
+
+/* 确保容器有过渡效果，让动画更平滑 */
+.emoji-item-container {
+    position: relative;
+    transition: all 0.2s ease-in-out;
+}
     </style>
 
 <style id="custom-bubble-styles"></style>
@@ -2234,6 +2452,13 @@ body.fullscreen-mode .phone-frame {
                             <img src="https://i.postimg.cc/RFhwRjxZ/image.png" alt="邮件图标">
                         </div>
                         <span class="app-name">邮件</span>
+                    </div>
+
+                    <div class="app-container" id="beautify-app-icon">
+                        <div class="app-icon">
+                            <img src="https://i.postimg.cc/X7kVw6yR/ui.png" alt="美化">
+                        </div>
+                        <span class="app-name">美化</span>
                     </div>
 
                     <div class="app-container" id="settings-app-icon">
@@ -2497,15 +2722,30 @@ body.fullscreen-mode .phone-frame {
 <button id="chat-add-attachment-button" class="chat-action-button">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 4.5V11.25L15 12L12.0762 19.5H12V13.4766L9 12.7266L11.9238 4.5H12ZM13.5 3H10.8662L10.5117 3.99609L7.58496 12.2256L7.03418 13.7812L8.63672 14.1826L10.5 14.6484V21H13.1016L13.4736 20.0449L16.3975 12.5449L17.0156 10.957L13.5 10.0781V3Z" fill="black"/>
-        </svg>
-        
-           
-        
+        </svg>   
 </button>
-        <input type="text" id="chat-message-input" placeholder="输入消息...">
+
+<div class="chat-input-wrapper">
+    <input type="text" id="chat-message-input" placeholder="输入消息...">
+    
+    <button id="chat-emoji-button" class="chat-action-button">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14.66 13.56L10.47 15.06C10.2498 15.1399 10.0646 15.2945 9.94677 15.497C9.82893 15.6994 9.78589 15.9368 9.82517 16.1678C9.86446 16.3987 9.98356 16.6085 10.1617 16.7606C10.3399 16.9127 10.5658 16.9974 10.8 17C10.916 16.9999 11.031 16.9796 11.14 16.94L15.34 15.44C15.467 15.3981 15.5842 15.3312 15.6849 15.2431C15.7855 15.1551 15.8675 15.0478 15.926 14.9276C15.9844 14.8073 16.0182 14.6766 16.0252 14.5431C16.0323 14.4095 16.0125 14.276 15.967 14.1502C15.9215 14.0245 15.8513 13.9092 15.7604 13.8111C15.6696 13.7129 15.56 13.634 15.4382 13.579C15.3163 13.524 15.1847 13.4939 15.051 13.4907C14.9174 13.4874 14.7844 13.511 14.66 13.56ZM10.66 8.56C10.4726 8.37375 10.2192 8.26921 9.955 8.26921C9.69082 8.26921 9.43737 8.37375 9.25 8.56C9.15704 8.65373 9.04644 8.72812 8.92458 8.77889C8.80272 8.82966 8.67202 8.8558 8.54 8.8558C8.40799 8.8558 8.27729 8.82966 8.15543 8.77889C8.03357 8.72812 7.92297 8.65373 7.83 8.56C7.64264 8.37375 7.38919 8.26921 7.125 8.26921C6.86082 8.26921 6.60737 8.37375 6.42 8.56C6.32628 8.65296 6.25188 8.76356 6.20111 8.88542C6.15034 9.00728 6.12421 9.13799 6.12421 9.27C6.12421 9.40201 6.15034 9.53272 6.20111 9.65458C6.25188 9.77644 6.32628 9.88704 6.42 9.98C6.98251 10.5418 7.745 10.8574 8.54 10.8574C9.33501 10.8574 10.0975 10.5418 10.66 9.98C10.7542 9.88405 10.8282 9.77008 10.8773 9.64491C10.9265 9.51974 10.9499 9.38593 10.9462 9.25149C10.9425 9.11706 10.9117 8.98476 10.8556 8.86251C10.7996 8.74026 10.7194 8.63057 10.62 8.54L10.66 8.56ZM17.66 8.56C17.4726 8.37375 17.2192 8.26921 16.955 8.26921C16.6908 8.26921 16.4374 8.37375 16.25 8.56C16.157 8.65373 16.0464 8.72812 15.9246 8.77889C15.8027 8.82966 15.672 8.8558 15.54 8.8558C15.408 8.8558 15.2773 8.82966 15.1554 8.77889C15.0336 8.72812 14.923 8.65373 14.83 8.56C14.6426 8.37375 14.3892 8.26921 14.125 8.26921C13.8608 8.26921 13.6074 8.37375 13.42 8.56C13.3263 8.65296 13.2519 8.76356 13.2011 8.88542C13.1503 9.00728 13.1242 9.13799 13.1242 9.27C13.1242 9.40201 13.1503 9.53272 13.2011 9.65458C13.2519 9.77644 13.3263 9.88704 13.42 9.98C13.9825 10.5418 14.745 10.8574 15.54 10.8574C16.335 10.8574 17.0975 10.5418 17.66 9.98C17.7542 9.88405 17.8282 9.77008 17.8773 9.64491C17.9265 9.51974 17.9499 9.38593 17.9462 9.25149C17.9425 9.11706 17.9117 8.98476 17.8556 8.86251C17.7996 8.74026 17.7194 8.63057 17.62 8.54L17.66 8.56ZM12 2C10.0222 2 8.08879 2.58649 6.4443 3.6853C4.79981 4.78412 3.51809 6.3459 2.76121 8.17317C2.00433 10.0004 1.8063 12.0111 2.19215 13.9509C2.578 15.8907 3.53041 17.6725 4.92894 19.0711C6.32746 20.4696 8.10929 21.422 10.0491 21.8079C11.9889 22.1937 13.9996 21.9957 15.8268 21.2388C17.6541 20.4819 19.2159 19.2002 20.3147 17.5557C21.4135 15.9112 22 13.9778 22 12C22 10.6868 21.7413 9.38642 21.2388 8.17317C20.7363 6.95991 19.9997 5.85752 19.0711 4.92893C18.1425 4.00035 17.0401 3.26375 15.8268 2.7612C14.6136 2.25866 13.3132 2 12 2ZM12 20C10.4178 20 8.87104 19.5308 7.55544 18.6518C6.23985 17.7727 5.21447 16.5233 4.60897 15.0615C4.00347 13.5997 3.84504 11.9911 4.15372 10.4393C4.4624 8.88743 5.22433 7.46197 6.34315 6.34315C7.46197 5.22433 8.88743 4.4624 10.4393 4.15372C11.9911 3.84504 13.5997 4.00346 15.0615 4.60896C16.5233 5.21447 17.7727 6.23984 18.6518 7.55544C19.5308 8.87103 20 10.4177 20 12C20 14.1217 19.1572 16.1566 17.6569 17.6569C16.1566 19.1571 14.1217 20 12 20Z" fill="black"/>
+        </svg>
+    </button>
+</div>
         <button id="chat-send-button" class="chat-action-button">
             <svg t="1755525428099" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6198"><path d="M815.744 74.752a587.52 587.52 0 0 0-84.864 5.632 958.976 958.976 0 0 0-63.616 10.496 1597.44 1597.44 0 0 0-138.752 33.6A2104.384 2104.384 0 0 0 258.112 221.44a1344.576 1344.576 0 0 0-55.616 26.496 652.672 652.672 0 0 0-67.84 39.104 313.6 313.6 0 0 0-17.664 12.8 201.984 201.984 0 0 0-22.016 19.968 110.08 110.08 0 0 0-11.2 14.72 58.368 58.368 0 0 0-8.768 38.272 85.12 85.12 0 0 0 4.736 21.12 92.928 92.928 0 0 0 12.992 24.64 142.08 142.08 0 0 0 29.376 29.12 198.4 198.4 0 0 0 23.04 15.232 379.52 379.52 0 0 0 40 19.2c9.344 3.968 19.008 7.552 28.8 10.944a723.456 723.456 0 0 0 60.16 18.112c10.24 2.688 20.352 5.12 30.4 7.552 20.096 4.736 39.808 8.96 57.984 12.736l24.896 5.12c12.736 2.56 24.192 4.992 34.112 7.104 9.92 2.176 18.304 4.032 24.96 5.888a200.192 200.192 0 0 1 22.912 8.128c1.088 0.512 1.728 0.96 2.624 1.472 1.088 0.64 2.432 1.28 3.2 1.92l0.576 0.32a22.912 22.912 0 0 1 5.952 6.784 44.352 44.352 0 0 1 3.2 6.4c1.024 2.624 2.176 5.952 3.328 9.984 1.152 4.032 2.368 8.768 3.648 14.464 5.824 26.752 11.392 51.968 16.704 75.648 5.312 23.68 10.432 45.824 15.36 66.368 4.992 20.544 9.856 39.68 14.656 56.96a975.616 975.616 0 0 0 14.4 47.168 453.568 453.568 0 0 0 15.744 38.848c2.816 5.952 5.76 11.52 8.832 16.768a114.816 114.816 0 0 0 28.224 33.28 80.128 80.128 0 0 0 14.912 8.96 71.232 71.232 0 0 0 32.384 6.272 49.024 49.024 0 0 0 15.872-3.84 69.12 69.12 0 0 0 16.768-9.536 104.128 104.128 0 0 0 14.016-12.352c4.48-4.608 8.896-9.6 13.12-14.912a459.072 459.072 0 0 0 39.04-59.776 882.24 882.24 0 0 0 26.56-50.816 1349.12 1349.12 0 0 0 27.008-58.496 1841.28 1841.28 0 0 0 39.744-98.048 2304.128 2304.128 0 0 0 67.52-210.112 1653.568 1653.568 0 0 0 22.848-100.224 816 816 0 0 0 12.352-89.28c0.704-9.152 1.152-18.048 1.28-26.624a340.608 340.608 0 0 0-0.384-24.704 239.104 239.104 0 0 0-4.224-33.536 148.8 148.8 0 0 0-10.88-31.104 87.104 87.104 0 0 0-12.288-17.408 77.44 77.44 0 0 0-16.832-13.76 100.224 100.224 0 0 0-20.032-9.472 168.064 168.064 0 0 0-21.76-5.888 223.488 223.488 0 0 0-22.464-3.2 315.52 315.52 0 0 0-24.64-1.408z m-1.344 64c7.04 0.128 13.696 0.384 19.84 1.024 6.528 0.64 12.16 1.472 16.896 2.496 4.736 0.96 8.64 2.048 11.84 3.2 3.2 1.152 5.76 2.432 7.68 3.52 1.92 1.152 3.2 2.112 3.968 3.008a19.584 19.584 0 0 1 2.752 4.352 48.192 48.192 0 0 1 3.136 8 166.72 166.72 0 0 1 4.48 29.632 406.336 406.336 0 0 1-3.2 68.352 744.32 744.32 0 0 1-9.024 57.024 1181.888 1181.888 0 0 1-13.632 62.72 1617.664 1617.664 0 0 1-27.52 100.672 2179.712 2179.712 0 0 1-84.608 231.04 1579.008 1579.008 0 0 1-38.528 81.088 807.552 807.552 0 0 1-24.256 42.752 398.464 398.464 0 0 1-21.376 30.976 130.944 130.944 0 0 1-8.832 10.048 58.432 58.432 0 0 1-6.528 5.824l-0.256 0.256a16 16 0 0 1-3.712-2.56 40.832 40.832 0 0 1-5.376-5.952 83.2 83.2 0 0 1-5.76-8.448 148.672 148.672 0 0 1-6.016-11.392 383.744 383.744 0 0 1-19.52-52.864c-2.176-7.36-4.48-15.104-6.72-23.296a1712.64 1712.64 0 0 1-13.888-54.208c-4.8-19.84-9.728-41.472-14.976-64.896-5.312-23.424-10.88-48.704-16.896-75.84a296.128 296.128 0 0 0-4.48-18.048 163.392 163.392 0 0 0-9.408-24.96c-1.28-2.624-2.688-5.12-4.224-7.68l-0.64-0.96 127.04-126.976a32.192 32.192 0 0 0 6.976-10.688 31.36 31.36 0 0 0 0-24 32 32 0 0 0-12.032-14.72 32.192 32.192 0 0 0-23.68-4.608 31.36 31.36 0 0 0-16.576 8.704L484.096 494.72l-2.944-1.28a273.6 273.6 0 0 0-17.408-5.376 516.48 516.48 0 0 0-28.864-7.04 2955.072 2955.072 0 0 0-36.608-7.616l-22.912-4.608a2065.92 2065.92 0 0 1-84.992-19.456 888.192 888.192 0 0 1-55.744-16.768 466.624 466.624 0 0 1-25.152-9.536 314.56 314.56 0 0 1-22.208-10.112 201.472 201.472 0 0 1-19.008-10.88 120 120 0 0 1-18.368-14.848 57.28 57.28 0 0 1-6.912-8.64 25.472 25.472 0 0 1-4.096-11.264l1.024-1.472a60.16 60.16 0 0 1 6.08-6.656 136.32 136.32 0 0 1 10.368-8.96 393.984 393.984 0 0 1 52.032-33.024 799.68 799.68 0 0 1 48.64-24.768 1277.44 1277.44 0 0 1 56.448-25.216 1997.952 1997.952 0 0 1 95.488-36.992 2169.216 2169.216 0 0 1 102.656-34.048 2061.632 2061.632 0 0 1 102.656-28.096 1537.408 1537.408 0 0 1 64.832-14.272 1111.232 1111.232 0 0 1 60.16-9.856 705.728 705.728 0 0 1 52.608-4.864 371.2 371.2 0 0 1 22.528-0.256z" fill="#ffffff" p-id="6199"></path></svg>
         </button>
+    </div>
+
+    <div id="emoji-panel">
+        <div class="emoji-panel-header">
+            <button id="add-emoji-btn" class="panel-header-button">添加</button>
+            <button id="multiselect-emoji-btn" class="panel-header-button">多选</button>
+        </div>
+        <div id="emoji-grid-container">
+            </div>
     </div>
             
     </div>
@@ -2698,130 +2938,38 @@ body.fullscreen-mode .phone-frame {
             <button id="invite-modal-close-btn" class="modal-close-button">&times;</button>
         </div>
         <div class="modal-body" id="invite-contact-list-container">
-            </div>
+        </div>
     </div>
+</div>
+
+<div id="add-emoji-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>批量添加表情</h2>
+            <button id="emoji-modal-close-btn" class="modal-close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 13px; color: #555; margin-top: 0;">请输入一个或多个图片URL，用英文逗号 (,) 分隔。</p>
+            <textarea id="emoji-urls-textarea" class="form-textarea" placeholder="https://.../image1.gif, https://.../image2.png" style="height: 150px;"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button id="save-emoji-btn" class="save-button">确认添加</button>
+        </div>
+    </div>
+
 </div>
 
     </div>
 
     <script>
-    
-        // === IndexedDB 帮助函数 START ===
 
-// === IndexedDB 帮助函数 (已彻底修复) ===
-const dbHelper = {
-    db: null,
-    dbName: 'phoneDataDB',
-
-    // 1. 初始化数据库
-    async init() {
-        return new Promise((resolve, reject) => {
-            if (this.db) {
-                resolve();
-                return;
-            }
-            // 数据库版本提升到 2，以确保 onupgradeneeded 事件被触发，从而创建新的数据仓库
-            const request = indexedDB.open(this.dbName, 3);
-
-            request.onerror = (event) => {
-                console.error("数据库打开失败:", event);
-                reject("数据库打开失败");
-            };
-
-            request.onsuccess = (event) => {
-                this.db = event.target.result;
-                resolve();
-            };
-
-            // 第一次创建或版本更新时调用
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                // 我们App需要的所有数据仓库列表
-                const stores = ['settingsStore', 'messageContacts', 'musicPlaylists', 'worldBooks'];
-                stores.forEach(storeName => {
-                    if (!db.objectStoreNames.contains(storeName)) {
-                        db.createObjectStore(storeName, { keyPath: 'id' });
-                    }
-                });
-            };
-        });
-    },
-
-    // 2. 保存/更新数据 (已修复：接受 storeName 参数)
-    async saveData(storeName, id, value) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.put({ id, value }); // 数据结构为 {id: 'key', value: 'the_data'}
-
-            request.onsuccess = () => resolve();
-            request.onerror = (event) => reject(`数据保存到 ${storeName} 失败: ` + event.target.error);
-        });
-    },
-
-    // 3. 读取数据 (已修复：接受 storeName 参数)
-    async loadData(storeName, id) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.get(id);
-
-            request.onsuccess = () => resolve(request.result); 
-            request.onerror = (event) => reject(`从 ${storeName} 读取数据失败: ` + event.target.error);
-        });
-    },
-
-    // 4. 删除数据 (已修复：接受 storeName 参数)
-    async deleteData(storeName, id) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.delete(id);
-
-            request.onsuccess = () => resolve();
-            request.onerror = (event) => reject(`从 ${storeName} 删除数据失败: ` + event.target.error);
-        });
-    },
-    async getAllDataFromStore(storeName) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.getAll();
-
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = (event) => reject(`从 ${storeName} 读取所有数据失败: ` + event.target.error);
-        });
-    },
-
-    // 6. (新增) 清空一个存储
-    async clearStore(storeName) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.clear();
-
-            request.onsuccess = () => resolve();
-            request.onerror = (event) => reject(`清空 ${storeName} 失败: ` + event.target.error);
-        });
-    },
-    async updateRecord(storeName, record) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.put(record); // 直接放入更新后的完整对象
-
-            request.onsuccess = () => resolve();
-            request.onerror = (event) => reject(`更新 ${storeName} 中的记录失败: ` + event.target.error);
-        });
-    }
-    
-};
-
-
-
-// === IndexedDB 帮助函数 END ===
-        // === 新增：页面导航的脚本 ===
-        const audioPlayer = document.getElementById('audio-player');
+        // =================================================
+    // 第一部分：所有 const 和 let 变量声明，必须放在最前面
+    // =================================================
+    const multiselectEmojiBtn = document.getElementById('multiselect-emoji-btn');
+    let isEmojiDeleteMode = false; // 新增：用于跟踪表情包是否处于删除模式
+            // === 新增：页面导航的脚本 ===
+            const audioPlayer = document.getElementById('audio-player');
 const wallpaperUploadInput = document.getElementById('wallpaper-upload-input');
         const phoneFrame = document.querySelector('.phone-frame');
         const homeScreen = document.getElementById('home-screen');
@@ -2936,10 +3084,18 @@ const changeFontBtn = document.getElementById('change-font-btn');
 const restoreFontBtn = document.getElementById('restore-font-btn');
 const fontImportInput = document.getElementById('font-import-input');
 const worldbookSelectSettings = document.getElementById('worldbook-select-settings');
+
+
+// 1. 获取需要的元素
+const chatEmojiButton = document.getElementById('chat-emoji-button');
+const chatScreenForPanel = document.getElementById('chat-screen'); // chat-screen 作为父容器
+const chatMessagesForPanel = document.getElementById('chat-messages-container'); // 消息容器
+    
+
+
+// === 新增：API 设置所需的元素 ===
         
-        // === 新增：API 设置所需的元素 ===
-        
-        const apiUrlInput = document.getElementById('api-url');
+const apiUrlInput = document.getElementById('api-url');
         const apiKeyInput = document.getElementById('api-key');
         const connectButton = document.getElementById('connect-api-button');
         const apiStatusSpan = document.getElementById('api-connection-status');
@@ -2977,6 +3133,171 @@ const islandNextBtn = document.getElementById('island-next-btn');
 const progressCurrentTime = document.getElementById('progress-current-time');
 const progressRemainingTime = document.getElementById('progress-remaining-time');
 const progressBarFill = document.getElementById('progress-bar-fill');
+
+
+const addPlaylistBtn = document.getElementById('add-playlist-btn');
+const playlistGrid = document.getElementById('playlist-grid');
+const playlistDetailScreen = document.getElementById('playlist-detail-screen');
+const playlistBackButton = document.getElementById('playlist-back-button');
+const playlistNameTitle = document.getElementById('playlist-name-title');
+const importMusicButton = document.getElementById('import-music-button');
+const musicFileInput = document.getElementById('music-file-input');
+const songList = document.getElementById('song-list');
+const uploadCoverBtn = document.getElementById('upload-cover-btn');
+const multiSelectBtn = document.getElementById('multi-select-btn');
+const coverUploadInput = document.getElementById('cover-upload-input');
+
+// === 新增：歌单名称编辑所需元素 ===
+const editPlaylistNameBtn = document.getElementById('edit-playlist-name-btn');
+
+
+
+
+// === 新增：表情包功能的核心JS逻辑 ===
+
+// 1. 获取所有新添加的HTML元素
+const addEmojiBtn = document.getElementById('add-emoji-btn');
+const addEmojiModal = document.getElementById('add-emoji-modal');
+const emojiModalCloseBtn = document.getElementById('emoji-modal-close-btn');
+const saveEmojiBtn = document.getElementById('save-emoji-btn');
+const emojiUrlInput = document.getElementById('emoji-url-input');
+const emojiGridContainer = document.getElementById('emoji-grid-container');
+
+
+
+        // === IndexedDB 帮助函数 START ===
+
+// === IndexedDB 帮助函数 (已彻底修复) ===
+const dbHelper = {
+    db: null,
+    dbName: 'phoneDataDB',
+
+    // 1. 初始化数据库
+    async init() {
+        return new Promise((resolve, reject) => {
+            if (this.db) {
+                resolve();
+                return;
+            }
+            // 数据库版本提升到 2，以确保 onupgradeneeded 事件被触发，从而创建新的数据仓库
+            const request = indexedDB.open(this.dbName, 4);
+
+            request.onerror = (event) => {
+                console.error("数据库打开失败:", event);
+                reject("数据库打开失败");
+            };
+
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                resolve();
+            };
+
+            // 第一次创建或版本更新时调用
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                const stores = ['settingsStore', 'messageContacts', 'musicPlaylists', 'worldBooks', 'emojiStore'];
+                stores.forEach(storeName => {
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        // 【核心修正】我们为 emojiStore 指定 url 作为 key，其他保持不变
+                        if (storeName === 'emojiStore') {
+                            db.createObjectStore(storeName, { keyPath: 'url' });
+                        } else {
+                            db.createObjectStore(storeName, { keyPath: 'id' });
+                        }
+                    }
+                });
+            };
+        });
+    },
+
+    // 2. 保存/更新数据 (已修复：接受 storeName 参数)
+    async saveData(storeName, id, value) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.put({ id, value }); // 数据结构为 {id: 'key', value: 'the_data'}
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject(`数据保存到 ${storeName} 失败: ` + event.target.error);
+        });
+    },
+
+    // 3. 读取数据 (已修复：接受 storeName 参数)
+    async loadData(storeName, id) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.get(id);
+
+            request.onsuccess = () => resolve(request.result); 
+            request.onerror = (event) => reject(`从 ${storeName} 读取数据失败: ` + event.target.error);
+        });
+    },
+
+    // 4. 删除数据 (已修复：接受 storeName 参数)
+    async deleteData(storeName, id) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.delete(id);
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject(`从 ${storeName} 删除数据失败: ` + event.target.error);
+        });
+    },
+    async getAllDataFromStore(storeName) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (event) => reject(`从 ${storeName} 读取所有数据失败: ` + event.target.error);
+        });
+    },
+
+    // 6. (新增) 清空一个存储
+    async clearStore(storeName) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.clear();
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject(`清空 ${storeName} 失败: ` + event.target.error);
+        });
+    },
+    async updateRecord(storeName, record) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.put(record); // 直接放入更新后的完整对象
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject(`更新 ${storeName} 中的记录失败: ` + event.target.error);
+        });
+    }
+    
+};
+
+
+
+// === IndexedDB 帮助函数 END ===
+
+
+// 2. 为表情按钮绑定点击事件
+chatEmojiButton.addEventListener('click', () => {
+    // 3. 切换父容器的激活类名，CSS会自动处理剩下的动画
+    chatScreenForPanel.classList.toggle('emoji-panel-active');
+    
+    // 4. (优化体验) 每次打开或关闭面板后，都尝试将消息列表滚动到底部
+    //    这样可以确保用户能看到最新的消息
+    setTimeout(() => {
+        chatMessagesForPanel.scrollTop = chatMessagesForPanel.scrollHeight;
+    }, 300); // 延迟时间与CSS动画时间一致
+});
+
+        
 
 let playbackState = {
     playlist: [],       // 当前播放的整个歌单
@@ -3084,6 +3405,9 @@ async function loadData() {
     }
 });
 
+
+
+
         // === 5. 初始化页面 ===
 async function initializeApp() {
         try {
@@ -3095,6 +3419,8 @@ async function initializeApp() {
             await loadPlaylists(); 
 
             await loadContacts();
+
+            await loadAndRenderEmojis();
 
             // 时钟功能不受影响
             updateClock();
@@ -3110,11 +3436,59 @@ async function initializeApp() {
             alert("无法加载数据，请刷新页面重试。");
         }
     }
+
+    // 将这段新代码添加到你的JS脚本区域
+// 用这个新版本替换旧的 emojiGridContainer.addEventListener
+// 用这个新版本替换旧的 emojiGridContainer 的点击事件
+// 用这个新版本，替换掉你原来的 emojiGridContainer.addEventListener('click', ...)
+emojiGridContainer.addEventListener('click', (event) => {
+    
+    // 判断当前是否处于“多选删除模式”
+    if (isEmojiDeleteMode) {
+        const container = event.target.closest('.emoji-item-container');
+        if (container) {
+            const checkbox = container.querySelector('.emoji-checkbox');
+            if (checkbox) {
+                // 如果用户点击的不是复选框本身，我们才需要手动帮他勾选
+                // 这样可以避免用户直接点复选框时，我们的代码和他操作冲突
+                if (event.target !== checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                }
+                
+                // === 核心修复在这里 ===
+                // 根据复选框的最新状态，来决定是否给容器添加 'selected' 类
+                container.classList.toggle('selected', checkbox.checked);
+            }
+        }
+        return; // 结束函数，不执行发送逻辑
+    }
+
+    // 如果不是删除模式，执行正常的“发送”逻辑
+    if (event.target.tagName === 'IMG' && event.target.classList.contains('emoji-item')) {
+        const imgElement = event.target;
+        const remarkElement = imgElement.nextElementSibling;
+        
+        const remark = remarkElement ? remarkElement.textContent.trim() : "表情";
+        const url = imgElement.dataset.url;
+
+        if (url) {
+            const stickerMessage = {
+                type: 'sticker',
+                text: `[表情包：${remark}]`,
+                url: url
+            };
+            
+            sendMessage(stickerMessage);
+            
+            chatScreenForPanel.classList.remove('emoji-panel-active');
+        }
+    }
+});
     // 运行初始化函数
     initializeApp();
 
 
-        
+
 
         // 点击“设置”App图标：给父容器添加类名来触发动画
         settingsAppIcon.addEventListener('click', () => {
@@ -3309,8 +3683,6 @@ musicBackButton.addEventListener('click', () => {
 // === 音乐 App 歌单功能 ===
 
 // 1. 获取需要的 HTML 元素
-const addPlaylistBtn = document.getElementById('add-playlist-btn');
-const playlistGrid = document.getElementById('playlist-grid');
 
 
 // 3. 定义一个函数，用于创建歌单卡片的 HTML 结构
@@ -3370,18 +3742,7 @@ async function loadPlaylists() {
 // === 新增：歌单详情页的全部交互逻辑 ===
 
 // 1. 获取新页面的所有元素
-const playlistDetailScreen = document.getElementById('playlist-detail-screen');
-const playlistBackButton = document.getElementById('playlist-back-button');
-const playlistNameTitle = document.getElementById('playlist-name-title');
-const importMusicButton = document.getElementById('import-music-button');
-const musicFileInput = document.getElementById('music-file-input');
-const songList = document.getElementById('song-list');
-const uploadCoverBtn = document.getElementById('upload-cover-btn');
-const multiSelectBtn = document.getElementById('multi-select-btn');
-const coverUploadInput = document.getElementById('cover-upload-input');
 
-// === 新增：歌单名称编辑所需元素 ===
-const editPlaylistNameBtn = document.getElementById('edit-playlist-name-btn');
 
 let isDeleteMode = false; // 用于跟踪是否处于删除模式
 
@@ -4126,44 +4487,51 @@ let displayedMessageCount = 0; // 添加一个全局变量来跟踪加载更多�
 
 // === AI功能新增：System Prompt 定义 ===
 const systemPrompt = `
-{time_info}
-### 角色扮演核心指令
-你将严格扮演一个角色进行对话。
+### 核心身份
+你是一个专业的AI角色扮演引擎。你的首要任务是完全沉浸在指定的角色中进行对话，并严格、精确地遵循下方的所有格式化指令。
 
 ---
 
-### 规则
-1.  **角色信息**: 你的角色设定是：{ai_persona}
-2.  **用户**: 与你对话的用户设定是：{user_persona}
-3.  **世界观**: 你的所有行为和认知都不能超出以下世界观的范畴：
-    ---
-    {world_book_content}
-    ---
-4.  **模仿**: 你必须始终模仿角色的性格、语气和说话方式。
-5.  **输出格式**: 你的所有回复都必须是纯文本。你可以一次回复一条或多条消息。
-6.  **【【绝对规则】】**: 你在历史记录中看到的 "[角色: ...]" 或 "[用户: ...]" 是对话上下文，仅供你参考。**你自己的回复永远不准包含 "[角色: ...]" 或 "[用户: ...]" 这种前缀。** 你必须严格使用下面的技能格式来包裹你的回复。
+###【【【绝对指令 (ABSOLUTE DIRECTIVES)】】】
+这是最高优先级的规则，绝不允许违反。
+
+1.  **禁止泄露上下文格式**: 你的历史记录中会看到 "[角色: ...]" 或 "[用户: ...]" 的前缀，这些仅供你理解上下文。你的回复【【永远、绝对、在任何情况下】】都不准包含 "[角色: ...]" 或 "[用户: ...]" 这种格式。直接输出内容即可。
+2.  **所有文本必须包裹**: 你的任何一句对话，无论长短，哪怕只有一个字，都【【必须】】被 [MESSAGE_START]和[MESSAGE_END] 包裹。没有例外。
+3.  **精确使用标签**: 所有特殊技能的标签，例如 [MESSAGE_START] 和 [MESSAGE_END]，必须拼写完全正确，不能简写为 [END] 或其他任何形式。
 
 ---
 
-### 特殊技能 (必须严格使用)
+### 特殊技能 (SKILLS)
+你必须根据情境，在回复中运用以下技能。
 
 **1. 普通消息:**
-* 你的每一句普通对话，都**必须**用 [MESSAGE_START] 和 [MESSAGE_END]包裹。
-* **格式**: [MESSAGE_START]你的对话内容[MESSAGE_END]
+   - **用途**: 用于输出角色的每一句对话。
+   - **格式**: [MESSAGE_START]你的对话内容[MESSAGE_END]
+   - **规则**: 这是最基础的技能，所有对话文本都必须使用。
 
 **2. 转账:**
-* 当你决定转账时，你的回复中**必须包含**一个转账区块。
-* **格式**: [TRANSFER_START]备注-金额[TRANSFER_END] (注意，备注和金额在同一行)
+   - **用途**: 当你扮演的角色决定给用户转账时使用。
+   - **格式**: [TRANSFER_START]转账备注-金额[TRANSFER_END]
 
-**3. 听歌邀请:**
-* 当你收到格式为 [MUSIC_SHARE]对方邀请你收听-歌名-歌手名[MUSIC_SHARE] 的消息时，代表用户邀请你一起听这首歌。
-* 你需要根据你的角色性格，自然地决定是“接受”还是“拒绝”。
-* 如果你决定接受，你的回复中 **必须** 包含一个特殊标签：[ACCEPT_INVITE]
-* 如果你拒绝，就像平常一样回复即可，不要加任何特殊标签。
+**3. 理解表情包:**
+   - **用途**: 当你看到用户输入格式为 [EMOJI_START]备注[EMOJI_END] 时，这代表用户发送了一个主题为“备注”的表情包。
+   - **规则**: 你【【不准】】在回复中提及 [EMOJI_START] 这个标签或“表情包”这个词。你需要像真正看到图片一样，根据“备注”的内容（如：'dog', 'calm', 'cry'）自然地对这个表情包的情感或内容做出回应。
+
+**4. 回应听歌邀请:**
+   - **用途**: 当你看到用户输入格式为 [MUSIC_SHARE]... 时，代表用户邀请你一起听歌。
+   - **规则**: 如果你扮演的角色决定接受邀请，你的回复中【【必须】】在相应的对话之后，另起一行加入 [ACCEPT_INVITE] 标签。如果拒绝，则正常回复即可。
 
 ---
 
-### 总体回复示例
+### 回复生成流程
+1.  分析用户的最新消息和历史对话。
+2.  根据你的角色设定，构思出回应。
+3.  检查你的回应，确保它严格遵守了【绝对指令】和【特殊技能】中的所有格式要求。
+4.  最终输出格式化之后的内容。
+
+---
+
+### 示例 (EXAMPLES)
 
 **示例1 (单条消息):**
 [MESSAGE_START]我收到你的消息了，知道了。[MESSAGE_END]
@@ -4172,6 +4540,14 @@ const systemPrompt = `
 [MESSAGE_START]好呀，那我们去买点好吃的吧！[MESSAGE_END]
 [TRANSFER_START]买零食的钱-80[TRANSFER_END]
 [MESSAGE_START]这些应该够了！[MESSAGE_END]
+
+**示例3 (接受听歌邀请):**
+[MESSAGE_START]哦？周杰伦的歌，那必须听听！[MESSAGE_END]
+[ACCEPT_INVITE]
+
+**示例4 (回应表情包):**
+(当收到的用户输入是 [EMOJI_START]cry[EMOJI_END])
+[MESSAGE_START]怎么了？别哭呀，有什么事和我说说。[MESSAGE_END]
 `;
 
 // === AI功能新增：消息格式化函数 ===
@@ -4342,19 +4718,41 @@ async function saveMessageToHistory(message, contactId) { // 增加 contactId �
     }
 }
 // === AI功能修改：发送消息的总控函数 ===
-async function sendMessage(text) {
-    if (!text.trim() || !currentOpenContact) return;
+// 用这个新版本替换旧的 sendMessage 函数
+async function sendMessage(messageData) {
+    if (!currentOpenContact) return;
 
+    let messageObject;
+
+    // 判断传入的是纯文本还是一个带类型的对象
+    if (typeof messageData === 'string') {
+        if (!messageData.trim()) return; // 如果是空字符串，则不发送
+        messageObject = { type: 'text', text: messageData.trim() };
+    } else {
+        messageObject = messageData;
+    }
+
+    // 组合成完整的用户消息，包含发送者、时间戳等信息
     const userMessage = {
         sender: 'user',
-        text: text.trim(),
-        timestamp: new Date()
+        timestamp: new Date(),
+        uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+        ...messageObject // 将 type, text, url 等属性合并进来
     };
 
-    addMessageToView(userMessage); // 立即显示用户消息
-    await saveMessageToHistory(userMessage); // 保存用户消息
+    // 1. 立即在界面上显示（addMessageToView 稍后会升级）
+    addMessageToView(userMessage);
     
-    // 清空输入框
+    // 2. 将完整的消息对象存入数据库
+    await saveMessageToHistory(userMessage, currentOpenContact.id);
+
+    // 3. 将消息的 .text 属性发送给 AI
+    if (messageObject.type !== 'sticker') {
+        await callAI(userMessage.text, currentOpenContact);
+    }
+    
+
+    // 清空输入框（如果是通过输入框发送的话）
     chatMessageInput.value = '';
 }
 
@@ -5010,34 +5408,34 @@ function applyChatViewSettings(contact) {
  * (根据用户提供的最新设计蓝图更新转账卡片样式)
  */
  function addMessageToView(message) {
-    // === 核心修复：在这里增加安全检查 ===
-    // 如果消息对象不存在，或者消息没有 text 属性，则直接退出，不执行任何操作。
+    // 1. 安全检查：如果消息对象无效或没有文本内容，则直接退出，防止出错。
     if (!message || typeof message.text !== 'string') {
         console.warn("尝试渲染一个无效的消息对象，已跳过:", message);
-        return; // 提前退出函数
+        return;
     }
-    // === 安全检查结束 ===
 
-    // 检查消息对象中是否有我们新增的 type 属性
+    // 2. 情况一：渲染系统消息 (例如：“对方已加入一起听”)
     if (message.type === 'system') {
         const notification = document.createElement('div');
         notification.className = 'system-notification';
         notification.textContent = message.text;
         chatMessagesContainer.appendChild(notification);
         chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-        return; // 结束函数，不执行下面的气泡逻辑
+        return; // 处理完毕，结束函数
     }
 
-
-        // --- 情况二：渲染用户或AI的聊天气泡/卡片 (这部分是你已有的逻辑) ---
+    // 3. 情况二：渲染表情包图片
+    if (message.type === 'sticker' && message.url) {
+        // 创建通用的消息行、包装器和头像
         const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
         const row = document.createElement('div');
         row.className = 'message-row';
         row.dataset.timestamp = message.timestamp.toString();
-        if(message.uuid) { row.dataset.uuid = message.uuid; }
+        if (message.uuid) { row.dataset.uuid = message.uuid; }
 
         const wrapper = document.createElement('div');
         wrapper.className = 'message-content-wrapper';
+        
         const avatar = document.createElement('img');
         avatar.className = 'chat-avatar';
         avatar.style.borderRadius = settings.radius;
@@ -5049,11 +5447,77 @@ function applyChatViewSettings(contact) {
             wrapper.classList.add('ai');
             avatar.src = currentOpenContact.ai.avatar;
         }
+
+        // 创建一个 <img> 元素来专门显示表情包
+        const stickerImage = document.createElement('img');
+        stickerImage.src = message.url;
+        stickerImage.className = 'chat-bubble sticker-bubble'; // 应用样式
+
+        // 组装并添加到聊天界面
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(stickerImage);
+        row.appendChild(wrapper);
+        chatMessagesContainer.appendChild(row);
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
         
-        const musicShareRegex = /\[MUSIC_SHARE\]/;
-        const transferRegex = /\[TRANSFER_START\]/; // 简化判断，只需检查开头即可
+        return; // 处理完毕，结束函数
+    }
+
+    // 4. 情况三与四：渲染普通文本气泡 或 转账卡片
+    // 这两种都依赖于对 message.text 内容的解析，所以放在一起处理
+
+    // 创建通用的消息行、包装器和头像
+    const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
+    const row = document.createElement('div');
+    row.className = 'message-row';
+    row.dataset.timestamp = message.timestamp.toString();
+    if (message.uuid) { row.dataset.uuid = message.uuid; }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'message-content-wrapper';
+    
+    const avatar = document.createElement('img');
+    avatar.className = 'chat-avatar';
+    avatar.style.borderRadius = settings.radius;
+
+    if (message.sender === 'user') {
+        wrapper.classList.add('user');
+        avatar.src = currentOpenContact.user.avatar;
+    } else {
+        wrapper.classList.add('ai');
+        avatar.src = currentOpenContact.ai.avatar;
+    }
+    
+    // 使用正则表达式来判断是否为转账消息
+    const transferRegex = /\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/;
+    const musicShareRegex = /\[MUSIC_SHARE\]/;
+
+    const transferMatch = message.text.match(transferRegex);
+
+    if (transferMatch) {
+        // 情况三：如果匹配成功，渲染转账卡片
+        const remark = transferMatch[1].trim();
+        const amount = parseFloat(transferMatch[2]).toFixed(2);
         
-        if (musicShareRegex.test(message.text)) {
+        const card = document.createElement('div');
+        // 以下是转账卡片的完整、未省略的HTML结构和内联样式，与你文件中其他部分保持一致
+        card.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
+        card.innerHTML = `
+            <div style="left: 23px; top: 11px; position: absolute; color: black; font-size: 16px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">转账</div>
+            <div style="left: 23px; top: 42px; position: absolute; color: #AFAFAF; font-size: 11px; font-family: sans-serif; font-weight: 400; word-wrap: break-word">${remark}</div>
+            <div style="width: 130px; height: 22px; left: 20px; top: 64px; position: absolute; color: black; font-size: 20px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">¥ ${amount}</div>
+            <div style="width: 160px; height: 0px; left: 20px; top: 37px; position: absolute; border: 0.5px solid rgba(118, 118, 128, 0.12);"></div>
+            <div style="width: 24px; height: 24px; left: 156px; top: 8px; position: absolute;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.295 16.705L12.585 12.415L8.295 8.125C8.1067 7.9367 8.00091 7.6813 8.00091 7.415C8.00091 7.1487 8.1067 6.89331 8.295 6.705C8.48331 6.5167 8.7387 6.41091 9.005 6.41091C9.2713 6.41091 9.5267 6.5167 9.715 6.705L14.715 11.705C14.8087 11.798 14.8831 11.9086 14.9339 12.0304C14.9847 12.1523 15.0108 12.283 15.0108 12.415C15.0108 12.547 14.9847 12.6777 14.9339 12.7996C14.8831 12.9214 14.8087 13.032 14.715 13.125L9.715 18.125C9.62204 18.2187 9.50144 18.2931 9.36958 18.3439C9.23772 18.3947 9.09699 18.4208 8.955 18.4208C8.81301 18.4208 8.67228 18.3947 8.54042 18.3439C8.40856 18.2931 8.28796 18.2187 8.195 18.125C8.0067 17.9367 7.90091 17.6813 7.90091 17.415C7.90091 17.1487 8.0067 16.8933 8.195 16.705L8.295 16.705Z" fill="#363636"/>
+                </svg>
+            </div>
+        `;
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(card);
+
+
+        } else if (musicShareRegex.test(message.text)) {
             const card = document.createElement('div');
             card.className = 'listen-invite-card';
             // 渲染通用的邀请卡片
@@ -5075,51 +5539,34 @@ function applyChatViewSettings(contact) {
         `;
             wrapper.appendChild(avatar);
             wrapper.appendChild(card);
-        } else if (transferRegex.test(message.text)) {
-            // 转账卡片渲染逻辑
-            const transferMatch = message.text.match(/\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/);
-            const remark = transferMatch[1].trim();
-            const amount = parseFloat(transferMatch[2]).toFixed(2);
-            const card = document.createElement('div');
-            card.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
-            card.innerHTML = `
-            <div style="left: 23px; top: 11px; position: absolute; color: black; font-size: 16px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">转账</div>
-            <div style="left: 23px; top: 42px; position: absolute; color: #AFAFAF; font-size: 11px; font-family: sans-serif; font-weight: 400; word-wrap: break-word">${remark}</div>
-            <div style="width: 130px; height: 22px; left: 20px; top: 64px; position: absolute; color: black; font-size: 20px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">¥ ${amount}</div>
-            <div style="width: 160px; height: 0px; left: 20px; top: 37px; position: absolute; border: 0.5px solid rgba(118, 118, 128, 0.12);"></div>
-            <div style="width: 24px; height: 24px; left: 156px; top: 8px; position: absolute;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8.295 16.705L12.585 12.415L8.295 8.125C8.1067 7.9367 8.00091 7.6813 8.00091 7.415C8.00091 7.1487 8.1067 6.89331 8.295 6.705C8.48331 6.5167 8.7387 6.41091 9.005 6.41091C9.2713 6.41091 9.5267 6.5167 9.715 6.705L14.715 11.705C14.8087 11.798 14.8831 11.9086 14.9339 12.0304C14.9847 12.1523 15.0108 12.283 15.0108 12.415C15.0108 12.547 14.9847 12.6777 14.9339 12.7996C14.8831 12.9214 14.8087 13.032 14.715 13.125L9.715 18.125C9.62204 18.2187 9.50144 18.2931 9.36958 18.3439C9.23772 18.3947 9.09699 18.4208 8.955 18.4208C8.81301 18.4208 8.67228 18.3947 8.54042 18.3439C8.40856 18.2931 8.28796 18.2187 8.195 18.125C8.0067 17.9367 7.90091 17.6813 7.90091 17.415C7.90091 17.1487 8.0067 16.8933 8.195 16.705L8.295 16.705Z" fill="#363636"/>
-                </svg>
-            </div>
-        `;
-            wrapper.appendChild(avatar);
-            wrapper.appendChild(card);
+    } else {
+        // 情况四：如果以上都不是，就渲染普通的文本气泡
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble';
+        if (message.sender === 'user') {
+            bubble.classList.add('user-bubble');
         } else {
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-bubble';
-            if (message.sender === 'user') bubble.classList.add('user-bubble');
-            else bubble.classList.add('ai-bubble');
-            
-            // 因为我们已在函数开头检查过 message.text，所以这里可以直接使用
-            let visibleText = message.text;
-            const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
-            const messageMatch = visibleText.match(messageRegex);
-            if (messageMatch && messageMatch[1]) {
-                visibleText = messageMatch[1].trim();
-            }
-            bubble.textContent = visibleText;
-            
-            wrapper.appendChild(avatar);
-            wrapper.appendChild(bubble);
+            bubble.classList.add('ai-bubble');
         }
         
-        row.appendChild(wrapper);
-        chatMessagesContainer.appendChild(row);
-        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-        return row; 
+        let visibleText = message.text;
+        const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
+        const messageMatch = message.text.match(messageRegex);
+        if (messageMatch && messageMatch[1]) {
+            visibleText = messageMatch[1].trim();
+        }
+        bubble.textContent = visibleText;
+        
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(bubble);
+    }
+    
+    // 5. 统一将最终组装好的消息行添加到聊天界面
+    row.appendChild(wrapper);
+    chatMessagesContainer.appendChild(row);
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    return row; // 返回创建的行元素，方便其他函数（如搜索高亮）使用
 }
-
 // === 新增：“正在输入”提示的JS函数 ===
 
 /**
@@ -6177,47 +6624,52 @@ searchInput.addEventListener('input', () => {
 searchResultsContainer.addEventListener('click', (event) => {
     const resultItem = event.target.closest('.search-result-item');
     if (resultItem) {
+        // === 核心修复：这两行代码必须存在！ ===
+        event.preventDefault();
+        event.stopPropagation(); // 彻底阻止点击事件穿透
+
         const contactId = parseInt(resultItem.dataset.contactId, 10);
         const uuid = resultItem.dataset.uuid;
         
-        // 增加一个判断，确保获取到了ID
         if (contactId && uuid) {
             closeSearchModal();
-            jumpToMessage(contactId, uuid);
+            jumpToMessage(contactId, uuid); // 调用我们上面新的 jumpToMessage 函数
         }
     }
 });
 
 // 7. 核心：跳转到指定消息的函数
+// 用这个新版本，替换掉你原来的 jumpToMessage 函数
 async function jumpToMessage(contactId, uuid) {
-    // a. 打开对应的聊天窗口，并加载所有消息
-    const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
-    currentOpenContact = contactsData.value.find(c => c.id === contactId);
-    if (!currentOpenContact) return;
+    // 1. 先调用标准的 openChatView 函数，让它正确地构建聊天界面
+    //    openChatView 会自动加载最新的30条消息
+    await openChatView(contactId);
 
-    applyChatViewSettings(currentOpenContact);
-    chatContactName.textContent = currentOpenContact.ai.name;
-    chatMessagesContainer.innerHTML = ''; 
-
-    // **关键：加载全部历史记录，而不是分页**
+    // 2. 在页面打开后，我们再来处理跳转逻辑
     const history = Array.isArray(currentOpenContact.history) ? currentOpenContact.history : [];
-    history.forEach(message => addMessageToView(message));
+    const targetMessageIndex = history.findIndex(msg => msg.uuid === uuid);
 
-    phoneFrame.classList.add('show-chat');
+    // 3. 检查目标消息是否在已加载的30条内
+    const isTargetVisible = chatMessagesContainer.querySelector(`.message-row[data-uuid="${uuid}"]`);
 
-    // b. 滚动到目标消息并高亮
+    // 4. 如果目标消息不在当前视图，说明是更早的消息，我们需要加载全部历史记录
+    if (!isTargetVisible && targetMessageIndex !== -1) {
+        console.log("目标消息不在初始视图，正在加载全部历史记录...");
+        chatMessagesContainer.innerHTML = ''; // 清空当前仅30条的消息
+        history.forEach(message => addMessageToView(message)); // 重新渲染所有消息
+    }
+
+    // 5. 现在可以安全地滚动到目标消息并高亮了
     setTimeout(() => {
         const targetMessage = chatMessagesContainer.querySelector(`.message-row[data-uuid="${uuid}"]`);
         if (targetMessage) {
             targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
             targetMessage.classList.add('message-highlight');
-            
-            // 1.5秒后移除高亮效果
             setTimeout(() => {
                 targetMessage.classList.remove('message-highlight');
             }, 1500);
         }
-    }, 100); // 稍作延迟确保DOM渲染完成
+    }, 150); // 稍作延迟确保DOM渲染完成
 }
 /**
  * 【新增】处理时间感知功能开启/关闭的函数
@@ -6507,6 +6959,189 @@ document.addEventListener('click', (event) => {
         addMessageToView(systemMessage);
     }
 }
+
+
+
+// 2. 控制“添加表情”对话框显示和隐藏的函数
+function openAddEmojiModal() {
+
+    const urlsTextarea = document.getElementById('emoji-urls-textarea');
+    if (urlsTextarea) {
+        urlsTextarea.value = '';
+    }
+    addEmojiModal.style.display = 'flex';
+    setTimeout(() => {
+        addEmojiModal.style.opacity = '1';
+        addEmojiModal.querySelector('.modal-content').style.transform = 'scale(1)';
+    }, 10);
+}
+
+function closeAddEmojiModal() {
+    addEmojiModal.style.opacity = '0';
+    addEmojiModal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        addEmojiModal.style.display = 'none';
+        emojiUrlInput.value = ''; // 关闭时清空输入框
+    }, 300);
+}
+
+// 3. 从数据库加载并渲染所有表情到网格中
+// 新版本：在渲染时加入了复选框
+async function loadAndRenderEmojis() {
+    try {
+        const emojis = await dbHelper.getAllDataFromStore('emojiStore');
+        emojiGridContainer.innerHTML = ''; 
+        if (emojis && emojis.length > 0) {
+            emojis.forEach(emoji => {
+                const container = document.createElement('div');
+                container.className = 'emoji-item-container';
+
+                // === 核心修改：在 HTML 结构中加入 input[type=checkbox] ===
+                container.innerHTML = `
+                    <input type="checkbox" class="emoji-checkbox" value="${emoji.url}">
+                    <img src="${emoji.url}" class="emoji-item" title="点击发送" data-url="${emoji.url}">
+                    <p class="emoji-remark" contenteditable="true">${emoji.remark}</p>
+                `;
+
+                // 为新创建的备注元素重新绑定"失去焦点"事件
+                const remarkElement = container.querySelector('.emoji-remark');
+                remarkElement.addEventListener('blur', async (event) => {
+                    const newRemark = event.target.textContent.trim();
+                    const urlToUpdate = container.querySelector('.emoji-item').dataset.url;
+                    
+                    if (newRemark) {
+                        try {
+                            await dbHelper.updateRecord('emojiStore', { url: urlToUpdate, remark: newRemark });
+                        } catch(dbError) {
+                            console.error("更新备注失败:", dbError);
+                        }
+                    } else {
+                        event.target.textContent = "点击修改备注";
+                    }
+                });
+
+                emojiGridContainer.appendChild(container);
+            });
+        } else {
+            emojiGridContainer.innerHTML = '<p style="color:#aaa; font-size:14px; text-align:center; grid-column: 1 / -1;">快来添加表情包包吧！</p>';
+        }
+    } catch (error) {
+        console.error("加载表情失败:", error);
+    }
+}
+
+// 4. “确认添加”按钮的点击处理函数
+// 用这个新版本替换旧的 handleSaveEmojis 函数
+// 用这个新版本替换旧的 handleSaveEmojis 函数
+async function handleSaveEmojis() {
+    const urlsTextarea = document.getElementById('emoji-urls-textarea');
+    const urlsText = urlsTextarea.value.trim();
+    if (!urlsText) {
+        alert('请输入图片URL！');
+        return;
+    }
+
+    const urls = urlsText.split(',')
+        .map(url => url.trim())
+        .filter(url => url.startsWith('http'));
+
+    if (urls.length === 0) {
+        alert('未找到有效的URL。');
+        return;
+    }
+
+    try {
+        let successCount = 0;
+        for (const url of urls) {
+            const newEmoji = { 
+                url: url, 
+                remark: "点击修改备注" // 提供一个默认备注
+            };
+            // 使用 updateRecord, 如果URL已存在则会覆盖，正好可以用来更新
+            await dbHelper.updateRecord('emojiStore', newEmoji);
+            successCount++;
+        }
+        
+        alert(`成功添加/更新了 ${successCount} 个表情！`);
+        closeAddEmojiModal();
+        loadAndRenderEmojis(); // 重新加载
+
+    } catch (error) {
+        console.error("保存表情失败:", error);
+        alert("添加失败，请检查URL格式。");
+    }
+}
+
+// 5. 绑定所有事件监听器
+addEmojiBtn.addEventListener('click', () => {
+    if (isEmojiDeleteMode) {
+        handleBatchDeleteEmojis(); // 如果在删除模式，就执行删除
+    } else {
+        openAddEmojiModal(); // 否则，打开添加表情对话框
+    }
+});
+emojiModalCloseBtn.addEventListener('click', closeAddEmojiModal);
+saveEmojiBtn.addEventListener('click', handleSaveEmojis);
+// 点击对话框外部的灰色区域也可以关闭
+addEmojiModal.addEventListener('click', (event) => {
+    if (event.target === addEmojiModal) {
+        closeAddEmojiModal();
+    }
+});
+multiselectEmojiBtn.addEventListener('click', () => {
+    isEmojiDeleteMode = !isEmojiDeleteMode; // 切换删除模式状态
+
+    // 根据状态切换UI
+    emojiGridContainer.classList.toggle('delete-mode', isEmojiDeleteMode);
+
+    if (isEmojiDeleteMode) {
+        // 进入删除模式
+        multiselectEmojiBtn.textContent = '取消';
+        addEmojiBtn.textContent = '删除所选';
+    } else {
+        // 退出删除模式
+        multiselectEmojiBtn.textContent = '多选';
+        addEmojiBtn.textContent = '添加';
+        // 退出时，取消所有复选框的勾选
+        emojiGridContainer.querySelectorAll('.emoji-checkbox').forEach(cb => cb.checked = false);
+    }
+});
+async function handleBatchDeleteEmojis() {
+    const selectedCheckboxes = emojiGridContainer.querySelectorAll('.emoji-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        alert('请至少选择一个要删除的表情。');
+        return;
+    }
+
+    if (!confirm(`确定要删除选中的 ${selectedCheckboxes.length} 个表情吗？`)) {
+        return;
+    }
+
+    try {
+        let deletedCount = 0;
+        // 遍历所有被选中的复选框
+        for (const checkbox of selectedCheckboxes) {
+            const urlToDelete = checkbox.value; // 复选框的 value 就是图片的 URL
+            // 从 IndexedDB 中删除
+            await dbHelper.deleteData('emojiStore', urlToDelete);
+            deletedCount++;
+        }
+        
+        alert(`成功删除了 ${deletedCount} 个表情！`);
+
+        // 操作完成后，重新加载表情列表以刷新UI
+        await loadAndRenderEmojis();
+
+        // 主动“点击”取消按钮，退出删除模式
+        multiselectEmojiBtn.click();
+
+    } catch (error) {
+        console.error("删除表情失败:", error);
+        alert("删除失败，请查看控制台日志。");
+    }
+}
+
 
 
     </script>
