@@ -6412,27 +6412,28 @@ sharedAvatarsContainer.addEventListener('click', (event) => {
 });
 
 // 3. 为气泡内的“结束”按钮绑定点击事件
-// === “结束一起听”按钮的【最终修复版】 ===
 endListeningSessionBtn.addEventListener('click', async (event) => {
     event.stopPropagation();
     endSessionBubble.classList.remove('active');
 
     try {
-        // 将可能出错的操作（网络请求等）放入 try 块中
-        const message = '已经结束一起听';
-        await showSystemNotification(message, sharedListeningState.contact.id);
-        
-        // 尝试通知AI
+        // --- 关键的执行顺序在这里 ---
+
+        // 步骤 1：先调用并“等待”系统提示函数完成。
+        // 这个 await 关键字会强制程序在此暂停，直到消息被保存并且显示出来。
+        // 这会确保“已经结束一起听”的灰色提示先出现在界面上。
+        await showSystemNotification('已经结束一起听', sharedListeningState.contact.id);
+
+        // 步骤 2：在系统提示显示完毕后，再调用并“等待”AI回应。
+        // 只有在上面一行代码完全结束后，这一行才会开始执行。
+        // AI的“...”输入气泡会在这里才出现。
         await callAI("我已经结束了'一起听'，请做出回应。", sharedListeningState.contact);
 
     } catch (error) {
         // (可选) 如果在通知AI时出错，可以在控制台打印错误，方便排查问题
         console.error("在结束“一起听”并通知AI时发生错误:", error);
-        
     } finally {
-        // 关键：无论上面的 try 操作是成功还是失败，
-        // finally 块中的代码都保证会被执行。
-        // 我们在这里结束会话并更新UI，确保头像一定会被移除。
+        // 步骤 3：无论上面的操作成功与否，最后都更新UI，隐藏头像。
         stopSharedListening();
     }
 });
