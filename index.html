@@ -3701,15 +3701,14 @@ async function handleBatchDelete() {
 }
 // 统一的播放入口函数
 // --- 替换旧的 startPlayback 函数 ---
-// === 第1步：修改此函数 ===
-// 在 function 前面添加 async，并在 showSystemNotification 前添加 await
-async function startPlayback(playlist, index) { 
+async function startPlayback(playlist, index) {
     if (!playlist || index < 0 || index >= playlist.length) return;
 
     playbackState.playlist = playlist;
     playbackState.currentIndex = index;
     playbackState.currentSong = playlist[index];
     
+    // ... 更新灵动岛UI的代码 ...
     islandSongTitle.textContent = playbackState.currentSong.title;
     islandSongArtist.textContent = playbackState.currentSong.artist;
     updateScrollingTitle(playbackState.currentSong.title);
@@ -3718,9 +3717,9 @@ async function startPlayback(playlist, index) {
     audioPlayer.src = songObjectUrl;
     audioPlayer.play().catch(error => console.error("播放失败:", error));
 
+    // 核心修改：当处于“一起听”模式时，调用新的函数来显示并保存“正在播放”提示
     if (sharedListeningState.active && sharedListeningState.contact) {
         const message = `正在播放: ${playbackState.currentSong.title} - ${playbackState.currentSong.artist}`;
-        // 关键修改：在这里等待系统通知函数执行完毕
         await showSystemNotification(message, sharedListeningState.contact.id);
     }
 }
@@ -3874,6 +3873,7 @@ islandPrevBtn.addEventListener('click', async () => {
 
         // 通知AI歌曲已切换
         await callAI(`我刚刚把歌曲切换到了《${song.title}》 - ${song.artist}，请根据聊天记录和歌曲本身做出回应`, sharedListeningState.contact);
+
     }
 });
 // === 新增：处理联系人弹出层的所有逻辑 ===
@@ -6412,16 +6412,29 @@ sharedAvatarsContainer.addEventListener('click', (event) => {
 });
 
 // 3. 为气泡内的“结束”按钮绑定点击事件
+// === “结束一起听”按钮的【最终修复版】 ===
 endListeningSessionBtn.addEventListener('click', async (event) => {
     event.stopPropagation();
     endSessionBubble.classList.remove('active');
-    
-    const message = '已经结束一起听';
-    // 确保调用了新的 showSystemNotification 函数
-    showSystemNotification(message, currentOpenContact.id);
 
-    await callAI("我已经结束了'一起听'，请做出回应。", currentOpenContact);
-    stopSharedListening();
+    try {
+        // 将可能出错的操作（网络请求等）放入 try 块中
+        const message = '已经结束一起听';
+        await showSystemNotification(message, sharedListeningState.contact.id);
+        
+        // 尝试通知AI
+        await callAI("我已经结束了'一起听'，请做出回应。", sharedListeningState.contact);
+
+    } catch (error) {
+        // (可选) 如果在通知AI时出错，可以在控制台打印错误，方便排查问题
+        console.error("在结束“一起听”并通知AI时发生错误:", error);
+        
+    } finally {
+        // 关键：无论上面的 try 操作是成功还是失败，
+        // finally 块中的代码都保证会被执行。
+        // 我们在这里结束会话并更新UI，确保头像一定会被移除。
+        stopSharedListening();
+    }
 });
 
 // 4. (可选但推荐) 添加一个全局点击事件，用于在点击页面其他地方时，自动隐藏气泡
