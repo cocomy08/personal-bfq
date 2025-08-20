@@ -3700,7 +3700,10 @@ async function handleBatchDelete() {
     }, 100); // 100毫秒的延迟足够了
 }
 // 统一的播放入口函数
-function startPlayback(playlist, index) {
+// --- 替换旧的 startPlayback 函数 ---
+// === 第1步：修改此函数 ===
+// 在 function 前面添加 async，并在 showSystemNotification 前添加 await
+async function startPlayback(playlist, index) { 
     if (!playlist || index < 0 || index >= playlist.length) return;
 
     playbackState.playlist = playlist;
@@ -3715,8 +3718,11 @@ function startPlayback(playlist, index) {
     audioPlayer.src = songObjectUrl;
     audioPlayer.play().catch(error => console.error("播放失败:", error));
 
-    // --- 新增逻辑：显示“正在播放”提示 ---
-    showSystemNotification(`正在播放: ${playbackState.currentSong.title} - ${playbackState.currentSong.artist}`);
+    if (sharedListeningState.active && sharedListeningState.contact) {
+        const message = `正在播放: ${playbackState.currentSong.title} - ${playbackState.currentSong.artist}`;
+        // 关键修改：在这里等待系统通知函数执行完毕
+        await showSystemNotification(message, sharedListeningState.contact.id);
+    }
 }
 
 // --- 灵动岛 UI 控制 ---
@@ -3834,61 +3840,40 @@ islandPlayPauseBtn.addEventListener('click', () => {
 islandNextBtn.addEventListener('click', async () => {
     let nextIndex = playbackState.currentIndex + 1;
     if (nextIndex >= playbackState.playlist.length) {
-        nextIndex = 0; // 循环到第一首
+        nextIndex = 0;
     }
-    // 播放下一首歌曲
-    startPlayback(playbackState.playlist, nextIndex);
+    await startPlayback(playbackState.playlist, nextIndex);
 
-    // 检查是否处于“一起听”模式
+    // 如果在"一起听"，则在后台通知AI
     if (sharedListeningState.active && sharedListeningState.contact) {
         const song = playbackState.playlist[nextIndex];
-
-        // 1. 保存一条用户操作的“隐形”记录到历史
-        const invisibleMessage = { 
-            sender: 'user', 
-            text: `[SYSTEM_ACTION] 用户切歌: ${song.title}`,
-            timestamp: new Date() 
-        };
-        await saveMessageToHistory(invisibleMessage, sharedListeningState.contact.id);
         
-        // 2. 触发AI，在指令中包含歌曲信息，并要求它“简单评论”
-        await callAI(`我刚刚把歌曲切换到了《${song.title}》 - ${song.artist}，请根据你的角色设定，简单评论一下。可以结合上下文对话记录，对这首新歌发表一下看法（也可以单独发表看法），可以平平淡淡点评，也可以有喜剧效果/浪漫效果/悲伤/励志/等等各种效果，打造真实聊天陪伴感，但不要发太多，还是和正常聊天一样`, sharedListeningState.contact);
+        // 通知AI歌曲已切换
+        await callAI(`我刚刚把歌曲切换到了《${song.title}》 - ${song.artist}，请根据聊天记录和歌曲本身做出回应`, sharedListeningState.contact);
     }
 });
 
-
 islandPrevBtn.addEventListener('click', async () => {
-    let songChanged = false; // 用于判断是否真的切歌了
+    let songChanged = false;
     let targetIndex;
 
     if (audioPlayer.currentTime > 3) {
         targetIndex = playbackState.currentIndex;
-        audioPlayer.currentTime = 0; // 从头播放当前歌曲
-        songChanged = false; // 只是重播，不算切歌
+        audioPlayer.currentTime = 0;
     } else {
         targetIndex = playbackState.currentIndex - 1;
         if (targetIndex < 0) {
             targetIndex = playbackState.playlist.length - 1;
         }
-        startPlayback(playbackState.playlist, targetIndex);
-        songChanged = true; // 确实切换了歌曲
+        await startPlayback(playbackState.playlist, targetIndex);
+        songChanged = true;
     }
     
-    // --- 核心修改在这里 ---
-    // 只有在真正切换了歌曲，并且处于“一起听”模式时，才通知AI
     if (songChanged && sharedListeningState.active && sharedListeningState.contact) {
         const song = playbackState.playlist[targetIndex];
-        
-        // 1. (不再发送用户气泡) 保存隐形记录
-        const invisibleMessage = { 
-            sender: 'user', 
-            text: `[SYSTEM_ACTION] 用户切歌: ${song.title}`,
-            timestamp: new Date() 
-        };
-        await saveMessageToHistory(invisibleMessage, sharedListeningState.contact.id);
-        
-        // 2. (新增) 触发AI时，要求它“简单评论”
-        await callAI(`我刚刚把歌曲切换到了《${song.title}》 - ${song.artist}，请根据你的角色设定，简单评论一下。`, sharedListeningState.contact);
+
+        // 通知AI歌曲已切换
+        await callAI(`我刚刚把歌曲切换到了《${song.title}》 - ${song.artist}，请根据聊天记录和歌曲本身做出回应`, sharedListeningState.contact);
     }
 });
 // === 新增：处理联系人弹出层的所有逻辑 ===
@@ -4986,48 +4971,55 @@ function applyChatViewSettings(contact) {
  * 功能：将消息添加到视图中
  * (根据用户提供的最新设计蓝图更新转账卡片样式)
  */
-function addMessageToView(message) {
-    const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
+ function addMessageToView(message) {
+    // === 核心修复：在这里增加安全检查 ===
+    // 如果消息对象不存在，或者消息没有 text 属性，则直接退出，不执行任何操作。
+    if (!message || typeof message.text !== 'string') {
+        console.warn("尝试渲染一个无效的消息对象，已跳过:", message);
+        return; // 提前退出函数
+    }
+    // === 安全检查结束 ===
 
-    const row = document.createElement('div');
-    row.className = 'message-row';
-    row.dataset.timestamp = message.timestamp.toString();
-
-    if(message.uuid) { // <-- 新增的判断和代码行
-        row.dataset.uuid = message.uuid;
+    // 检查消息对象中是否有我们新增的 type 属性
+    if (message.type === 'system') {
+        const notification = document.createElement('div');
+        notification.className = 'system-notification';
+        notification.textContent = message.text;
+        chatMessagesContainer.appendChild(notification);
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        return; // 结束函数，不执行下面的气泡逻辑
     }
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'message-content-wrapper';
 
-    const avatar = document.createElement('img');
-    avatar.className = 'chat-avatar';
-    avatar.style.borderRadius = settings.radius;
+        // --- 情况二：渲染用户或AI的聊天气泡/卡片 (这部分是你已有的逻辑) ---
+        const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
+        const row = document.createElement('div');
+        row.className = 'message-row';
+        row.dataset.timestamp = message.timestamp.toString();
+        if(message.uuid) { row.dataset.uuid = message.uuid; }
 
-    // 1. 根据发送者，先设置好头像和左右对齐
-    if (message.sender === 'user') {
-        wrapper.classList.add('user');
-        avatar.src = currentOpenContact.user.avatar;
-    } else { // sender is 'ai'
-        wrapper.classList.add('ai');
-        avatar.src = currentOpenContact.ai.avatar;
-    }
-    
-    // 2. 决定在wrapper中放置“卡片”还是“气泡”
-    const musicShareRegex = /\[MUSIC_SHARE\]对方邀请你收听-(.*?)-(.*?)\[MUSIC_SHARE\]/;
-    const musicShareMatch = message.text.match(musicShareRegex);
-    const transferRegex = /\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/;
-    const transferMatch = message.text.match(transferRegex);
-    if (musicShareMatch) {
-        // --- 情况一：如果消息是音乐分享卡片 ---
-        const songTitle = musicShareMatch[1]; // 正则捕获组1: 歌名
-        const artistName = musicShareMatch[2]; // 正则捕获组2: 歌手名
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message-content-wrapper';
+        const avatar = document.createElement('img');
+        avatar.className = 'chat-avatar';
+        avatar.style.borderRadius = settings.radius;
 
-        const card = document.createElement('div');
-        // 使用一个CSS类名来控制基础样式，而不是完全依赖内联样式
-        card.className = 'listen-invite-card'; 
-        // 使用你期望的 div 结构来渲染卡片内容
-        card.innerHTML = `
+        if (message.sender === 'user') {
+            wrapper.classList.add('user');
+            avatar.src = currentOpenContact.user.avatar;
+        } else {
+            wrapper.classList.add('ai');
+            avatar.src = currentOpenContact.ai.avatar;
+        }
+        
+        const musicShareRegex = /\[MUSIC_SHARE\]/;
+        const transferRegex = /\[TRANSFER_START\]/; // 简化判断，只需检查开头即可
+        
+        if (musicShareRegex.test(message.text)) {
+            const card = document.createElement('div');
+            card.className = 'listen-invite-card';
+            // 渲染通用的邀请卡片
+            card.innerHTML = `
             <div style="width: 200px; height: 100px; position: relative; background: white; box-shadow: 0px 4px 6.099999904632568px rgba(0, 0, 0, 0.05); overflow: hidden; border-radius: 24px">
   <div style="left: 46px; top: 18px; position: absolute"><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 400; word-wrap: break-word">邀请你加入 </span><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 700; word-wrap: break-word">一起听</span></div>
   <div style="left: 18px; top: 46px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 400; word-wrap: break-word">我的耳机分你一半</div>
@@ -5043,21 +5035,16 @@ function addMessageToView(message) {
   <div style="left: 83px; top: 79px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 300; word-wrap: break-word">FROM MUSIC APP</div>
 </div>
         `;
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(card);
-
-    } else if (transferMatch) {
-        // --- 情况一：渲染您最新的转账卡片设计 ---
-        const remark = transferMatch[1].trim();
-        const amount = parseFloat(transferMatch[2]).toFixed(2);
-        
-        const card = document.createElement('div');
-        
-        // 应用您提供的新版内联样式
-        card.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
-        
-        // 使用您提供的新版HTML结构，并填入动态数据和新SVG图标
-        card.innerHTML = `
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(card);
+        } else if (transferRegex.test(message.text)) {
+            // 转账卡片渲染逻辑
+            const transferMatch = message.text.match(/\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/);
+            const remark = transferMatch[1].trim();
+            const amount = parseFloat(transferMatch[2]).toFixed(2);
+            const card = document.createElement('div');
+            card.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
+            card.innerHTML = `
             <div style="left: 23px; top: 11px; position: absolute; color: black; font-size: 16px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">转账</div>
             <div style="left: 23px; top: 42px; position: absolute; color: #AFAFAF; font-size: 11px; font-family: sans-serif; font-weight: 400; word-wrap: break-word">${remark}</div>
             <div style="width: 130px; height: 22px; left: 20px; top: 64px; position: absolute; color: black; font-size: 20px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">¥ ${amount}</div>
@@ -5068,39 +5055,33 @@ function addMessageToView(message) {
                 </svg>
             </div>
         `;
-        
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(card);
-
-    } else {
-        // --- 情况二：渲染普通文本气泡 ---
-        const bubble = document.createElement('div');
-        bubble.className = 'chat-bubble';
-        if (message.sender === 'user') {
-            bubble.classList.add('user-bubble');
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(card);
         } else {
-            bubble.classList.add('ai-bubble');
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble';
+            if (message.sender === 'user') bubble.classList.add('user-bubble');
+            else bubble.classList.add('ai-bubble');
+            
+            // 因为我们已在函数开头检查过 message.text，所以这里可以直接使用
+            let visibleText = message.text;
+            const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
+            const messageMatch = visibleText.match(messageRegex);
+            if (messageMatch && messageMatch[1]) {
+                visibleText = messageMatch[1].trim();
+            }
+            bubble.textContent = visibleText;
+            
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(bubble);
         }
-
-        let visibleText = message.text;
-        const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
-        const messageMatch = message.text.match(messageRegex);
-        if (messageMatch && messageMatch[1]) {
-            visibleText = messageMatch[1].trim();
-        }
-        bubble.textContent = visibleText;
         
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(bubble);
-    }
-    
-    // --- 最后的组装 ---
-    row.appendChild(wrapper);
-    chatMessagesContainer.appendChild(row);
-    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-    displayedMessageCount++;
-    return row; 
+        row.appendChild(wrapper);
+        chatMessagesContainer.appendChild(row);
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        return row; 
 }
+
 // === 新增：“正在输入”提示的JS函数 ===
 
 /**
@@ -5689,13 +5670,16 @@ confirmTransferBtn.addEventListener('click', async () => {
             }
         }
 
-        if (acceptedInvite) {
-            console.log(`AI "${currentOpenContact.ai.name}" 接受了邀请！启动“一起听”模式。`);
-            
+        if (acceptedInvite && sharedListeningState.active === false) {
+            console.log(`AI "${currentOpenContact.ai.name}" 接受了邀请！`);
+
             sharedListeningState.active = true;
             sharedListeningState.contact = currentOpenContact;
-            showSystemNotification(`${currentOpenContact.ai.name} 加入了一起听`);
-            
+
+            const message = `${currentOpenContact.ai.name} 加入了一起听`;
+            // 确保调用了新的 showSystemNotification 函数
+            showSystemNotification(message, currentOpenContact.id);
+
             if (dynamicIsland.classList.contains('expanded')) {
                 updateSharedListeningUI();
             }
@@ -6432,15 +6416,11 @@ endListeningSessionBtn.addEventListener('click', async (event) => {
     event.stopPropagation();
     endSessionBubble.classList.remove('active');
     
-    // --- 核心修改在这里 ---
-    // a. (删除) 不再准备和发送用户消息气泡
-    // b. (新增) 显示一个系统提示
-    showSystemNotification('已经结束一起听');
+    const message = '已经结束一起听';
+    // 确保调用了新的 showSystemNotification 函数
+    showSystemNotification(message, currentOpenContact.id);
 
-    // c. (保留) 触发AI回复，告诉它会话已结束
-    await callAI("我已经结束了'一起听'，请根据你的角色设定做出回应。", currentOpenContact);
-
-    // d. (保留) 结束“一起听”状态并隐藏头像
+    await callAI("我已经结束了'一起听'，请做出回应。", currentOpenContact);
     stopSharedListening();
 });
 
@@ -6456,18 +6436,24 @@ document.addEventListener('click', (event) => {
  * 新增：在聊天界面显示一个系统级别的提示消息
  * @param {string} text - 要显示的提示文本
  */
- function showSystemNotification(text) {
-    // 确保只有在聊天界面打开时才显示
-    if (!currentOpenContact) return;
+ async function showSystemNotification(text, contactId) {
+    if (!contactId) return;
 
-    const notification = document.createElement('div');
-    notification.className = 'system-notification';
-    notification.textContent = text;
-    
-    chatMessagesContainer.appendChild(notification);
-    
-    // 自动滚动到底部，确保用户能看到最新的提示
-    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    // 1. 构造一个带有 type: 'system' 的消息对象
+    const systemMessage = {
+        sender: 'system',
+        type: 'system',
+        text: text,
+        timestamp: new Date()
+    };
+
+    // 2. 将这条系统消息永久保存到数据库
+    await saveMessageToHistory(systemMessage, contactId);
+
+    // 3. 如果用户正打开着这个对话，则立即在界面上显示出来
+    if (currentOpenContact && currentOpenContact.id === contactId) {
+        addMessageToView(systemMessage);
+    }
 }
 
 
