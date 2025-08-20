@@ -4499,6 +4499,20 @@ saveChatSettingsBtn.addEventListener('click', async () => {
             const bgImage = chatScreen.style.backgroundImage;
             allContacts[contactIndex].chatBackground = bgImage.includes('url') ? bgImage : null;
 
+
+
+            // 收集所有被勾选的世界书ID
+            const selectedWorldBookIds = [];
+            const checkedBooks = document.querySelectorAll('#worldbook-multiselect-container input:checked');
+            checkedBooks.forEach(checkbox => {
+                selectedWorldBookIds.push(parseInt(checkbox.value, 10));
+            });
+
+            // 将收集到的ID数组存入联系人对象
+            allContacts[contactIndex].linkedWorldBookIds = selectedWorldBookIds;
+
+
+
             // 同时，也要更新内存中的 'currentOpenContact' 变量，这样UI可以立即正确刷新
             currentOpenContact = allContacts[contactIndex];
         } else {
@@ -5617,7 +5631,11 @@ searchModalCloseBtn.addEventListener('click', closeSearchModal);
  * 【最终版】渲染搜索结果的函数
  * (使用专属类名 chatsearch-content)
  */
- function renderSearchResults(results, keyword, regex) {
+ /**
+ * 【最终版】渲染搜索结果的函数
+ * (使用正确的两行式HTML结构，并包含 data-uuid)
+ */
+function renderSearchResults(results, keyword, regex) {
     if (results.length === 0) {
         searchResultsContainer.innerHTML = '<p style="text-align:center; color:#888;">在此对话中未找到相关记录</p>';
         return;
@@ -5630,6 +5648,7 @@ searchModalCloseBtn.addEventListener('click', closeSearchModal);
         const snippet = createSnippet(result.message.text, keyword);
         const highlightedSnippet = snippet.replace(regex, `<span class="highlight">$&</span>`);
 
+        // 这个 return 语句会生成带有 data-uuid 的正确 HTML
         return `
             <div class="search-result-item" data-contact-id="${currentOpenContact.id}" data-uuid="${result.message.uuid}">
                 <div class="result-header">
@@ -5657,7 +5676,7 @@ async function performSearch(keyword) {
     
     // 在当前联系人历史记录中查找
     for (const message of history) {
-        if (message.text.toLowerCase().includes(keyword.toLowerCase())) {
+        if (message.uuid && message.text.toLowerCase().includes(keyword.toLowerCase())) {
             results.push({
                 message: message,
                 senderName: message.sender === 'user' ? currentOpenContact.user.name : currentOpenContact.ai.name
@@ -5686,10 +5705,11 @@ searchResultsContainer.addEventListener('click', (event) => {
         const contactId = parseInt(resultItem.dataset.contactId, 10);
         const uuid = resultItem.dataset.uuid;
         
-        closeSearchModal();
-        
-        // 调用一个增强版的 openChatView 来跳转
-        jumpToMessage(contactId, uuid);
+        // 增加一个判断，确保获取到了ID
+        if (contactId && uuid) {
+            closeSearchModal();
+            jumpToMessage(contactId, uuid);
+        }
     }
 });
 
