@@ -735,19 +735,6 @@ transition: background-color 0.2s;
     padding: 12px 5px;
 }
 
-/* 歌曲名 */
-.song-title {
-    font-size: 16px;
-    font-weight: 500;
-    color: #111;
-}
-
-/* 歌手名 */
-.song-artist {
-    font-size: 14px;
-    color: #888;
-    margin-top: 4px;
-}
 /* === 新增：播放按钮和歌曲列表项新布局 === */
 .song-item {
     display: flex;
@@ -873,22 +860,21 @@ transition: background-color 0.2s;
 }
 .dynamic-island {
     position: absolute;
-    top: 5px; /* 距离手机顶部刘海的距离 */
+    top: 5px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 999; /* 确保在最顶层 */
+    z-index: 999;
 
-    /* 默认收起状态的尺寸和样式 */
-    width: 120px;
+    /* === 核心修改在这里 === */
+    width: 180px; 
     height: 36px;
+    padding: 0 18px;  /* 在左右两边增加内边距，让内容和黑边有呼吸空间 */
+    box-sizing: border-box; /* 确保 padding 不会影响最终的宽高计算 */
+
     background-color: #000;
     border-radius: 40px;
     color: white;
-    
-    /* 动画效果 */
     transition: all 0.35s cubic-bezier(0.65, 0, 0.35, 1);
-
-    /* 默认隐藏，通过JS添加 .active 来显示 */
     opacity: 0;
     pointer-events: none;
     cursor: pointer;
@@ -950,16 +936,6 @@ transition: background-color 0.2s;
 
 
 /* --- 内部元素样式 --- */
-
-/* 收起状态的波形动画 */
-.waveform { display: flex; align-items: center; height: 15px; }
-.waveform span { width: 3px; height: 100%; background: #5f5; margin: 0 2px; border-radius: 3px; animation: wave 1.2s infinite ease-in-out; }
-.waveform span:nth-child(2) { animation-delay: 0.2s; }
-.waveform span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes wave { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
-
-/* 展开状态的内容 */
-.song-details { text-align: center; }
 /* === 用下面这段新的代码替换上面的旧代码 === */
 
 /* 使用 .dynamic-island 来提高优先级，确保样式只应用在灵动岛内部 */
@@ -1852,6 +1828,291 @@ body.fullscreen-mode .phone-frame {
 #search-input::-webkit-search-cancel-button {
     display: none;
 }
+
+
+
+/* === 用于图标和滚动标题的新样式 === */
+
+/* 1. 主容器，用于对齐图标和文本 */
+.collapsed-music-info {
+    display: flex;
+    align-items: center;
+    gap: 6px; /* 图标和文字之间的间距 */
+    width: 100%;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+/* 2. SVG 图标的样式 */
+.music-icon-collapsed {
+    flex-shrink: 0; /* 防止图标被压缩变形 */
+}
+
+/* 3. “窗口”容器，用于隐藏溢出的文本 */
+.title-scroller-window {
+    overflow: hidden; /* 关键！隐藏所有超出这个容器的内容 */
+    flex-grow: 1; /* 让它占据所有剩余的空间 */
+}
+
+/* 4. 标题文本的基础样式 */
+.collapsed-title {
+    color: white;
+    font-weight: 400;
+    white-space: nowrap; /* 强制文本不换行 */
+    display: inline-block; /* 这是让动画正确工作所必需的 */
+}
+
+/* 5. 这个类将由 JavaScript 添加，用于激活滚动动画 */
+.collapsed-title.scrolling {
+    /* 让文本的起点移动到“窗口”的右侧，为滚动入场做准备 */
+    padding-left: 100%; 
+    /* 应用我们下面定义的 'marquee-scroll' 动画 */
+    animation: marquee-scroll 8s linear infinite;
+}
+
+/* 6. 定义滚动动画的关键帧 */
+@keyframes marquee-scroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        /* 将文本向左移动，直到它完全从视野中消失 */
+        transform: translateX(-100%);
+    }
+}
+
+/* === 新增：灵动岛展开后顶部的样式 === */
+.expanded-header {
+    width: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center; /* 左右两端对齐 */
+    align-items: flex-start;      /* 顶部对齐 */
+}
+
+/* 复用 .song-details 的样式，但确保它不会被压缩 */
+.song-details {
+    text-align: center; 
+    flex-shrink: 0;
+}
+
+/* 新增的邀请按钮样式 */
+.island-action-button {
+    position: absolute;
+    top: -5px; /* 微调垂直位置 */
+    right: -5px; /* 微调水平位置 */
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.island-action-button:hover {
+    opacity: 1;
+}
+/* === 新增：邀请联系人对话框的CSS (这是缺失的样式部分) === */
+
+/* 对话框的遮罩背景 */
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: none; /* JS会控制它显示 */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* 对话框主体 */
+.modal-content {
+    background-color: #f7f7f7;
+    border-radius: 18px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    width: 300px; /* 对话框宽度 */
+    max-width: 90%;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+/* 对话框头部 */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 500;
+}
+
+.modal-close-button {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 1;
+}
+
+/* 对话框内容区域 */
+.modal-body {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px 0;
+}
+
+/* 列表项的样式 (这个之前给过，请确保它存在) */
+.invite-contact-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 20px;
+    transition: background-color 0.2s;
+}
+
+.invite-contact-item:hover {
+    background-color: #f0f0f0;
+}
+
+.invite-contact-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 12px;
+}
+
+.invite-contact-name {
+    font-size: 16px;
+    color: #111;
+    flex-grow: 1;
+}
+
+.invite-button {
+    padding: 5px 15px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.1);
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.invite-button.invited {
+    background-color: #e5e5ea;
+    color: #8e8e93;
+    cursor: not-allowed;
+}
+/* === 新增：共享听歌重叠头像的样式 === */
+
+/* 头像容器的样式 */
+.shared-avatars {
+    position: absolute; /* 绝对定位，浮动在左上角 */
+    top: -5px;          /* 垂直方向微调，使其与歌名对齐 */
+    left: 0;
+    display: flex;      /* 使用flex布局来排列头像 */
+    align-items: center;
+    padding: 2px;
+    display: none;      /* 默认状态下隐藏 */
+}
+
+/* 当需要显示时，JS会添加这个 .active 类 */
+.shared-avatars.active {
+    display: flex;
+}
+
+/* 单个头像的样式 */
+.shared-avatar-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%; /* 圆形 */
+    border: 2px solid rgba(255, 255, 255, 0.8); /* 半透明白色边框，增加质感 */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2); /* 轻微阴影 */
+    object-fit: cover; /* 防止图片变形 */
+}
+
+/* 关键：让第二个头像向左移动，与第一个头像重叠 */
+.shared-avatar-img:nth-child(2) {
+    margin-left: -12px;
+}
+
+/* === 新增：“结束一起听”确认气泡的样式 === */
+.confirmation-bubble {
+    position: absolute;
+    top: 10%; 
+    left: 250%;
+    transform: translateX(-50%);
+    margin-top: 8px;
+    
+    background-color: rgba(60, 60, 60, 0.85); /* 半透明深灰色背景 */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    
+    color: white;
+    padding: 8px 12px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap; /* 防止文字换行 */
+    
+    /* 默认隐藏，通过JS控制显示 */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(-5px); /* 增加一个轻微的上移动画 */
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index: 10;
+}
+
+/* JS添加 .active 类时，气泡显示出来 */
+.confirmation-bubble.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.confirmation-bubble span {
+    font-size: 14px;
+}
+
+.confirmation-bubble button {
+    background-color: #ff3b30; /* 红色背景 */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* === 新增：用于在聊天界面显示系统提示的样式 === */
+.system-notification {
+    text-align: center;
+    margin: 10px auto;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.1);
+    border-radius: 20px;
+    width: fit-content; 
+    pointer-events: none; 
+}
     </style>
 
 <style id="custom-bubble-styles"></style>
@@ -1863,15 +2124,48 @@ body.fullscreen-mode .phone-frame {
     <div class="phone-frame">
         <div id="dynamic-island" class="dynamic-island">
             <div class="island-collapsed-content">
-                <div class="waveform">
-                    <span></span><span></span><span></span>
+                <div class="collapsed-music-info">
+                    <svg class="music-icon-collapsed" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 18V5l12-2v13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <circle cx="6" cy="18" r="3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></circle>
+                        <circle cx="18" cy="16" r="3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></circle>
+                    </svg>
+                    <div class="title-scroller-window">
+                        <span id="collapsed-song-title" class="collapsed-title"></span>
+                    </div>
                 </div>
             </div>
             <div class="island-expanded-content">
-                <div class="song-details">
-                    <div id="island-song-title" class="song-title">Pepas</div>
-                    <div id="island-song-artist" class="song-artist">Farruko</div>
+    
+                <div class="expanded-header">
+    
+                    <div id="shared-listening-avatars" class="shared-avatars">
+    
+                        <div id="avatar-image-container"></div>
+                        
+                        <div id="end-session-bubble" class="confirmation-bubble">
+                            <span>结束一起听?</span>
+                            <button id="end-listening-session-btn">结束</button>
+                        </div>
+                    
+                    </div>
+                
+                    <div class="song-details">
+                        <div id="island-song-title" class="song-title">Pepas</div>
+                        <div id="island-song-artist" class="song-artist">Farruko</div>
+                    </div>
+                
+                    <button id="island-invite-button" class="island-action-button">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 11C10.7614 11 13 8.76142 13 6C13 3.23858 10.7614 1 8 1C5.23858 1 3 3.23858 3 6C3 8.76142 5.23858 11 8 11Z" fill="white"/>
+                            <path d="M0 21C0 16.5817 3.58172 13 8 13C12.4183 13 16 16.5817 16 21C16 22.1046 15.1046 23 14 23H2C0.895431 23 0 22.1046 0 21Z" fill="white"/>
+                            <path d="M17 13C18.6569 13 20 11.6569 20 10C20 8.34315 18.6569 7 17 7C15.3431 7 14 8.34315 14 10C14 11.6569 15.3431 13 17 13Z" fill="white"/>
+                            <path d="M19 10V2L22 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                
                 </div>
+            
                 <div class="progress-container">
                     <span id="progress-current-time">0:00</span>
                     <div class="progress-bar-wrapper">
@@ -1891,6 +2185,7 @@ body.fullscreen-mode .phone-frame {
                         <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zm-4.5 6l-8.5 6V6z"></path></svg>
                     </button>
                 </div>
+            
             </div>
         </div>
         <div id="home-screen" class="screen active">
@@ -2396,6 +2691,16 @@ body.fullscreen-mode .phone-frame {
         </div>
     </div>
 </div>
+<div id="invite-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>一起听</h2>
+            <button id="invite-modal-close-btn" class="modal-close-button">&times;</button>
+        </div>
+        <div class="modal-body" id="invite-contact-list-container">
+            </div>
+    </div>
+</div>
 
     </div>
 
@@ -2661,6 +2966,8 @@ const defaultBodyBg = '#f0f2f5'; // 一个柔和的淡粉色
 
 
 // --- 新增：灵动岛相关元素和状态管理 ---
+// Add this line with the other element declarations
+const collapsedSongTitle = document.getElementById('collapsed-song-title');
 const dynamicIsland = document.getElementById('dynamic-island');
 const islandSongTitle = document.getElementById('island-song-title');
 const islandSongArtist = document.getElementById('island-song-artist');
@@ -3364,24 +3671,52 @@ async function handleBatchDelete() {
 }
 
 // === 新增：灵动岛和播放控制的全部函数 ===
+/**
+ * 更新灵动岛折叠状态下的歌曲标题。
+ * 如果标题长度超过其容器宽度，则激活滚动动画。
+ * @param {string} title - 要显示的歌曲标题。
+ */
+ function updateScrollingTitle(title) {
+    const titleElement = document.getElementById('collapsed-song-title');
+    // 获取父级元素，也就是我们的“窗口”
+    const windowElement = titleElement.parentElement; 
 
+    // 1. 重置状态：移除可能存在的滚动类，以防上一首歌正在滚动
+    titleElement.classList.remove('scrolling');
+
+    // 2. 用新标题更新文本内容
+    titleElement.textContent = "正在播放：" + title;
+
+    // 3. 检查文本是否溢出（即文本的实际宽度 > 其容器的可见宽度）
+    // 我们使用一个短暂的延时，以确保浏览器有时间在检查前完成新文本的渲染和尺寸计算
+    setTimeout(() => {
+        // scrollWidth 是元素内容的总宽度，clientWidth 是元素的可见宽度
+        const isOverflowing = titleElement.scrollWidth > windowElement.clientWidth;
+
+        if (isOverflowing) {
+            // 如果确实溢出了，就添加 'scrolling' 类来启动动画
+            titleElement.classList.add('scrolling');
+        }
+    }, 100); // 100毫秒的延迟足够了
+}
 // 统一的播放入口函数
 function startPlayback(playlist, index) {
     if (!playlist || index < 0 || index >= playlist.length) return;
 
-    // 更新全局播放状态
     playbackState.playlist = playlist;
     playbackState.currentIndex = index;
     playbackState.currentSong = playlist[index];
     
-    // 更新灵动岛上的歌曲信息
     islandSongTitle.textContent = playbackState.currentSong.title;
     islandSongArtist.textContent = playbackState.currentSong.artist;
+    updateScrollingTitle(playbackState.currentSong.title);
 
-    // 播放音频
     const songObjectUrl = URL.createObjectURL(playbackState.currentSong.file);
     audioPlayer.src = songObjectUrl;
     audioPlayer.play().catch(error => console.error("播放失败:", error));
+
+    // --- 新增逻辑：显示“正在播放”提示 ---
+    showSystemNotification(`正在播放: ${playbackState.currentSong.title} - ${playbackState.currentSong.artist}`);
 }
 
 // --- 灵动岛 UI 控制 ---
@@ -3446,17 +3781,46 @@ audioPlayer.addEventListener('timeupdate', () => {
     progressRemainingTime.textContent = `-${formatTime(duration - currentTime)}`;
 });
 
+audioPlayer.addEventListener('ended', () => {
+    islandNextBtn.click(); // 自动播放下一首
+});
+
 // 灵动岛自身的点击事件
 // === 用下面这个修复后的版本，替换掉您现有的代码 ===
 
 // 灵动岛自身的点击事件
+// === 最终修复版：灵动岛点击事件 (解决头像消失和歌名不滚动问题) ===
+
+// === 这是修正了滚动逻辑的最终版本 ===
 dynamicIsland.addEventListener('click', (e) => {
-    if (e.target.closest('.control-button')) {
+    // 如果点击的是功能按钮，则不触发展开/收起
+    if (e.target.closest('.control-button') 
+     || e.target.closest('.island-action-button') 
+     || e.target.closest('.shared-avatars')) {
         return;
     }
+    
+    const isCurrentlyExpanded = dynamicIsland.classList.contains('expanded');
+    
+    // 切换展开/收起状态
     dynamicIsland.classList.toggle('expanded');
-});
+    
+    // 根据切换后的状态来执行操作
+    if (isCurrentlyExpanded) {
+        // 如果是从“展开”变为“收起”
+        // 关键修复：在UI切换动画开始后，再检查滚动。
+        // 200毫秒的延迟足以让容器尺寸计算正确，且比总动画时间短。
+        setTimeout(() => {
+            if (playbackState.currentSong) {
+                updateScrollingTitle(playbackState.currentSong.title);
+            }
+        }, 200);
 
+    } else {
+        // 如果是从“收起”变为“展开”
+        updateSharedListeningUI();
+    }
+});
 // 灵动岛内部控制按钮的点击事件
 islandPlayPauseBtn.addEventListener('click', () => {
     if (audioPlayer.paused) {
@@ -3466,24 +3830,65 @@ islandPlayPauseBtn.addEventListener('click', () => {
     }
 });
 
-islandNextBtn.addEventListener('click', () => {
+// === “下一首”按钮的最终版 (与上一回答中的代码一致) ===
+islandNextBtn.addEventListener('click', async () => {
     let nextIndex = playbackState.currentIndex + 1;
     if (nextIndex >= playbackState.playlist.length) {
-        nextIndex = 0; // 循环播放
+        nextIndex = 0; // 循环到第一首
     }
+    // 播放下一首歌曲
     startPlayback(playbackState.playlist, nextIndex);
+
+    // 检查是否处于“一起听”模式
+    if (sharedListeningState.active && sharedListeningState.contact) {
+        const song = playbackState.playlist[nextIndex];
+
+        // 1. 保存一条用户操作的“隐形”记录到历史
+        const invisibleMessage = { 
+            sender: 'user', 
+            text: `[SYSTEM_ACTION] 用户切歌: ${song.title}`,
+            timestamp: new Date() 
+        };
+        await saveMessageToHistory(invisibleMessage, sharedListeningState.contact.id);
+        
+        // 2. 触发AI，在指令中包含歌曲信息，并要求它“简单评论”
+        await callAI(`我刚刚把歌曲切换到了《${song.title}》 - ${song.artist}，请根据你的角色设定，简单评论一下。可以结合上下文对话记录，对这首新歌发表一下看法（也可以单独发表看法），可以平平淡淡点评，也可以有喜剧效果/浪漫效果/悲伤/励志/等等各种效果，打造真实聊天陪伴感，但不要发太多，还是和正常聊天一样`, sharedListeningState.contact);
+    }
 });
 
-islandPrevBtn.addEventListener('click', () => {
-    // 如果歌曲播放超过3秒，则从头开始播放，否则播放上一首
+
+islandPrevBtn.addEventListener('click', async () => {
+    let songChanged = false; // 用于判断是否真的切歌了
+    let targetIndex;
+
     if (audioPlayer.currentTime > 3) {
-        audioPlayer.currentTime = 0;
+        targetIndex = playbackState.currentIndex;
+        audioPlayer.currentTime = 0; // 从头播放当前歌曲
+        songChanged = false; // 只是重播，不算切歌
     } else {
-        let prevIndex = playbackState.currentIndex - 1;
-        if (prevIndex < 0) {
-            prevIndex = playbackState.playlist.length - 1; // 循环播放
+        targetIndex = playbackState.currentIndex - 1;
+        if (targetIndex < 0) {
+            targetIndex = playbackState.playlist.length - 1;
         }
-        startPlayback(playbackState.playlist, prevIndex);
+        startPlayback(playbackState.playlist, targetIndex);
+        songChanged = true; // 确实切换了歌曲
+    }
+    
+    // --- 核心修改在这里 ---
+    // 只有在真正切换了歌曲，并且处于“一起听”模式时，才通知AI
+    if (songChanged && sharedListeningState.active && sharedListeningState.contact) {
+        const song = playbackState.playlist[targetIndex];
+        
+        // 1. (不再发送用户气泡) 保存隐形记录
+        const invisibleMessage = { 
+            sender: 'user', 
+            text: `[SYSTEM_ACTION] 用户切歌: ${song.title}`,
+            timestamp: new Date() 
+        };
+        await saveMessageToHistory(invisibleMessage, sharedListeningState.contact.id);
+        
+        // 2. (新增) 触发AI时，要求它“简单评论”
+        await callAI(`我刚刚把歌曲切换到了《${song.title}》 - ${song.artist}，请根据你的角色设定，简单评论一下。`, sharedListeningState.contact);
     }
 });
 // === 新增：处理联系人弹出层的所有逻辑 ===
@@ -3764,6 +4169,12 @@ const systemPrompt = `
 **2. 转账:**
 * 当你决定转账时，你的回复中**必须包含**一个转账区块。
 * **格式**: [TRANSFER_START]备注-金额[TRANSFER_END] (注意，备注和金额在同一行)
+
+**3. 听歌邀请:**
+* 当你收到格式为 [MUSIC_SHARE]对方邀请你收听-歌名-歌手名[MUSIC_SHARE] 的消息时，代表用户邀请你一起听这首歌。
+* 你需要根据你的角色性格，自然地决定是“接受”还是“拒绝”。
+* 如果你决定接受，你的回复中 **必须** 包含一个特殊标签：[ACCEPT_INVITE]
+* 如果你拒绝，就像平常一样回复即可，不要加任何特殊标签。
 
 ---
 
@@ -4603,10 +5014,39 @@ function addMessageToView(message) {
     }
     
     // 2. 决定在wrapper中放置“卡片”还是“气泡”
+    const musicShareRegex = /\[MUSIC_SHARE\]对方邀请你收听-(.*?)-(.*?)\[MUSIC_SHARE\]/;
+    const musicShareMatch = message.text.match(musicShareRegex);
     const transferRegex = /\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/;
     const transferMatch = message.text.match(transferRegex);
+    if (musicShareMatch) {
+        // --- 情况一：如果消息是音乐分享卡片 ---
+        const songTitle = musicShareMatch[1]; // 正则捕获组1: 歌名
+        const artistName = musicShareMatch[2]; // 正则捕获组2: 歌手名
 
-    if (transferMatch) {
+        const card = document.createElement('div');
+        // 使用一个CSS类名来控制基础样式，而不是完全依赖内联样式
+        card.className = 'listen-invite-card'; 
+        // 使用你期望的 div 结构来渲染卡片内容
+        card.innerHTML = `
+            <div style="width: 200px; height: 100px; position: relative; background: white; box-shadow: 0px 4px 6.099999904632568px rgba(0, 0, 0, 0.05); overflow: hidden; border-radius: 24px">
+  <div style="left: 46px; top: 18px; position: absolute"><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 400; word-wrap: break-word">邀请你加入 </span><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 700; word-wrap: break-word">一起听</span></div>
+  <div style="left: 18px; top: 46px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 400; word-wrap: break-word">我的耳机分你一半</div>
+  <div style="width: 153px; height: 0px; left: 18px; top: 42px; position: absolute; outline: 1px var(--Miscellaneous-Button---Disabeld-BG, rgba(118, 118, 128, 0.12)) solid; outline-offset: -0.50px"></div>
+  
+  <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg" style="position: absolute; left: 20px; top: 19px;"> 
+    <path d="M4.63158 18.5263C7.18953 18.5263 9.26316 16.4527 9.26316 13.8947C9.26316 11.3368 7.18953 9.26315 4.63158 9.26315C2.07363 9.26315 0 11.3368 0 13.8947C0 16.4527 2.07363 18.5263 4.63158 18.5263Z" fill="black"/> 
+    <rect x="6.73682" y="2.52631" width="2.52632" height="10.9474" fill="black"/> 
+    <rect x="6.73682" width="9.26316" height="5.05263" rx="2" fill="black"/> 
+  </svg>
+  
+  <div style="width: 321px; height: 226px; left: 63px; top: -170px; position: absolute; opacity: 0.08; background: #007AFF; box-shadow: 10px 10px 10px; border-radius: 9999px; filter: blur(5px)"></div>
+  <div style="left: 83px; top: 79px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 300; word-wrap: break-word">FROM MUSIC APP</div>
+</div>
+        `;
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(card);
+
+    } else if (transferMatch) {
         // --- 情况一：渲染您最新的转账卡片设计 ---
         const remark = transferMatch[1].trim();
         const amount = parseFloat(transferMatch[2]).toFixed(2);
@@ -5205,50 +5645,63 @@ confirmTransferBtn.addEventListener('click', async () => {
 });
 
 /**
-/**
-/**
- /**
- * 最终版UI更新函数(V3):
- * 能够接收一个已存在的加载动画元素，并将其转换为第一条消息。
- * 后续消息则会自己创建新的加载动画。
- * @param {number} contactId - The ID of the conversation to update.
- * @param {Array} newMessages - An array of the new message objects.
- * @param {HTMLElement|null} initialIndicator - The pre-existing "typing" element for the first message.
+ * 最终确认版：处理AI回复的核心函数
+ * 1. 严格恢复您最初设定的延迟时间计算公式。
+ * 2. 包含所有已修正的错误和新增的功能。
+ * @param {number} contactId - 对话的ID.
+ * @param {Array} newMessages - AI返回的新消息对象数组.
+ * @param {HTMLElement|null} initialIndicator - 为第一条消息预创建的“正在输入”动画元素.
  */
-async function updateChatViewWithAIResponse(contactId, newMessages, initialIndicator) {
+ async function updateChatViewWithAIResponse(contactId, newMessages, initialIndicator) {
     if (currentOpenContact && currentOpenContact.id === contactId) {
+        let acceptedInvite = false;
         
         for (const [index, message] of newMessages.entries()) {
+            
+            if (message.text.includes('[ACCEPT_INVITE]')) {
+                acceptedInvite = true;
+            }
+
             let currentTypingIndicator;
 
             if (index === 0 && initialIndicator) {
-                // 对于第一条消息，我们使用预先创建好的那个加载动画
                 currentTypingIndicator = initialIndicator;
             } else {
-                // 对于后续的消息，我们自己创建一个新的加载动画
                 currentTypingIndicator = showTypingIndicator();
             }
 
-            // 根据消息长度计算动态延迟
             const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
-            let visibleText = message.text;
-            const match = message.text.match(messageRegex);
+            let visibleText = message.text.replace('[ACCEPT_INVITE]', '').trim();
+            const match = visibleText.match(messageRegex);
             if (match && match[1]) {
                 visibleText = match[1].trim();
             }
+
+            // --- 核心修正：严格恢复为您原来的延迟时间公式 ---
             const typingDelay = Math.min(visibleText.length * 800 + 1000, 4000);
 
-            // 等待
             await new Promise(resolve => setTimeout(resolve, typingDelay));
 
-            // 移除加载动画并显示最终消息
             currentTypingIndicator.remove();
-            addMessageToView(message);
+
+            if(visibleText) {
+                addMessageToView({ ...message, text: visibleText });
+            }
+        }
+
+        if (acceptedInvite) {
+            console.log(`AI "${currentOpenContact.ai.name}" 接受了邀请！启动“一起听”模式。`);
+            
+            sharedListeningState.active = true;
+            sharedListeningState.contact = currentOpenContact;
+            showSystemNotification(`${currentOpenContact.ai.name} 加入了一起听`);
+            
+            if (dynamicIsland.classList.contains('expanded')) {
+                updateSharedListeningUI();
+            }
         }
     }
-
 }
-
 // === 备份与恢复功能的核心逻辑 ===
 
 // 定义我们数据库中所有的“表”名
@@ -5787,6 +6240,236 @@ async function jumpToMessage(contactId, uuid) {
         }
     }
 }
+
+// === 新增：邀请联系人功能的核心逻辑 ===
+
+// 1. 获取新添加的HTML元素
+const inviteContactBtn = document.getElementById('island-invite-button');
+const inviteModal = document.getElementById('invite-modal');
+const inviteModalCloseBtn = document.getElementById('invite-modal-close-btn');
+const inviteContactListContainer = document.getElementById('invite-contact-list-container');
+
+// 2. 打开和关闭对话框的函数
+function openInviteModal() {
+    inviteModal.style.display = 'flex';
+    // 动态加载并显示联系人列表
+    loadAndDisplayContactsForInvite();
+    setTimeout(() => {
+        inviteModal.style.opacity = '1';
+        inviteModal.querySelector('.modal-content').style.transform = 'scale(1)';
+    }, 10);
+}
+
+function closeInviteModal() {
+    inviteModal.style.opacity = '0';
+    inviteModal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        inviteModal.style.display = 'none';
+    }, 300);
+}
+
+// 3. 从数据库加载联系人并显示在对话框中的函数
+async function loadAndDisplayContactsForInvite() {
+    // 清空旧列表，防止重复加载
+    inviteContactListContainer.innerHTML = '<p style="text-align:center; color:#888;">正在加载联系人...</p>';
+
+    try {
+        const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+        if (contactsData && Array.isArray(contactsData.value) && contactsData.value.length > 0) {
+            inviteContactListContainer.innerHTML = ''; // 加载成功后清空提示
+            contactsData.value.forEach(contact => {
+                const contactItem = document.createElement('div');
+                contactItem.className = 'invite-contact-item';
+                
+                contactItem.innerHTML = `
+                    <img src="${contact.ai.avatar}" alt="avatar" class="invite-contact-avatar">
+                    <span class="invite-contact-name">${contact.ai.name}</span>
+                    <button class="invite-button" data-contact-id="${contact.id}">邀请</button>
+                `;
+                
+                inviteContactListContainer.appendChild(contactItem);
+            });
+        } else {
+            inviteContactListContainer.innerHTML = '<p style="text-align:center; color:#888;">你还没有任何联系人。</p>';
+        }
+    } catch (error) {
+        console.error("加载联系人列表失败:", error);
+        inviteContactListContainer.innerHTML = '<p style="text-align:center; color:red;">加载失败，请重试。</p>';
+    }
+}
+
+// 4. 绑定事件监听器
+// 点击SVG图标，打开对话框
+inviteContactBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openInviteModal();
+});
+
+// 点击关闭按钮或遮罩背景，关闭对话框
+inviteModalCloseBtn.addEventListener('click', closeInviteModal);
+inviteModal.addEventListener('click', (event) => {
+    if (event.target === inviteModal) {
+        closeInviteModal();
+    }
+});
+
+// 使用事件委托来处理所有“邀请”按钮的点击事件
+// === 更新：处理“邀请”按钮点击事件，发送带歌曲信息的卡片 ===
+inviteContactListContainer.addEventListener('click', async (event) => {
+    if (event.target.classList.contains('invite-button') && !event.target.disabled) {
+        // 核心检查：确保当前有歌曲正在播放
+        if (!playbackState.currentSong) {
+            alert("请先播放一首歌曲再邀请！");
+            return;
+        }
+
+        const button = event.target;
+        const contactId = parseInt(button.dataset.contactId, 10);
+        
+        button.textContent = '已邀请';
+        button.disabled = true;
+        button.classList.add('invited');
+
+        // 1. 从 playbackState 获取当前歌曲信息
+        const songTitle = playbackState.currentSong.title;
+        const artistName = playbackState.currentSong.artist;
+
+        // 2. 构造你指定的 [MUSIC_SHARE] 消息文本
+        const inviteMessageText = `[MUSIC_SHARE]对方邀请你收听-${songTitle}-${artistName}[MUSIC_SHARE]`;
+
+        const userMessage = {
+            sender: 'user',
+            text: inviteMessageText,
+            timestamp: new Date()
+        };
+
+        try {
+            await saveMessageToHistory(userMessage, contactId);
+
+            if (currentOpenContact && currentOpenContact.id === contactId) {
+                addMessageToView(userMessage);
+            }
+            
+            closeInviteModal();
+
+            const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
+            const targetContact = contactsData.value.find(c => c.id === contactId);
+            if (targetContact) {
+                await callAI("你收到了一条听歌邀请，请根据你的角色设定做出回应。", targetContact);
+            }
+
+        } catch (error) {
+            console.error("发送邀请卡片失败:", error);
+            alert("发送邀请失败，请查看控制台。");
+            button.textContent = '邀请';
+            button.disabled = false;
+            button.classList.remove('invited');
+        }
+    }
+});
+
+// === “一起听”功能最终修复版 (包含变量声明) ===
+
+// 1. 定义一个全局变量来管理“一起听”的状态 (这是缺失的部分)
+let sharedListeningState = {
+    active: false,
+    contact: null
+};
+
+// 2. 获取我们新添加的HTML头像容器
+const sharedAvatarsContainer = document.getElementById('shared-listening-avatars');
+const avatarImageContainer = document.getElementById('avatar-image-container');
+
+// 3. 编写一个函数，根据状态来更新UI
+// === 这是修正了UI更新逻辑的最终版本 ===
+function updateSharedListeningUI() {
+    if (sharedListeningState.active && sharedListeningState.contact) {
+        // 如果是激活状态，就获取对应的头像并显示
+        const userAvatar = sharedListeningState.contact.user.avatar;
+        const aiAvatar = sharedListeningState.contact.ai.avatar;
+
+        // 关键修复：将头像插入到专用的图片容器中，而不是覆盖整个父容器
+        avatarImageContainer.innerHTML = `
+            <img src="${userAvatar}" class="shared-avatar-img" title="${sharedListeningState.contact.user.name}">
+            <img src="${aiAvatar}" class="shared-avatar-img" title="${sharedListeningState.contact.ai.name}">
+        `;
+        // 父容器只负责控制整体的显示和隐藏
+        sharedAvatarsContainer.classList.add('active');
+
+    } else {
+        // 否则，只清空图片容器并隐藏父容器
+        avatarImageContainer.innerHTML = '';
+        sharedAvatarsContainer.classList.remove('active');
+    }
+}
+
+// 4. 定义一个函数，用于结束“一起听”状态
+function stopSharedListening() {
+    sharedListeningState.active = false;
+    sharedListeningState.contact = null;
+    updateSharedListeningUI(); // 调用UI更新函数来隐藏头像
+}
+
+// === “一起听”功能最终交互逻辑 ===
+
+// 1. 获取新增的气泡和按钮元素
+const endSessionBubble = document.getElementById('end-session-bubble');
+const endListeningSessionBtn = document.getElementById('end-listening-session-btn');
+
+// 2. 为头像容器绑定新的点击事件，用于显示/隐藏气泡
+sharedAvatarsContainer.addEventListener('click', (event) => {
+    // 确保只有在“一起听”模式激活时才响应
+    if (sharedListeningState.active) {
+        // 如果点击的不是“结束”按钮本身，则切换气泡的显示状态
+        if (!event.target.closest('#end-listening-session-btn')) {
+            endSessionBubble.classList.toggle('active');
+        }
+    }
+});
+
+// 3. 为气泡内的“结束”按钮绑定点击事件
+endListeningSessionBtn.addEventListener('click', async (event) => {
+    event.stopPropagation();
+    endSessionBubble.classList.remove('active');
+    
+    // --- 核心修改在这里 ---
+    // a. (删除) 不再准备和发送用户消息气泡
+    // b. (新增) 显示一个系统提示
+    showSystemNotification('已经结束一起听');
+
+    // c. (保留) 触发AI回复，告诉它会话已结束
+    await callAI("我已经结束了'一起听'，请根据你的角色设定做出回应。", currentOpenContact);
+
+    // d. (保留) 结束“一起听”状态并隐藏头像
+    stopSharedListening();
+});
+
+// 4. (可选但推荐) 添加一个全局点击事件，用于在点击页面其他地方时，自动隐藏气泡
+document.addEventListener('click', (event) => {
+    // 如果气泡是显示的，并且点击的区域不在头像容器内
+    if (endSessionBubble.classList.contains('active') && !sharedAvatarsContainer.contains(event.target)) {
+        endSessionBubble.classList.remove('active');
+    }
+}, true); // 使用捕获阶段确保它优先执行
+
+/**
+ * 新增：在聊天界面显示一个系统级别的提示消息
+ * @param {string} text - 要显示的提示文本
+ */
+ function showSystemNotification(text) {
+    // 确保只有在聊天界面打开时才显示
+    if (!currentOpenContact) return;
+
+    const notification = document.createElement('div');
+    notification.className = 'system-notification';
+    notification.textContent = text;
+    
+    chatMessagesContainer.appendChild(notification);
+    
+    // 自动滚动到底部，确保用户能看到最新的提示
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+}
+
 
     </script>
 
