@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 
@@ -5043,67 +5044,31 @@ chatBackButton.addEventListener('click', closeChatView);
 
 // (可选) 为发送按钮添加一个简单的打印功能，为后续开发做准备
 // === 更新：“发送”按钮的点击事件 (最终版) ===
+// ===================================
+// THIS IS THE NEW, CORRECTED CODE
+// ===================================
 chatSendButton.addEventListener('click', async () => {
     const messageText = chatMessageInput.value.trim();
     if (!messageText || !currentOpenContact) {
-        return; // 如果没输入内容或没有打开的对话，则不执行任何操作
+        return;
     }
 
-    // 1. 准备用户消息对象
+    // 1. 构造一个完整的消息对象
     const userMessage = {
         sender: 'user',
         text: messageText,
         timestamp: new Date(),
-        uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) // 创建唯一ID
+        uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9)
     };
-
-    // 2. 清空输入框并立即在界面上显示用户消息
+    
+    // 2. 清空输入框并立即在UI上显示
     chatMessageInput.value = '';
     addMessageToView(userMessage);
 
-    // 3. 更新并保存聊天记录到数据库
-    try {
-        // 确保联系人对象中有 history 数组
-        if (!Array.isArray(currentOpenContact.history)) {
-            currentOpenContact.history = [];
-        }
-        currentOpenContact.history.push(userMessage);
-        
-        // 更新“最后一条消息”
-        currentOpenContact.lastMessage = messageText;
+    // 3. 调用唯一的、可靠的保存函数来处理数据库
+    await saveMessageToHistory(userMessage, currentOpenContact.id);
 
-        // 从数据库加载所有联系人
-        const allContactsData = await dbHelper.loadData('messageContacts', 'allContacts');
-        if (!allContactsData || !Array.isArray(allContactsData.value)) {
-            throw new Error("无法加载联系人数据");
-        }
-        let allContacts = allContactsData.value;
-        
-        // 找到当前联系人并更新它
-        const contactIndex = allContacts.findIndex(c => c.id === currentOpenContact.id);
-        if (contactIndex > -1) {
-            allContacts[contactIndex] = currentOpenContact;
-        } else {
-            // 如果找不到，这是一个新对话，直接添加
-            allContacts.push(currentOpenContact);
-        }
-        
-        // 将更新后的整个列表存回数据库
-        await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
-
-        // 4. (可选) 更新消息列表预览
-        const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
-        if (contactItemInList) {
-            contactItemInList.querySelector('.contact-last-message').textContent = messageText;
-        }
-
-    } catch (error) {
-        console.error("保存消息失败:", error);
-        alert("消息发送失败，无法保存到数据库。");
-    }
 });
-
-
 // === 监听聊天输入框的回车键事件 ===
 chatMessageInput.addEventListener('keydown', (event) => {
     // 检查按下的键是否是 "Enter"
@@ -5775,13 +5740,15 @@ const updatedHistory = originalHistory.filter(
             allContacts[contactIndex].history = updatedHistory;
 
             // b.【新增逻辑】更新“最后一条消息”用于消息列表预览
-            if (updatedHistory.length > 0) {
-                // 如果还有剩余消息，取最后一条的文本
-                allContacts[contactIndex].lastMessage = updatedHistory[updatedHistory.length - 1].text;
-            } else {
-                // 如果消息已全部清空
-                allContacts[contactIndex].lastMessage = "对话已清空";
-            }
+if (updatedHistory.length > 0) {
+    // 如果还有剩余消息，取最后一条的文本
+    const newLastMessageText = updatedHistory[updatedHistory.length - 1].text;
+    // 修复！在保存前，使用清理函数处理一下文本
+    allContacts[contactIndex].lastMessage = cleanMessageForPreview(newLastMessageText);
+} else {
+    // 如果消息已全部清空
+    allContacts[contactIndex].lastMessage = "对话已清空";
+}
             
             // c.【关键】用更新后的数据，同步更新当前内存中的对象
             currentOpenContact = allContacts[contactIndex];
