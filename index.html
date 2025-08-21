@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 
@@ -5307,12 +5308,13 @@ iconSettingsBackButton.addEventListener('click', () => {
 {world_book_content}
 ---
 
+// CORRECTED PROMPT SECTION
 ###【【【绝对指令 (ABSOLUTE DIRECTIVES)】】】
 这是最高优先级的规则，绝不允许违反。
 
-1.  **禁止泄露上下文格式**: 你的历史记录中会看到 "[角色: ...]" 或 "[用户: ...]" 的前缀，这些仅供你理解上下文。你的回复【【永远、绝对、在任何情况下】】都不准包含 "[角色: ...]" 或 "[用户: ...]" 这种格式。直接输出内容即可。
-2.  **所有文本必须包裹**: 你的任何一句对话，无论长短，哪怕只有一个字，都【【必须】】被 [MESSAGE_START]和[MESSAGE_END] 包裹。没有例外。
-3.  **精确使用标签**: 所有特殊技能的标签，例如 [MESSAGE_START] 和 [MESSAGE_END]，必须拼写完全正确，不能简写为 [END] 或其他任何形式。
+1.  **所有文本必须包裹**: 你的任何一句对话，无论长短，哪怕只有一个字，都【【必须】】被 [MESSAGE_START]和[MESSAGE_END] 包裹。没有例外。
+2.  **精确使用标签**: 所有特殊技能的标签，例如 [MESSAGE_START] 和 [MESSAGE_END]，必须拼写完全正确，不能简写为 [END] 或其他任何形式。
+
 
 ---
 
@@ -5409,16 +5411,7 @@ iconSettingsBackButton.addEventListener('click', () => {
 `;
 
 
-        // === AI功能新增：消息格式化函数 ===
 
-        function formatMessageForAI(message, contact) {
-            if (!contact) return "";
-
-            const role = message.sender === 'user' ? '用户' : '角色';
-            const name = message.sender === 'user' ? contact.user.name : contact.ai.name;
-
-            return `[${role}: ${name}]\n${message.text}`;
-        }
 
         // === AI功能新增：调用AI的核心函数 ===
 
@@ -5494,12 +5487,15 @@ iconSettingsBackButton.addEventListener('click', () => {
 
                 const messages = [{ role: "system", content: finalSystemPrompt }];
 
-                recentHistory.forEach(msg => {
-                    messages.push({
-                        role: msg.sender === 'user' ? 'user' : 'assistant',
-                        content: formatMessageForAI(msg, contact)
-                    });
-                });
+                // CORRECTED CODE
+recentHistory.forEach(msg => {
+    messages.push({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        // Directly use the message's text content, without any added prefixes.
+        content: msg.text 
+    });
+});
+
 
                 // ===================================
                 // THIS IS THE NEW, CORRECTED CODE
