@@ -5735,24 +5735,30 @@ iconSettingsBackButton.addEventListener('click', () => {
             });
 
             phoneFrame.classList.add('show-chat');
-            // 滚动到底部
-            // 滚动到底部（增强版，处理图片加载延迟）
-        const scrollToBottom = () => {
-            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-        };
+// 滚动到底部（最终修复版，区分加载和交互）
+            const scrollToBottomOnLoad = (behavior = 'auto') => { // 默认改为 'auto'
+                chatMessagesContainer.scrollTo({
+                    top: chatMessagesContainer.scrollHeight,
+                    behavior: behavior
+                });
+            };
 
-        // 1. 立即执行一次快速滚动，提供即时反馈
-        setTimeout(scrollToBottom, 100);
+            // 1. 初始滚动，强制使用 'auto' 瞬时定位
+            setTimeout(() => scrollToBottomOnLoad('auto'), 150);
 
-        // 2. 在所有图片加载完成后，执行一次精准的最终滚动
-        const images = chatMessagesContainer.querySelectorAll('.chat-avatar, .sticker-bubble');
-        const promises = [];
-        images.forEach(img => {
-            // img.decode() 会返回一个 a promise，在图片完全解码后完成
-            if (img.src && !img.complete) {
-                 promises.push(img.decode().catch(e => console.error("图片解码失败", e)));
-            }
-        });
+            // 2. 在所有图片加载完成后，执行一次最终的瞬时定位
+            const images = chatMessagesContainer.querySelectorAll('.chat-avatar, .sticker-bubble');
+            const promises = [];
+            images.forEach(img => {
+                if (img.src && !img.complete) {
+                    promises.push(img.decode().catch(e => console.error("图片解码失败", e)));
+                }
+            });
+
+            Promise.all(promises).then(() => {
+                console.log("所有图片加载完成，执行最终瞬时滚动。");
+                scrollToBottomOnLoad('auto'); // 这里也必须是 'auto'
+            });
 
         // 当所有图片的 promise 都完成后
         Promise.all(promises).then(() => {
@@ -6430,7 +6436,7 @@ chatMessagesContainer.appendChild(row);
 
                 // 只有在非选择模式下才自动滚动
                 if (!isMessageSelectionMode) {
-                    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+                    chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' });
                 }
 
                 return row;
@@ -8222,6 +8228,50 @@ scrollToBottomBtn.addEventListener('click', () => {
         behavior: 'smooth'
     });
 });
+
+// --- 新增（最终权威版）：点击(聚焦于)输入框时，自动滚动到聊天底部 ---
+
+document.addEventListener('DOMContentLoaded', function() {
+    
+    const chatMessageInput = document.getElementById('chat-message-input');
+    const chatContainer = document.getElementById('chat-messages-container');
+
+    if (chatMessageInput && chatContainer) {
+        
+        // 检查浏览器是否支持 visualViewport API，这是处理虚拟键盘最现代、最可靠的方式
+        if (window.visualViewport) {
+            
+            // 为 visualViewport 添加一个 'resize' 事件监听器
+            window.visualViewport.addEventListener('resize', () => {
+                // 这个事件会在键盘弹出或收起、导致可视区域变化时触发
+                
+                // 我们检查此时页面上获得焦点的元素是否就是我们的聊天输入框
+                // 这样做可以避免在其他不相关的操作（如旋转屏幕）时也触发滚动
+                if (document.activeElement === chatMessageInput) {
+                    
+                    // 如果是，我们就执行平滑滚动。
+                    // 此时执行是100%准确的，因为我们是在浏览器完成布局调整后才操作的。
+                    chatContainer.scrollTo({
+                        top: chatContainer.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+
+        } else {
+            // 如果是不支持新API的老旧浏览器，我们保留一个基于延时的降级方案
+            chatMessageInput.addEventListener('focus', () => {
+                setTimeout(() => {
+                    chatContainer.scrollTo({
+                        top: chatContainer.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 300); // 使用一个更长的延迟作为后备方案
+            });
+        }
+    }
+});
+
     </script>
 
 </body>
