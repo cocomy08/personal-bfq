@@ -4654,8 +4654,11 @@ async function callAI(triggerMessage, contact) {
             });
         });
         
-        const currentUserMessage = { sender: 'user', text: triggerMessage };
-        messages.push({ role: "user", content: formatMessageForAI(currentUserMessage, contact) });
+        // ===================================
+// THIS IS THE NEW, CORRECTED CODE
+// ===================================
+messages.push({ role: "user", content: triggerMessage });
+
 
         const response = await fetch(`${url}/v1/chat/completions`, {
             method: 'POST',
@@ -6808,7 +6811,9 @@ inviteContactListContainer.addEventListener('click', async (event) => {
             const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
             const targetContact = contactsData.value.find(c => c.id === contactId);
             if (targetContact) {
-                await callAI("你收到了一条听歌邀请，请根据你的角色设定做出回应。", targetContact);
+                // This is the new, context-aware line
+const songTitle = playbackState.currentSong.title;
+await callAI(`(我给你分享了一起听的邀请，歌曲是《${songTitle}》，请根据我们的聊天记录和你的人设，自然地决定是否接受。`, targetContact);
             }
 
         } catch (error) {
@@ -6896,7 +6901,8 @@ endListeningSessionBtn.addEventListener('click', async (event) => {
         // 步骤 2：在系统提示显示完毕后，再调用并“等待”AI回应。
         // 只有在上面一行代码完全结束后，这一行才会开始执行。
         // AI的“...”输入气泡会在这里才出现。
-        await callAI("我已经结束了'一起听'，请做出回应。", sharedListeningState.contact);
+        // This is the new, context-aware line
+await callAI("(我已经结束了一起听模式，我们继续聊吧)", sharedListeningState.contact);
 
     } catch (error) {
         // (可选) 如果在通知AI时出错，可以在控制台打印错误，方便排查问题
