@@ -2880,6 +2880,45 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
+
+/* === 新增：回到底部按钮的样式 === */
+#scroll-to-bottom-btn {
+    /* 定位和尺寸 */
+    position: absolute;
+    right: 20px;
+    bottom: 90px; /* 定位在输入框上方 */
+    width: 25px;
+    height: 25px;
+    z-index: 30; /* 确保在消息之上 */
+
+    /* 视觉样式 */
+    background-color: white;
+    border-radius: 50%; /* 圆形 */
+    border: none;
+    cursor: pointer;
+    
+    /* 阴影和发光效果，增强立体感 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 
+                0 0 20px rgba(0, 122, 255, 0.1);
+
+    /* 内部SVG居中 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /* 隐藏/显示动画效果 */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(15px);
+    transition: all 0.25s ease-out;
+}
+
+/* 当按钮需要显示时，JS会为其添加这个类 */
+#scroll-to-bottom-btn.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
     </style>
 
     <style id="custom-bubble-styles"></style>
@@ -3337,8 +3376,24 @@
                 </div>
                 <div id="emoji-grid-container">
                 </div>
+
+                
             </div>
 
+        </div>
+
+        <button id="scroll-to-bottom-btn">
+            <svg width="27" height="31" viewBox="0 0 27 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g clip-path="url(#clip0_201_5911)">
+                <path d="M24.9049 13.6817L26.191 14.9678C26.7356 15.5123 26.7356 16.3929 26.191 16.9316L14.9349 28.1935C14.3904 28.7381 13.5098 28.7381 12.9711 28.1935L1.7092 16.9316C1.16464 16.3871 1.16464 15.5065 1.7092 14.9678L2.99528 13.6817C3.54562 13.1313 4.44356 13.1429 4.98232 13.7049L11.6329 20.6856V4.03611C11.6329 3.26562 12.2527 2.64575 13.0232 2.64575H14.877C15.6475 2.64575 16.2674 3.26562 16.2674 4.03611V20.6856L22.9179 13.7049C23.4567 13.1371 24.3546 13.1255 24.9049 13.6817Z" fill="black"/>
+                </g>
+                <defs>
+                <clipPath id="clip0_201_5911">
+                <rect width="25.9533" height="29.6609" fill="white" transform="translate(0.973877 0.791992)"/>
+                </clipPath>
+                </defs>
+            </svg>
+        </button>
         </div>
 
         <div id="worldbook-screen" class="screen">
@@ -8132,6 +8187,37 @@ async function loadClockBlurSetting() {
     applyClockBlur(isEnabled); // 应用效果
 }
 
+// --- 新增：快速回到底部按钮功能 ---
+
+// 1. 获取需要的HTML元素
+const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
+// chatMessagesContainer 变量在之前的代码中已经获取，这里无需重复
+
+// 2. 监听聊天窗口的滚动事件
+chatMessagesContainer.addEventListener('scroll', () => {
+    // 计算当前滚动条离底部的距离
+    const scrollOffset = chatMessagesContainer.scrollHeight - chatMessagesContainer.scrollTop - chatMessagesContainer.clientHeight;
+    
+    // 设置一个阈值，比如滚动超过 300px 才显示按钮
+    const threshold = 300; 
+
+    if (scrollOffset > threshold) {
+        // 如果离底部距离大于阈值，则显示按钮
+        scrollToBottomBtn.classList.add('visible');
+    } else {
+        // 否则，隐藏按钮
+        scrollToBottomBtn.classList.remove('visible');
+    }
+});
+
+// 3. 监听按钮的点击事件
+scrollToBottomBtn.addEventListener('click', () => {
+    // 使用 smooth behavior 实现平滑滚动效果
+    chatMessagesContainer.scrollTo({
+        top: chatMessagesContainer.scrollHeight,
+        behavior: 'smooth'
+    });
+});
     </script>
 
 </body>
