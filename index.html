@@ -6254,6 +6254,10 @@ chatMessagesContainer.appendChild(row);
                 const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
                 const row = document.createElement('div');
                 row.className = 'message-row';
+                // 新增：创建左侧的选择器（圆形按钮）
+const indicator = document.createElement('div');
+indicator.className = 'selection-indicator';
+row.appendChild(indicator);
                 row.dataset.timestamp = message.timestamp.toString();
                 if (message.uuid) { row.dataset.uuid = message.uuid; }
 
