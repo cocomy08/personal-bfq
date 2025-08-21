@@ -3835,13 +3835,39 @@ const iconSettingsBackButton = document.getElementById('icon-settings-back-butto
         const addEmojiModal = document.getElementById('add-emoji-modal');
         const emojiModalCloseBtn = document.getElementById('emoji-modal-close-btn');
         const saveEmojiBtn = document.getElementById('save-emoji-btn');
-        const emojiUrlInput = document.getElementById('emoji-url-input');
+        const emojiUrlInput = document.getElementById('emoji-urls-textarea');
         const emojiGridContainer = document.getElementById('emoji-grid-container');
 
 // === 新增：处理图标URL输入的核心逻辑 ===
 
 const iconListContainer = document.getElementById('icon-list-container');
-
+// === 新增：AI可用表情包的描述与URL映射 ===
+const stickerMap = new Map([
+    ['可爱动漫小狗趴在手机旁边等消息', 'https://i.postimg.cc/TY5RfBw3/1755713422890.gif'],
+    ['求求了', 'https://i.postimg.cc/SKRY4knt/1755749657526.jpg'],
+    ['喝AD钙', 'https://i.postimg.cc/9XP7hxxT/1755749847793.gif'],
+    ['无语', 'https://i.postimg.cc/5N0NRpDf/1755749922509.jpg'],
+    ['摸摸小猫头', 'https://i.postimg.cc/rsTgpDX9/1755749920816.jpg'],
+    ['你脑子进水了', 'https://i.postimg.cc/NF1X5D7y/1755750006013.jpg'],
+    ['汗流浃背', 'https://i.postimg.cc/nh0DjTg5/1755750086388.gif'],
+    ['小猫wink', 'https://i.postimg.cc/JndxNMFf/1755750145576.gif'],
+    ['emo了', 'https://i.postimg.cc/Bn7764C1/006-APo-FYly8gtkjwbge8oj30hs0eut9p.jpg'],
+    ['太美味了', 'https://i.postimg.cc/7Y5fdyLZ/47ee5e40ea31b7fe1e3b34de080f0568.jpg'],
+    ['已老实', 'https://i.postimg.cc/zBDfksM5/3048e89d841be9618f1b4730867ab67a.jpg'],
+    ['过去软弱的我已经死了！现在是更软弱的我', 'https://i.postimg.cc/RFbvLNKQ/ddbd366ce245f3e8f4ea9b119435c751.jpg'],
+    ['哦？是吗？', 'https://i.postimg.cc/XJXbq4mZ/12207db77b0c4a7db2dc4e44aca91055.jpg'],
+    ['这张卡你拿着，密码是0，余额也是', 'https://i.postimg.cc/KzVygCh0/5691afc7baf80877eb46bf4b155b6fa3.jpg'],
+    ['强忍泪水', 'https://i.postimg.cc/qgHV1nRn/c43e7347b4bd240c7852e055dd12ac37.jpg'],
+    ['想不想我', 'https://i.postimg.cc/sD5vs45k/b3ab2f36fa5013dc22112b639efbb199.jpg'],
+    ['你是个二百五！', 'https://i.postimg.cc/J43494Lm/005-XSXm-Ngy1gvw48nmbc0j304602d0sl.jpg'],
+    ['有一点骚', 'https://i.postimg.cc/Z5VY57nM/006-CXr-Ejly1gtavg3d53fg308s08swex.gif'],
+    ['能好好爱我吗，emo了。', 'https://i.postimg.cc/gjWbD8rh/ceeb653ely8gtrqmsutcfj20hs0hsq44.jpg'],
+    ['你单身！！', 'https://i.postimg.cc/gk7NbdqS/006-APo-FYly8gt9twjaud5j30hs0hs3zb.jpg'],
+    ['恶心', 'https://i.postimg.cc/dQx8L6kD/005-L0-HLIgy1hcls43b180j30gn0gndgs.jpg'],
+    ['无语了家人们', 'https://i.postimg.cc/tT75Y4bV/005-L0-HLIgy1hcls42ketdj30ar0ar74h.jpg'],
+    ['哥帅不帅?', 'https://i.postimg.cc/mkyt47n3/005-L0-HLIgy1hcls3yaxl8j30k00k0wev.jpg'],
+    ['好困呀', 'https://i.postimg.cc/9XnkPsNh/005-L0-HLIgy1hcls41ni15j30qv0pvdh3.jpg']
+]);
 
         // === IndexedDB 帮助函数 START ===
 
@@ -5254,6 +5280,35 @@ iconSettingsBackButton.addEventListener('click', () => {
    - **用途**: 当你看到用户输入格式为 [MUSIC_SHARE]... 时，代表用户邀请你一起听歌。
    - **规则**: 如果你扮演的角色决定接受邀请，你的回复中【【必须】】在相应的对话之后，另起一行加入 [ACCEPT_INVITE] 标签。如果拒绝，则正常回复即可。
 
+**5. 发送表情包 (Send Sticker):**
+   - **用途**: 当你扮演的角色想要发送一个表情包来表达情感时使用。
+   - **格式**: [STICKER_START]表情包的准确文字描述[STICKER_END]
+   - **规则**: 你【【必须】】从下面的可用列表中选择一个，并使用一模一样的文字描述。不准自己编撰描述。
+   - **你当前可用的表情包如下**:
+  - 可爱动漫小狗趴在手机旁边等消息
+  - 求求了
+  - 喝AD钙
+  - 无语
+  - 摸摸小猫头
+  - 你脑子进水了
+  - 汗流浃背
+  - 小猫wink
+  - emo了
+  - 太美味了
+  - 已老实
+  - 过去软弱的我已经死了！现在是更软弱的我
+  - 哦？是吗？
+  - 这张卡你拿着，密码是0，余额也是
+  - 强忍泪水
+  - 想不想我
+  - 你是个二百五！
+  - 有一点骚
+  - 能好好爱我吗，emo了。
+  - 你单身！！
+  - 恶心
+  - 无语了家人们
+  - 哥帅不帅?
+  - 好困呀
 ---
 
 ### 回复生成流程
@@ -5281,7 +5336,12 @@ iconSettingsBackButton.addEventListener('click', () => {
 **示例4 (回应表情包):**
 (当收到的用户输入是 [EMOJI_START]cry[EMOJI_END])
 [MESSAGE_START]怎么了？别哭呀，有什么事和我说说。[MESSAGE_END]
+
+**示例5 (发送表情包):**
+[MESSAGE_START]我等到花儿都谢了...[MESSAGE_END]
+[STICKER_START]可爱动漫小狗趴在手机旁边等消息[STICKER_END]
 `;
+
 
         // === AI功能新增：消息格式化函数 ===
 
@@ -5391,8 +5451,7 @@ iconSettingsBackButton.addEventListener('click', () => {
 
                 const data = await response.json();
                 const aiContent = data.choices[0].message.content;
-
-                const messageBlocks = aiContent.split(/(?=\[(?:MESSAGE_START|TRANSFER_START)\])/g).filter(block => block.trim());
+                const messageBlocks = aiContent.split(/(?=\[(?:MESSAGE_START|TRANSFER_START|STICKER_START)\])/g).filter(block => block.trim());
 
                 const savedMessages = [];
                 if (messageBlocks.length > 0) {
@@ -5618,9 +5677,29 @@ iconSettingsBackButton.addEventListener('click', () => {
 
             phoneFrame.classList.add('show-chat');
             // 滚动到底部
-            setTimeout(() => {
-                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-            }, 100);
+            // 滚动到底部（增强版，处理图片加载延迟）
+        const scrollToBottom = () => {
+            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        };
+
+        // 1. 立即执行一次快速滚动，提供即时反馈
+        setTimeout(scrollToBottom, 100);
+
+        // 2. 在所有图片加载完成后，执行一次精准的最终滚动
+        const images = chatMessagesContainer.querySelectorAll('.chat-avatar, .sticker-bubble');
+        const promises = [];
+        images.forEach(img => {
+            // img.decode() 会返回一个 a promise，在图片完全解码后完成
+            if (img.src && !img.complete) {
+                 promises.push(img.decode().catch(e => console.error("图片解码失败", e)));
+            }
+        });
+
+        // 当所有图片的 promise 都完成后
+        Promise.all(promises).then(() => {
+            console.log("所有图片加载完成，执行最终滚动。");
+            scrollToBottom();
+        });
         }
 
         // 重新修改 loadMoreMessages 函数
@@ -6086,6 +6165,10 @@ iconSettingsBackButton.addEventListener('click', () => {
         function cleanMessageForPreview(text) {
             if (typeof text !== 'string') return '';
 
+            if (text.includes('[STICKER_START]')) {
+        return '[AI表情包]';
+    }
+
             // 优先匹配 [MESSAGE_START]...[MESSAGE_END] 格式，并提取中间的内容
             const messageMatch = text.match(/\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/);
             if (messageMatch && messageMatch[1]) {
@@ -6110,30 +6193,68 @@ iconSettingsBackButton.addEventListener('click', () => {
         * (根据用户提供的最新设计蓝图更新转账卡片样式)
         */
         function addMessageToView(message) {
-            // 1. 安全检查：如果消息对象无效或没有文本内容，则直接退出，防止出错。
-            if (!message || typeof message.text !== 'string') {
-                console.warn("尝试渲染一个无效的消息对象，已跳过:", message);
-                return;
-            }
+                // 1. 安全检查：如果消息对象无效或没有文本内容，则直接退出，防止出错。
+                if (!message || typeof message.text !== 'string') {
+                    console.warn("尝试渲染一个无效的消息对象，已跳过:", message);
+                    return;
+                }
 
-            // 2. 情况一：渲染系统消息 (例如：“对方已加入一起听”)
-            if (message.type === 'system') {
-                const notification = document.createElement('div');
-                notification.className = 'system-notification';
-                notification.textContent = message.text;
-                chatMessagesContainer.appendChild(notification);
-                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-                return; // 处理完毕，结束函数
-            }
+                // 2. 情况一：渲染系统消息 (例如：“对方已加入一起听”)
+                if (message.type === 'system') {
+                    const notification = document.createElement('div');
+                    notification.className = 'system-notification';
+                    notification.textContent = message.text;
+                    chatMessagesContainer.appendChild(notification);
+                    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+                    return; // 处理完毕，结束函数
+                }
 
-            // 3. 情况二：渲染表情包图片
-            if (message.type === 'sticker' && message.url) {
+                // 3. 情况二：渲染表情包图片
+                if (message.type === 'sticker' && message.url) {
+                    // 创建通用的消息行、包装器和头像
+                    const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
+                    const row = document.createElement('div');
+                    row.className = 'message-row';
+                    // 这是新的代码
+                    row.dataset.uuid = message.uuid;
+                    if (message.uuid) { row.dataset.uuid = message.uuid; }
+
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'message-content-wrapper';
+
+                    const avatar = document.createElement('img');
+                    avatar.className = 'chat-avatar';
+                    avatar.style.borderRadius = settings.radius;
+
+                    if (message.sender === 'user') {
+                        wrapper.classList.add('user');
+                        avatar.src = currentOpenContact.user.avatar;
+                    } else {
+                        wrapper.classList.add('ai');
+                        avatar.src = currentOpenContact.ai.avatar;
+                    }
+
+                    // 创建一个 <img> 元素来专门显示表情包
+                    const stickerImage = document.createElement('img');
+                    stickerImage.src = message.url;
+                    stickerImage.className = 'chat-bubble sticker-bubble'; // 应用样式
+
+                    wrapper.appendChild(avatar);
+wrapper.appendChild(stickerImage);
+row.appendChild(wrapper);
+chatMessagesContainer.appendChild(row);
+
+                    return; // 处理完毕，结束函数
+                }
+
+                // 4. 情况三与四：渲染普通文本气泡 或 转账卡片
+                // 这两种都依赖于对 message.text 内容的解析，所以放在一起处理
+
                 // 创建通用的消息行、包装器和头像
                 const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
                 const row = document.createElement('div');
                 row.className = 'message-row';
-                // 这是新的代码
-                row.dataset.uuid = message.uuid;
+                row.dataset.timestamp = message.timestamp.toString();
                 if (message.uuid) { row.dataset.uuid = message.uuid; }
 
                 const wrapper = document.createElement('div');
@@ -6151,61 +6272,41 @@ iconSettingsBackButton.addEventListener('click', () => {
                     avatar.src = currentOpenContact.ai.avatar;
                 }
 
-                // 创建一个 <img> 元素来专门显示表情包
-                const stickerImage = document.createElement('img');
-                stickerImage.src = message.url;
-                stickerImage.className = 'chat-bubble sticker-bubble'; // 应用样式
+                // 使用正则表达式来判断是否为转账消息
+                const transferRegex = /\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/;
+                const musicShareRegex = /\[MUSIC_SHARE\]/;
+                const stickerRegex = /\[STICKER_START\]([\s\S]*?)\[STICKER_END\]/;
 
-                // 组装并添加到聊天界面
-                wrapper.appendChild(avatar);
-                wrapper.appendChild(stickerImage);
-                row.appendChild(wrapper);
-                chatMessagesContainer.appendChild(row);
-                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+                const transferMatch = message.text.match(transferRegex);
+                const stickerMatch = message.text.match(stickerRegex);
 
-                return; // 处理完毕，结束函数
-            }
+                let contentElement;// 用于承载气泡、卡片或图片的元素
 
-            // 4. 情况三与四：渲染普通文本气泡 或 转账卡片
-            // 这两种都依赖于对 message.text 内容的解析，所以放在一起处理
+                if (stickerMatch) {
+                    // --- 情况一：匹配到AI发送的表情包 ---
+                    const description = stickerMatch[1].trim();
+                    const imageUrl = stickerMap.get(description); // 从字典查找URL
 
-            // 创建通用的消息行、包装器和头像
-            const settings = currentOpenContact.avatarSettings || { show: true, radius: '50%' };
-            const row = document.createElement('div');
-            row.className = 'message-row';
-            row.dataset.timestamp = message.timestamp.toString();
-            if (message.uuid) { row.dataset.uuid = message.uuid; }
+                    if (imageUrl) {
+                        contentElement = document.createElement('img');
+                        contentElement.src = imageUrl;
+                        contentElement.className = 'chat-bubble sticker-bubble'; // 复用表情包样式
+                    } else {
+                        // 如果AI描述错误，找不到图片，则直接显示文字，方便调试
+                        contentElement = document.createElement('div');
+                        contentElement.className = 'chat-bubble ai-bubble';
+                        contentElement.textContent = `[表情包指令错误: ${description}]`;
+                    }
 
-            const wrapper = document.createElement('div');
-            wrapper.className = 'message-content-wrapper';
+                } else if (transferMatch) {
+                    // 情况三：如果匹配成功，渲染转账卡片
+                    const remark = transferMatch[1].trim();
+                    const amount = parseFloat(transferMatch[2]).toFixed(2);
 
-            const avatar = document.createElement('img');
-            avatar.className = 'chat-avatar';
-            avatar.style.borderRadius = settings.radius;
-
-            if (message.sender === 'user') {
-                wrapper.classList.add('user');
-                avatar.src = currentOpenContact.user.avatar;
-            } else {
-                wrapper.classList.add('ai');
-                avatar.src = currentOpenContact.ai.avatar;
-            }
-
-            // 使用正则表达式来判断是否为转账消息
-            const transferRegex = /\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/;
-            const musicShareRegex = /\[MUSIC_SHARE\]/;
-
-            const transferMatch = message.text.match(transferRegex);
-
-            if (transferMatch) {
-                // 情况三：如果匹配成功，渲染转账卡片
-                const remark = transferMatch[1].trim();
-                const amount = parseFloat(transferMatch[2]).toFixed(2);
-
-                const card = document.createElement('div');
-                // 以下是转账卡片的完整、未省略的HTML结构和内联样式，与你文件中其他部分保持一致
-                card.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
-                card.innerHTML = `
+                    contentElement = document.createElement('div');
+                    // 以下是转账卡片的完整、未省略的HTML结构和内联样式，与你文件中其他部分保持一致
+                    contentElement.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
+                    contentElement.innerHTML = `
             <div style="left: 23px; top: 11px; position: absolute; color: black; font-size: 16px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">转账</div>
             <div style="left: 23px; top: 42px; position: absolute; color: #AFAFAF; font-size: 11px; font-family: sans-serif; font-weight: 400; word-wrap: break-word">${remark}</div>
             <div style="width: 130px; height: 22px; left: 20px; top: 64px; position: absolute; color: black; font-size: 20px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">¥ ${amount}</div>
@@ -6216,15 +6317,13 @@ iconSettingsBackButton.addEventListener('click', () => {
                 </svg>
             </div>
         `;
-                wrapper.appendChild(avatar);
-                wrapper.appendChild(card);
 
 
-            } else if (musicShareRegex.test(message.text)) {
-                const card = document.createElement('div');
-                card.className = 'listen-invite-card';
-                // 渲染通用的邀请卡片
-                card.innerHTML = `
+                } else if (musicShareRegex.test(message.text)) {
+                    contentElement = document.createElement('div');
+                    contentElement.className = 'listen-invite-card';
+                    // 渲染通用的邀请卡片
+                    contentElement.innerHTML = `
             <div style="width: 200px; height: 100px; position: relative; background: white; box-shadow: 0px 4px 6.099999904632568px rgba(0, 0, 0, 0.05); overflow: hidden; border-radius: 24px">
   <div style="left: 46px; top: 18px; position: absolute"><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 400; word-wrap: break-word">邀请你加入 </span><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 700; word-wrap: break-word">一起听</span></div>
   <div style="left: 18px; top: 46px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 400; word-wrap: break-word">我的耳机分你一半</div>
@@ -6240,36 +6339,39 @@ iconSettingsBackButton.addEventListener('click', () => {
   <div style="left: 83px; top: 79px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 300; word-wrap: break-word">FROM MUSIC APP</div>
 </div>
         `;
-                wrapper.appendChild(avatar);
-                wrapper.appendChild(card);
-            } else {
-                // 情况四：如果以上都不是，就渲染普通的文本气泡
-                const bubble = document.createElement('div');
-                bubble.className = 'chat-bubble';
-                if (message.sender === 'user') {
-                    bubble.classList.add('user-bubble');
                 } else {
-                    bubble.classList.add('ai-bubble');
-                }
+                    // 情况四：如果以上都不是，就渲染普通的文本气泡
+                    contentElement = document.createElement('div');
+                    contentElement.className = 'chat-bubble';
+                    if (message.sender === 'user') {
+                        contentElement.classList.add('user-bubble');
+                    } else {
+                        contentElement.classList.add('ai-bubble');
+                    }
 
-                let visibleText = message.text;
-                const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
-                const messageMatch = message.text.match(messageRegex);
-                if (messageMatch && messageMatch[1]) {
-                    visibleText = messageMatch[1].trim();
+                    let visibleText = message.text;
+                    const messageRegex = /\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/;
+                    const messageMatch = message.text.match(messageRegex);
+                    if (messageMatch && messageMatch[1]) {
+                        visibleText = messageMatch[1].trim();
+                    }
+                    contentElement.textContent = visibleText;
                 }
-                bubble.textContent = visibleText;
-
+                // 在所有 if/else if/else 块的外面，函数的末尾
+                // 5. 统一将最终组装好的消息行添加到聊天界面
                 wrapper.appendChild(avatar);
-                wrapper.appendChild(bubble);
-            }
+wrapper.appendChild(contentElement);
 
-            // 5. 统一将最终组装好的消息行添加到聊天界面
-            row.appendChild(wrapper);
-            chatMessagesContainer.appendChild(row);
-            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-            return row; // 返回创建的行元素，方便其他函数（如搜索高亮）使用
-        }
+row.appendChild(wrapper);
+chatMessagesContainer.appendChild(row);
+
+                // 只有在非选择模式下才自动滚动
+                if (!isMessageSelectionMode) {
+                    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+                }
+
+                return row;
+            }
         // === 新增：“正在输入”提示的JS函数 ===
 
         /**
@@ -6405,8 +6507,8 @@ iconSettingsBackButton.addEventListener('click', () => {
             normalHeaderActions.style.display = 'none';
             selectHeaderActions.style.display = 'flex';
 
-            // 选中长按的那条消息
-            toggleMessageSelection(targetMessageRow);
+            // // 选中长按的那条消息
+            // toggleMessageSelection(targetMessageRow);
         }
 
         function exitMessageSelectionMode() {
