@@ -1955,6 +1955,8 @@
             display: block;
             /* 2. 背景设为干净的白色 */
             background-color: #fff;
+            /* 3. 新增：在全屏模式下，禁止整个页面滚动 */
+    overflow: hidden;
         }
 
         body.fullscreen-mode .phone-frame {
@@ -3393,7 +3395,6 @@
                 </defs>
             </svg>
         </button>
-        </div>
 
         <div id="worldbook-screen" class="screen">
             <div class="settings-header">
@@ -3411,6 +3412,10 @@
                 </div>
             </div>
         </div>
+
+        </div>
+
+        
 
 
         <!-- === 新增：聊天设置弹出层 (Modal) === -->
