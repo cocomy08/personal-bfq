@@ -5348,6 +5348,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2>买彩票</h2>
+            <button class="modal-close-button">&times;</button>
         </div>
         <div class="modal-body" style="text-align: center;">
             <p style="margin: 0 0 20px 0; color: #555;">请选择您要购买的彩票金额：</p>
@@ -7341,8 +7342,6 @@ const systemPrompt = `
         //
 // Replace your entire old callAI function with this new one.
 
-// Replace your entire old callAI function with this new one.
-
 async function callAI(triggerMessage, contact, contextData = {}) {
     if (!contact || !contact.ai || !contact.user) {
         console.error("callAI 收到了一个无效或不完整的contact对象:", contact);
@@ -7356,6 +7355,8 @@ async function callAI(triggerMessage, contact, contextData = {}) {
     try {
         if (currentOpenContact && currentOpenContact.id === contactId) {
             initialTypingIndicator = showTypingIndicator(contact);
+            // 确保初始动画可见
+            setTimeout(() => chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' }), 10);
         }
 
         const settingsData = await dbHelper.loadData('settingsStore', 'apiSettings');
@@ -7411,74 +7412,137 @@ async function callAI(triggerMessage, contact, contextData = {}) {
         console.log('【AI 原始回复】:', aiResponse);
         
         if (aiResponse.tool_calls) {
+            let typingRowForTransform = null;
             if (initialTypingIndicator) {
-                initialTypingIndicator.remove();
-                initialTypingIndicator = null; 
+                typingRowForTransform = initialTypingIndicator;
+                initialTypingIndicator = null;
             }
 
             for (const toolCall of aiResponse.tool_calls) {
                 const functionName = toolCall.function.name;
                 const args = JSON.parse(toolCall.function.arguments);
                 
+                // sendMessage 有特殊的分段动画逻辑，单独处理
                 if (functionName === 'sendMessage') {
-                    for (const messageText of args.messages) {
-                         if (!messageText) continue;
-                         const typingDelay = Math.min(Math.max(messageText.length * 800, 1000), 4000);
-                         await new Promise(resolve => setTimeout(resolve, typingDelay));
-                         
-                         const aiMessage = { sender: 'ai', text: messageText, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
-                         addMessageToView(aiMessage, contact);
-                         await saveMessageToHistory(aiMessage, contactId);
-                         chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' });
+                    for (const [messageIndex, messageText] of args.messages.entries()) {
+                        if (!messageText) continue;
+                        const typingDelay = Math.min(Math.max(messageText.length * 800, 1000), 4000);
+                        
+                        let typingRow;
+                        if (messageIndex === 0 && typingRowForTransform) {
+                            typingRow = typingRowForTransform;
+                            typingRowForTransform = null; // 消耗掉
+                        } else {
+                            typingRow = showTypingIndicator(contact);
+                            setTimeout(() => chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' }), 10);
+                        }
+
+                        await new Promise(resolve => setTimeout(resolve, typingDelay));
+
+                        if (typingRow) {
+                            const bubble = typingRow.querySelector('.chat-bubble');
+                            if (bubble) {
+                                bubble.innerHTML = '';
+                                bubble.textContent = messageText;
+                            }
+                            typingRow.classList.remove('typing-indicator');
+                        }
+                        
+                        const aiMessage = { sender: 'ai', text: messageText, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
+                        await saveMessageToHistory(aiMessage, contactId);
                     }
-                } else {
-                    switch (functionName) {
-                        case 'sendSticker':
-                            const stickerUrl = stickerMap.get(args.description);
-                            if (stickerUrl) {
-                                const aiMessage = { sender: 'ai', type: 'sticker', url: stickerUrl, text: `[表情包：${args.description}]`, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
-                                addMessageToView(aiMessage, contact);
-                                await saveMessageToHistory(aiMessage, contactId);
-                                chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' });
+                    continue; // sendMessage 处理完后进入下一次循环
+                }
+                
+                // 对于其他所有工具，如果存在初始动画，先移除它
+                if (typingRowForTransform) {
+                    typingRowForTransform.remove();
+                    typingRowForTransform = null;
+                }
+
+                // 按照您指定的顺序处理其他工具
+                switch (functionName) {
+                    case 'sendSticker':
+                        const stickerTypingIndicator = showTypingIndicator(contact);
+                        setTimeout(() => chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' }), 10);
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        if (stickerTypingIndicator) stickerTypingIndicator.remove();
+                        
+                        const stickerUrl = stickerMap.get(args.description);
+                        if (stickerUrl) {
+                            const stickerMessage = { sender: 'ai', type: 'sticker', url: stickerUrl, text: `[表情包：${args.description}]`, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
+                            addMessageToView(stickerMessage, contact);
+                            await saveMessageToHistory(stickerMessage, contactId);
+                        }
+                        break;
+
+                    case 'createSocialPost':
+                        await createAiPost(contact, args.postText, args.imageDescription);
+                        renderAllPosts();
+                        break;
+
+                    case 'addCommentToPost':
+                        const postIdForComment = contextData.postId || args.postId;
+                        const replyToUsername = contextData.replyToUsername || null;
+                        if (!postIdForComment) {
+                            console.error("Tool call 'addCommentToPost' 失败: postId 缺失。");
+                            break; 
+                        }
+                        await addComment(postIdForComment, args.commentText, replyToUsername, contact);
+                        renderAllPosts();
+                        break;
+                    
+                    case 'likeComment':
+                        const postIdForLike = contextData.postId || args.postId;
+                        if (!postIdForLike) {
+                            console.error("Tool call 'likeComment' 失败: postId 缺失。");
+                            break;
+                        }
+                        await likeCommentById(postIdForLike, args.commentId, contact.id);
+                        renderAllPosts();
+                        break;
+
+                    case 'makeTransfer':
+                        const transferTypingIndicator = showTypingIndicator(contact);
+                        setTimeout(() => chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' }), 10);
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        if (transferTypingIndicator) transferTypingIndicator.remove();
+
+                        const transferMessage = { sender: 'ai', text: `[TRANSFER_START]${args.remark}-${args.amount}[TRANSFER_END]`, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
+                        addMessageToView(transferMessage, contact);
+                        await saveMessageToHistory(transferMessage, contactId);
+                        break;
+
+                    case 'acceptListenInvite':
+                        const acceptMessageText = args.message;
+                        if (acceptMessageText) {
+                            const typingRow = showTypingIndicator(contact);
+                            setTimeout(() => chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' }), 10);
+
+                            const typingDelay = Math.min(Math.max(acceptMessageText.length * 800, 1000), 4000);
+                            await new Promise(resolve => setTimeout(resolve, typingDelay));
+
+                            if(typingRow) {
+                                const bubble = typingRow.querySelector('.chat-bubble');
+                                if(bubble) {
+                                    bubble.innerHTML = '';
+                                    bubble.textContent = acceptMessageText;
+                                }
+                                typingRow.classList.remove('typing-indicator');
                             }
-                            break;
-                        case 'createSocialPost':
-                            await createAiPost(contact, args.postText, args.imageDescription);
-                            renderAllPosts();
-                            break;
-                        case 'addCommentToPost':
-                            await addComment(contextData.postId || args.postId, args.commentText, contextData.replyToUsername, contact);
-                            renderAllPosts();
-                            break;
-                        case 'likeComment':
-                            await likeCommentById(contextData.postId || args.postId, args.commentId, contact.id);
-                            renderAllPosts();
-                            break;
-                        // ... 其他工具 case ...
-                        case 'makeTransfer':
-                            const transferMessage = { sender: 'ai', text: `[TRANSFER_START]${args.remark}-${args.amount}[TRANSFER_END]`, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
-                            addMessageToView(transferMessage, contact);
-                            await saveMessageToHistory(transferMessage, contactId);
-                            chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' });
-                            break;
-                        case 'acceptListenInvite':
-                            const acceptMessageText = args.message;
-                            if (acceptMessageText) {
-                                const aiMessage = { sender: 'ai', text: acceptMessageText, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
-                                addMessageToView(aiMessage, contact);
-                                await saveMessageToHistory(aiMessage, contactId);
-                                chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' });
-                            }
-                            if (sharedListeningState.active === false) {
-                                sharedListeningState.active = true;
-                                sharedListeningState.contact = currentOpenContact;
-                                await showSystemNotification(`${currentOpenContact.ai.name} 加入了一起听`, currentOpenContact.id);
-                                updateSharedListeningUI();
-                            }
-                            break;
-                    }
+                            const aiMessage = { sender: 'ai', text: acceptMessageText, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
+                            await saveMessageToHistory(aiMessage, contactId);
+                        }
+                        if (sharedListeningState.active === false) {
+                            sharedListeningState.active = true;
+                            sharedListeningState.contact = currentOpenContact;
+                            await showSystemNotification(`${currentOpenContact.ai.name} 加入了一起听`, currentOpenContact.id);
+                            updateSharedListeningUI();
+                        }
+                        break;
                 }
             }
+        
         } else if (aiResponse.content) {
             if (initialTypingIndicator) {
                 const bubble = initialTypingIndicator.querySelector('.chat-bubble');
@@ -7488,6 +7552,7 @@ async function callAI(triggerMessage, contact, contextData = {}) {
                 }
                 const fallbackMessage = { sender: 'ai', text: aiResponse.content, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
                 await saveMessageToHistory(fallbackMessage, contactId);
+                chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' });
             }
         } else {
             if (initialTypingIndicator) initialTypingIndicator.remove();
@@ -8283,6 +8348,9 @@ function addMessageToView(message, contact = null) {
     if (currentOpenContact && currentOpenContact.id === contact.id) {
         const row = document.createElement('div');
         row.className = 'message-row ai typing-indicator';
+        const indicator = document.createElement('div');
+        indicator.className = 'selection-indicator';
+        row.appendChild(indicator);
         const wrapper = document.createElement('div');
         wrapper.className = 'message-content-wrapper ai';
         const avatar = document.createElement('img');
@@ -8488,6 +8556,7 @@ function addMessageToView(message, contact = null) {
             if (isAiReplying) return;
             if (isMessageSelectionMode) return;
             const targetRow = e.target.closest('.message-row');
+            console.log('长按事件已触发! 寻找到的消息行:', targetRow);
             if (!targetRow) return;
 
             clearTimeout(longPressTimer);
@@ -11061,8 +11130,9 @@ coinFlipModal.addEventListener('click', async (event) => {
 /**
  * 关闭所有游戏弹窗
  */
-function closeGameModals() {
-    document.querySelectorAll('#number-guess-modal, #coin-flip-modal').forEach(modal => {
+ function closeGameModals() {
+    // 找到所有游戏弹窗并关闭它们
+    document.querySelectorAll('#coin-flip-modal, #number-guess-modal, #lottery-modal, #blacklist-modal, #unlock-modal').forEach(modal => {
         modal.style.opacity = '0';
         modal.querySelector('.modal-content').style.transform = 'scale(0.95)';
         setTimeout(() => {
@@ -12235,38 +12305,39 @@ function applyDarkMode(isEnabled) {
 }
 
 lotteryModal.addEventListener('click', async (event) => {
+    // 【新增】处理关闭事件
+    if (event.target.classList.contains('modal-close-button') || event.target === lotteryModal) {
+        closeGameModals();
+        return;
+    }
+
     const choiceBtn = event.target.closest('.game-choice-btn');
-    if (!choiceBtn) return; // 如果点的不是金额按钮，则不执行
+    if (!choiceBtn) return;
 
     const cost = parseInt(choiceBtn.dataset.cost, 10);
     const currentBalance = await getBalance();
 
-    // 1. 检查余额是否足够
     if (currentBalance < cost) {
         alert(`余额不足！您需要 ¥${cost.toFixed(2)}，但当前只有 ¥${currentBalance.toFixed(2)}。`);
         return;
     }
 
-    // 2. 扣除购买费用
     await logTransactionAndUpdateBalance({
         description: `购买 ${cost} 元彩票`,
         amount: -cost
     });
 
-    // 3. 计算奖金
     const prize = calculateLotteryPrize();
 
-    // 4. 派发奖金
     await logTransactionAndUpdateBalance({
         description: '彩票中奖',
         amount: prize
     });
 
-    // 5. 关闭弹窗并显示结果
-    closeGameModals(); // 复用关闭其他游戏弹窗的函数
+    closeGameModals();
     setTimeout(() => {
         alert(`恭喜你！\n\n花费 ¥${cost.toFixed(2)}，喜中 ¥${prize.toFixed(2)} 元大奖！`);
-    }, 310); // 稍作延迟，等待关闭动画完成
+    }, 310);
 });
 
     </script>
