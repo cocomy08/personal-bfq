@@ -10701,35 +10701,37 @@ recipientListContainer.addEventListener('click', (event) => {
 
 // === END: 收货人选择 JS (V2 - 已修复冻结问题) ===
 // --- 确认购买 ---
-// 用这个新版本替换你现有的 confirmPurchaseBtn 点击事件监听器
-
-// 用这个新版本替换旧的 confirmPurchaseBtn 点击事件监听器
-
 confirmPurchaseBtn.addEventListener('click', async () => {
-    if (shoppingCart.length === 0) { /* ... */ return; }
-    if (!currentRecipient) { /* ... */ return; }
+
+    if (shoppingCart.length === 0) {
+        alert("购物车是空的！");
+        return;
+    }
+    if (!currentRecipient) {
+        alert("请先选择收货人！");
+        return;
+    }
 
     const totalAmount = shoppingCart.reduce((sum, item) => sum + item.price, 0);
     const currentBalance = await getBalance();
-    if (currentBalance < totalAmount) { /* ... */ return; }
-
-    // ▼▼▼ 核心修改在这里 ▼▼▼
-    // 调用新的记账函数来扣款
+    if (currentBalance < totalAmount) {
+        alert(`余额不足！需要 ¥${totalAmount.toFixed(2)}，当前只有 ¥${currentBalance.toFixed(2)}。`);
+        return;
+    }
+    
     await logTransactionAndUpdateBalance({
         description: `在七袋购物消费`,
         amount: -totalAmount
     });
-    // ▲▲▲ 修改结束 ▲▲▲
-
+    
     const newOrder = {
         id: Date.now(),
-        // ▼▼▼ START: 在这里修改代码 ▼▼▼
-        items: [...shoppingCart], // 旧代码是: items: shoppingCart,
-        // ▲▲▲ END: 修改结束 ▲▲▲
+        items: [...shoppingCart],
         totalAmount: totalAmount,
         recipient: currentRecipient,
         purchaseDate: new Date()
     };
+
     const ordersData = await dbHelper.loadData('settingsStore', 'myOrders');
     let allOrders = (ordersData && Array.isArray(ordersData.value)) ? ordersData.value : [];
     allOrders.unshift(newOrder);
