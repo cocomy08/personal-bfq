@@ -6356,6 +6356,7 @@ iconSettingsBackButton.addEventListener('click', () => {
         // === 新增：连接按钮的事件监听 ===
         // === 新增：连接按钮的事件监听 (已增强错误提示) ===
         // === 新增：连接按钮的事件监听 (已增强错误提示) ===
+        // === 连接按钮的事件监听 (最终统一版本) ===
         connectButton.addEventListener('click', async () => {
             const apiUrl = apiUrlInput.value.trim();
             const apiKey = apiKeyInput.value.trim();
@@ -6370,29 +6371,33 @@ iconSettingsBackButton.addEventListener('click', () => {
             apiStatusSpan.textContent = "";
 
             try {
-                // --- START: CORRECTED LOGIC ---
-                let endpointUrl = apiUrl;
-
-                // 1. Remove any trailing slash from the user's input
-                if (endpointUrl.endsWith('/')) {
-                    endpointUrl = endpointUrl.slice(0, -1);
+                // --- START: 统一URL构建逻辑 ---
+                let modelsUrl = apiUrl;
+                
+                // 1. 清理末尾的斜杠
+                if (modelsUrl.endsWith('/')) {
+                    modelsUrl = modelsUrl.slice(0, -1);
                 }
 
-                // 2. Consistently append /models to the cleaned URL
-                endpointUrl += '/models';
-                // --- END: CORRECTED LOGIC ---
+                // 2. 检查URL是否已包含版本路径
+                if (!modelsUrl.includes('/v1') && !modelsUrl.includes('/v3') && !modelsUrl.includes('/v4')) {
+                    // 如果不包含，则添加默认的 /v1
+                    modelsUrl += '/v1/models';
+                } else {
+                    // 如果已包含，则直接添加 /models
+                    modelsUrl += '/models';
+                }
+                // --- END: 统一URL构建逻辑 ---
 
-                const response = await fetch(endpointUrl, {
+                const response = await fetch(modelsUrl, {
                     headers: { 'Authorization': `Bearer ${apiKey}` }
                 });
 
 
                 if (!response.ok) {
-                    // If the response status is not 2xx, we throw a specific error
                     throw new Error(`HTTP Error: ${response.status}`);
                 }
 
-                // If the request is successful...
                 const data = await response.json();
                 modelSelect.innerHTML = '<option value="" disabled selected>选择一个模型</option>';
                 data.data.forEach(model => {
@@ -6403,13 +6408,12 @@ iconSettingsBackButton.addEventListener('click', () => {
                 apiStatusSpan.style.color = "green";
 
             } catch (error) {
-                console.error("API 连接失败:", error); // Keep detailed error for developers
+                console.error("API 连接失败:", error);
 
-                // Show different user-friendly tips based on the error type
                 if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
                     apiStatusSpan.textContent = "✗ 网络错误或跨域问题";
                     apiStatusSpan.style.color = "red";
-                    alert("连接失败！最常见的原因是：\n\n1. API服务器未开启CORS跨域许可。\n2. 浏览器插件拦截了请求 (如广告拦截器)。\n3. 您的网络无法访问该URL地址。");
+                    alert("连接失败！最常见的原因是：\n\n1. API服务器未开启CORS跨域许可。\n2. 浏览器插件拦截了请求 (如广告拦截器)。\n3. 您的网络无法访问该URL地址。\n\n请按 F12 打开开发者工具，在“控制台(Console)”中查看详细的错误信息。");
                 } else if (error.message.startsWith('HTTP Error:')) {
                     const status = error.message.split(':')[1].trim();
                     let tip = `(状态码: ${status})`;
@@ -7433,18 +7437,21 @@ async function callAI(triggerMessage, contact, contextData = {}) {
             throw new Error("API未完整配置，请在设置中检查。");
         }
         const { url, key, model, temperature } = settingsData.value;
-        // --- START: 修正后的URL构建逻辑 ---
-        let completionsUrl = url;
+       let completionsUrl = url;
 
-        // 1. 移除用户输入URL末尾可能存在的斜杠
+        // 1. 清理末尾的斜杠
         if (completionsUrl.endsWith('/')) {
             completionsUrl = completionsUrl.slice(0, -1);
         }
 
-        // 2. 拼接正确的聊天端点路径
-        completionsUrl += '/chat/completions';
-        // --- END: 修正后的URL构建逻辑 ---
-
+        // 2. 检查URL是否已包含版本路径
+        if (!completionsUrl.includes('/v1') && !completionsUrl.includes('/v3') && !completionsUrl.includes('/v4')) {
+            // 如果不包含，则添加默认的 /v1
+            completionsUrl += '/v1/chat/completions';
+        } else {
+            // 如果已包含，则直接添加 /chat/completions
+            completionsUrl += '/chat/completions';
+        }
         let timeInfo = contact.timePerceptionEnabled ? `### 现实时间参考\n当前用户的现实时间是：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}\n---\n\n` : "";
         let worldBookContent = "无特定世界观设定，请自由发挥。";
         if (contact.linkedWorldBookIds && contact.linkedWorldBookIds.length > 0) {
