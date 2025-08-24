@@ -6355,6 +6355,7 @@ iconSettingsBackButton.addEventListener('click', () => {
 
         // === 新增：连接按钮的事件监听 ===
         // === 新增：连接按钮的事件监听 (已增强错误提示) ===
+        // === 新增：连接按钮的事件监听 (已增强错误提示) ===
         connectButton.addEventListener('click', async () => {
             const apiUrl = apiUrlInput.value.trim();
             const apiKey = apiKeyInput.value.trim();
@@ -6369,30 +6370,29 @@ iconSettingsBackButton.addEventListener('click', () => {
             apiStatusSpan.textContent = "";
 
             try {
+                // --- START: CORRECTED LOGIC ---
                 let endpointUrl = apiUrl;
 
-// 检查用户输入的 URL 是否已经包含了 /v4/ 或 /v3/ 等版本号
-if (!endpointUrl.endsWith('/v4/') && !endpointUrl.endsWith('/v3/')) {
-    // 如果没有，我们才在后面拼接默认的路径
-    endpointUrl += '/v1/models';
-} else {
-    // 如果已经包含，则根据您的需求修改为获取模型列表的路径。
-    // 假设获取模型列表的路径是 /models
-    endpointUrl += 'models';
-}
+                // 1. Remove any trailing slash from the user's input
+                if (endpointUrl.endsWith('/')) {
+                    endpointUrl = endpointUrl.slice(0, -1);
+                }
 
-const response = await fetch(endpointUrl, {
-    headers: { 'Authorization': `Bearer ${apiKey}` }
-});
+                // 2. Consistently append /models to the cleaned URL
+                endpointUrl += '/models';
+                // --- END: CORRECTED LOGIC ---
 
-                // --- 变化从这里开始 ---
+                const response = await fetch(endpointUrl, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+
 
                 if (!response.ok) {
-                    // 如果响应状态不是 2xx，我们根据状态码抛出具体的错误
+                    // If the response status is not 2xx, we throw a specific error
                     throw new Error(`HTTP Error: ${response.status}`);
                 }
 
-                // 如果请求成功...
+                // If the request is successful...
                 const data = await response.json();
                 modelSelect.innerHTML = '<option value="" disabled selected>选择一个模型</option>';
                 data.data.forEach(model => {
@@ -6403,16 +6403,14 @@ const response = await fetch(endpointUrl, {
                 apiStatusSpan.style.color = "green";
 
             } catch (error) {
-                console.error("API 连接失败:", error); // 在控制台保留详细错误供开发者查看
+                console.error("API 连接失败:", error); // Keep detailed error for developers
 
-                // 根据错误类型，显示不同的用户提示
+                // Show different user-friendly tips based on the error type
                 if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                    // 这是最常见的网络或CORS错误
                     apiStatusSpan.textContent = "✗ 网络错误或跨域问题";
                     apiStatusSpan.style.color = "red";
-                    alert("连接失败！最常见的原因是：\n\n1. API服务器未开启CORS跨域许可。\n2. 浏览器插件拦截了请求 (如广告拦截器)。\n3. 您的网络无法访问该URL地址。\n\n请按 F12 打开开发者工具，在“控制台(Console)”中查看详细的错误信息。");
+                    alert("连接失败！最常见的原因是：\n\n1. API服务器未开启CORS跨域许可。\n2. 浏览器插件拦截了请求 (如广告拦截器)。\n3. 您的网络无法访问该URL地址。");
                 } else if (error.message.startsWith('HTTP Error:')) {
-                    // 这是我们自己抛出的HTTP状态码错误
                     const status = error.message.split(':')[1].trim();
                     let tip = `(状态码: ${status})`;
                     if (status === '401') {
@@ -6427,14 +6425,11 @@ const response = await fetch(endpointUrl, {
                     apiStatusSpan.textContent = tip;
                     apiStatusSpan.style.color = "red";
                 } else {
-                    // 其他未知错误
                     apiStatusSpan.textContent = "✗ 未知错误，请查看控制台";
                     apiStatusSpan.style.color = "red";
                 }
 
                 modelSelect.innerHTML = '<option value="" disabled selected>连接失败</option>';
-
-                // --- 变化在这里结束 ---
 
             } finally {
                 connectButton.textContent = "连接测试";
@@ -7438,6 +7433,18 @@ async function callAI(triggerMessage, contact, contextData = {}) {
             throw new Error("API未完整配置，请在设置中检查。");
         }
         const { url, key, model, temperature } = settingsData.value;
+        // --- START: 修正后的URL构建逻辑 ---
+        let completionsUrl = url;
+
+        // 1. 移除用户输入URL末尾可能存在的斜杠
+        if (completionsUrl.endsWith('/')) {
+            completionsUrl = completionsUrl.slice(0, -1);
+        }
+
+        // 2. 拼接正确的聊天端点路径
+        completionsUrl += '/chat/completions';
+        // --- END: 修正后的URL构建逻辑 ---
+
         let timeInfo = contact.timePerceptionEnabled ? `### 现实时间参考\n当前用户的现实时间是：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}\n---\n\n` : "";
         let worldBookContent = "无特定世界观设定，请自由发挥。";
         if (contact.linkedWorldBookIds && contact.linkedWorldBookIds.length > 0) {
@@ -7479,7 +7486,7 @@ async function callAI(triggerMessage, contact, contextData = {}) {
             { type: "function", function: { name: "createSocialPost", description: "当你认为时机合适，想要基于最近的聊天内容，发布一条新的朋友圈动态时，调用此工具。", parameters: { type: "object", properties: { postText: { type: "string", description: "朋友圈的正文内容。" }, imageDescription: { type: "string", description: "（可选）如果动态适合配图，为图片生成一段文字描述。" } }, required: ["postText"] } } }
         ];
 
-        const response = await fetch(`${url}/v1/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, body: JSON.stringify({ model, messages, temperature: parseFloat(temperature) || 1.0, tools: tools, tool_choice: "auto" }) });
+        const response = await fetch(completionsUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, body: JSON.stringify({ model, messages, temperature: parseFloat(temperature) || 1.0, tools: tools, tool_choice: "auto" }) });
         if (!response.ok) throw new Error(`API请求失败: ${response.status}`);
         const data = await response.json();
         const aiResponse = data.choices[0].message;
