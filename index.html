@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的手机</title>
+    <title>七七手机</title>
     <style id="custom-font-style"></style>
     <style>
         /* 页面基础样式，用于将手机框居中显示 */
@@ -4401,7 +4401,35 @@
 .phone-frame.dark-mode .gp-comment-likes svg {
     fill: #8e8e93;
 }
+/* --- START: 商品卡片品牌标记样式 --- */
 
+/* 1. 确保商品卡片可以作为标记的定位基准 */
+.product-card {
+    position: relative; /* 关键！为绝对定位的子元素提供参考 */
+    overflow: hidden;   /* 防止标记溢出卡片的圆角 */
+}
+
+/* 2. 设计品牌标记本身的样式 */
+.product-brand-tag {
+    position: absolute; /* 绝对定位，浮动在卡片右上角 */
+    top: 8px;
+    right: 10px;
+    
+    /* 外观和颜色 */
+    background-color: rgba(0, 122, 255, 0.1); /* 使用主题色的半透明背景 */
+    color: #007AFF; /* 使用主题色作为文字颜色 */
+    padding: 3px 8px; /* 内边距，让文字有呼吸空间 */
+    border-radius: 8px; /* 圆角，使其看起来像一个胶囊 */
+    
+    /* 字体样式 */
+    font-size: 8px; /* 较小的字体 */
+    font-weight: 500;
+    line-height: 1.2;
+    
+    z-index: 1; /* 确保它在卡片内容之上 */
+}
+
+/* --- END: 商品卡片品牌标记样式 --- */
 /* === END: Gacha Post 点赞显示样式 (V12) === */
 
 /* === END: Gacha Post 可见范围功能样式 (V9) === */
@@ -4522,52 +4550,63 @@
                 <div class="app-grid">
                     <div class="app-container" id="worldbook-app-icon">
                         <div class="app-icon">
-                            <img src="https://i.postimg.cc/50WLGSrN/Icon-pages-2.png" alt="世界书">
+                            <img src="https://i.postimg.cc/50WLGSrN/Icon-pages-2.png"
+                                data-default-src="https://i.postimg.cc/50WLGSrN/Icon-pages-2.png" alt="世界书">
                         </div>
                         <span class="app-name">世界书</span>
                     </div>
                     <div class="app-container" id="messages-app-icon">
                         <div class="app-icon">
-                            <img src="https://i.postimg.cc/bJnwpTQR/app.png" alt="消息图标">
+                            <img src="https://i.postimg.cc/bJnwpTQR/app.png"
+                                data-default-src="https://i.postimg.cc/bJnwpTQR/app.png" alt="消息图标">
                         </div>
                         <span class="app-name">消息</span>
                     </div>
 
                     <div class="app-container" id="music-app-icon">
                         <div class="app-icon">
-                            <img src="https://i.postimg.cc/TPzWVh0C/Apple-Music-Icon.png" alt="音乐图标">
+                            <img src="https://i.postimg.cc/TPzWVh0C/Apple-Music-Icon.png"
+                                data-default-src="https://i.postimg.cc/TPzWVh0C/Apple-Music-Icon.png" alt="音乐图标">
                         </div>
                         <span class="app-name">音乐</span>
                     </div>
 
-                    <div class="app-container" id="gacha-app-icon"> <div class="app-icon">
-                        <img src="https://i.postimg.cc/fTB7tWYK/GACHA.png" alt="GACHA">
-                    </div>
-                    <span class="app-name">GACHA！</span>
-                    </div>
-
-                    <div class="app-container" id="SHOP-app-icon"> <div class="app-icon">
-                        <img src="https://i.postimg.cc/J41HL8kw/shopmall.png" alt="qidai">
-                    </div>
-                    <span class="app-name">七袋</span>
+                    <div class="app-container" id="gacha-app-icon">
+                        <div class="app-icon">
+                            <img src="https://i.postimg.cc/fTB7tWYK/GACHA.png"
+                                data-default-src="https://i.postimg.cc/fTB7tWYK/GACHA.png" alt="GACHA">
+                        </div>
+                        <span class="app-name">GACHA！</span>
                     </div>
 
-                    <div class="app-container" id="GAME-app-icon"> <div class="app-icon">
-                        <img src="https://i.postimg.cc/8zyrPYVy/game-2.png" alt="game">
+                    <div class="app-container" id="SHOP-app-icon">
+                        <div class="app-icon">
+                            <img src="https://i.postimg.cc/J41HL8kw/shopmall.png"
+                                data-default-src="https://i.postimg.cc/J41HL8kw/shopmall.png" alt="qidai">
+                        </div>
+                        <span class="app-name">七袋</span>
                     </div>
-                    <span class="app-name">摸鱼</span>
+
+                    <div class="app-container" id="GAME-app-icon">
+                        <div class="app-icon">
+                            <img src="https://i.postimg.cc/8zyrPYVy/game-2.png"
+                                data-default-src="https://i.postimg.cc/8zyrPYVy/game-2.png" alt="game">
+                        </div>
+                        <span class="app-name">摸鱼</span>
                     </div>
 
                     <div class="app-container" id="beautify-app-icon">
                         <div class="app-icon">
-                            <img src="https://i.postimg.cc/X7kVw6yR/ui.png" alt="美化">
+                            <img src="https://i.postimg.cc/X7kVw6yR/ui.png"
+                                data-default-src="https://i.postimg.cc/X7kVw6yR/ui.png" alt="美化">
                         </div>
                         <span class="app-name">美化</span>
                     </div>
 
                     <div class="app-container" id="settings-app-icon">
                         <div class="app-icon">
-                            <img src="https://i.postimg.cc/y6g7qvVg/Settings.png" alt="设置图标">
+                            <img src="https://i.postimg.cc/y6g7qvVg/Settings.png"
+                                data-default-src="https://i.postimg.cc/y6g7qvVg/Settings.png" alt="设置图标">
                         </div>
                         <span class="app-name">设置</span>
                     </div>
@@ -5198,11 +5237,13 @@
                     <div id="shopping-content-panel" class="shop-content-panel active">
                         <div class="category-tabs">
                             <button class="category-tab active" data-category="takeout">外卖</button>
+                            <button class="category-tab" data-category="milktea">奶茶</button>
                             <button class="category-tab" data-category="electronics">电子设备</button>
                             <button class="category-tab" data-category="daily">日常用品</button>
                             <button class="category-tab" data-category="sports">运动户外</button>
                             <button class="category-tab" data-category="beautyCare">美妆个护</button>
                             <button class="category-tab" data-category="foodSnacks">食品零食</button>
+                            
                         </div>
                     
                         <div id="product-grid" class="product-grid-shop">
@@ -5877,7 +5918,28 @@ const stickerMap = new Map([
     ['恶心', 'https://i.postimg.cc/dQx8L6kD/005-L0-HLIgy1hcls43b180j30gn0gndgs.jpg'],
     ['无语了家人们', 'https://i.postimg.cc/tT75Y4bV/005-L0-HLIgy1hcls42ketdj30ar0ar74h.jpg'],
     ['哥帅不帅?', 'https://i.postimg.cc/mkyt47n3/005-L0-HLIgy1hcls3yaxl8j30k00k0wev.jpg'],
-    ['好困呀', 'https://i.postimg.cc/9XnkPsNh/005-L0-HLIgy1hcls41ni15j30qv0pvdh3.jpg']
+    ['好困呀', 'https://i.postimg.cc/9XnkPsNh/005-L0-HLIgy1hcls41ni15j30qv0pvdh3.jpg'],
+    ['捧玫瑰', 'https://files.catbox.moe/vi86f8.jpg'],
+    ['阴险', 'https://files.catbox.moe/q61ns3.jpg'],
+    ['扭捏害羞', 'https://files.catbox.moe/kxdnl6.jpg'],
+    ['张嘴大哭', 'https://files.catbox.moe/8n7fzf.jpg'],
+    ['比心', 'https://files.catbox.moe/tpmq2c.jpg'],
+    ['委屈落泪', 'https://files.catbox.moe/wlrn5i.jpg'],
+    ['跪地痛哭', 'https://files.catbox.moe/b082ka.jpg'],
+    ['慵懒躺', 'https://files.catbox.moe/pqt22k.jpg'],
+    ['不满', 'https://files.catbox.moe/hltxd7.jpg'],
+    ['小狗：讨好', 'https://files.catbox.moe/ldw98h.jpg'],
+    ['小狗：无消息', 'https://files.catbox.moe/70wdpg.jpg'],
+    ['小狗：我有错吗（测人心）', 'https://files.catbox.moe/x1wy0q.jpg'],
+    ['小狗：暗中鄙视', 'https://files.catbox.moe/mmu7sw.jpg'],
+    ['小狗：……？', 'https://files.catbox.moe/46go4e.jpg'],
+    ['小狗：拒不认错', 'https://files.catbox.moe/50z5lz.jpg'],
+    ['小狗：求原谅', 'https://files.catbox.moe/u5vmq0.jpg'],
+    ['小狗：盼回归', 'https://files.catbox.moe/vg50de.jpg'],
+    ['小狗：！？', 'https://files.catbox.moe/h63x5j.jpg'],
+    ['小狗：恶狠狠', 'https://files.catbox.moe/iohcdv.jpg'],
+    ['小狗：咬你手指', 'https://files.catbox.moe/ndvoyu.jpg'],
+    ['小狗：冷漠应对指责', 'https://files.catbox.moe/ley6t6.jpg']
 ]);
 
         // === IndexedDB 帮助函数 START ===
@@ -7544,15 +7606,40 @@ async function callAI(triggerMessage, contact, contextData = {}) {
             }
         
         } else if (aiResponse.content) {
+            // This is the fallback block.
+            // 1. Call our new function to split the long text into an array of messages.
+            const messages = fallbackProcessLongText(aiResponse.content);
+            
+            // 2. Sequentially display these messages, just like we do for the 'sendMessage' tool.
+            let typingRowForTransform = null;
             if (initialTypingIndicator) {
-                const bubble = initialTypingIndicator.querySelector('.chat-bubble');
-                if (bubble) {
-                    bubble.innerHTML = '';
-                    bubble.textContent = aiResponse.content;
+                typingRowForTransform = initialTypingIndicator;
+                initialTypingIndicator = null;
+            }
+
+            for (const [index, text] of messages.entries()) {
+                let typingRow;
+                if (index === 0 && typingRowForTransform) {
+                    typingRow = typingRowForTransform; // Reuse the initial indicator for the first message
+                } else {
+                    typingRow = showTypingIndicator(contact); // Create a new indicator for subsequent messages
+                    setTimeout(() => chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' }), 10);
                 }
-                const fallbackMessage = { sender: 'ai', text: aiResponse.content, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
-                await saveMessageToHistory(fallbackMessage, contactId);
-                chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'smooth' });
+                
+                // Use a dynamic delay based on message length
+                const typingDelay = Math.min(Math.max(text.length * 800, 1000), 4000);
+                await new Promise(resolve => setTimeout(resolve, typingDelay));
+                
+                if (typingRow) {
+                    const bubble = typingRow.querySelector('.chat-bubble');
+                    bubble.innerHTML = '';
+                    bubble.textContent = text;
+                    typingRow.classList.remove('typing-indicator');
+                }
+
+                // Save each individual chunk to the history
+                const chunkMessage = { sender: 'ai', text: text, timestamp: new Date(), uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9) };
+                await saveMessageToHistory(chunkMessage, contactId);
             }
         } else {
             if (initialTypingIndicator) initialTypingIndicator.remove();
@@ -10022,31 +10109,30 @@ iconListContainer.addEventListener('change', async (event) => {
 
 // 负责更新UI和数据库的函数
 async function updateAppIcon(appId, newUrl) {
-    // 1. 更新主屏幕的图标
     const appIconOnHomeScreen = document.querySelector(`#${appId} .app-icon img`);
-    // 2. 更新设置页的预览图标
     const iconPreviewInSettings = document.querySelector(`.icon-preview[data-app-id="${appId}"]`);
 
     if (!appIconOnHomeScreen || !iconPreviewInSettings) return;
 
+    let finalUrl; // 用一个变量来存储最终要应用的URL
+
     if (newUrl) {
-        // 如果有新URL，则更新
-        appIconOnHomeScreen.src = newUrl;
-        iconPreviewInSettings.src = newUrl;
+        // 如果有新URL，则使用新URL
+        finalUrl = newUrl;
     } else {
-        // 如果输入框被清空，则恢复为默认图标
-        // 我们从HTML中读取默认值 (需要您确保img标签里有data-default-src属性)
-        // 为了简单起见，我们这里先硬编码一个逻辑，更好的做法是在初始化时存储默认值
-        // 这里我们重新加载页面来恢复默认值，更简单直接
-        location.reload(); 
-        return;
+        // 如果URL被清空，则从 data-default-src 属性恢复默认URL
+        finalUrl = appIconOnHomeScreen.dataset.defaultSrc;
     }
 
-    // 3. 保存到数据库
+    // 应用最终的URL
+    appIconOnHomeScreen.src = finalUrl;
+    iconPreviewInSettings.src = finalUrl;
+
+    // 保存到数据库的逻辑保持不变
     try {
         const savedIconsData = await dbHelper.loadData('settingsStore', 'customAppIcons');
         let savedIcons = (savedIconsData && savedIconsData.value) ? savedIconsData.value : {};
-        
+
         if (newUrl) {
             savedIcons[appId] = newUrl;
         } else {
@@ -10054,7 +10140,7 @@ async function updateAppIcon(appId, newUrl) {
         }
 
         await dbHelper.saveData('settingsStore', 'customAppIcons', savedIcons);
-        
+
     } catch (error) {
         console.error("保存自定义图标失败:", error);
     }
@@ -10472,6 +10558,30 @@ const productData = {
         { name: '意大利面套装', description: '含螺旋面、番茄酱和意式香草，4人份，简单易做', price: 39.00 },
         { name: '黄桃罐头', description: '砀山黄桃制作，无防腐剂，果肉饱满，糖水清甜', price: 35.00 },
         { name: '坚果燕麦能量棒', description: '代餐零食，含多种坚果和燕麦，抗饿4小时，12条装', price: 69.00 }
+    ],
+    milktea: [
+        { name: '波霸奶茶', description: '经典台式风味，Q弹波霸搭配香浓奶茶，口感丰富。', price: 15.00, brand: 'CoCo都可' },
+        { name: '四季春玛奇朵', description: '清爽的四季春茶底，覆上绵密的咸香芝士奶盖，层次分明。', price: 18.00, brand: '一点点' },
+        { name: '多肉葡萄', description: '新鲜手剥葡萄果肉，搭配清爽绿妍茶底和Q弹脆波波，人气首选。', price: 29.00, brand: '喜茶' },
+        { name: '幽兰拿铁', description: '精选红茶底与鲜奶融合，顶部撒上香脆碧根果，茶香与坚果香交织。', price: 20.00, brand: '茶颜悦色' },
+        { name: '芋泥波波牛乳', description: '手工捣制的香甜芋泥，搭配Q弹波波和新鲜牛乳，口感绵密。', price: 22.00, brand: '奈雪的茶' },
+        { name: '杨枝甘露', description: '新鲜芒果、西柚果粒与西米露的完美结合，夏日解暑神器。', price: 25.00, brand: '喜茶' },
+        { name: '找奶茶', description: '经典原味奶茶，回归最纯粹的奶与茶的融合，性价比之选。', price: 12.00, brand: '一点点' },
+        { name: '冰鲜柠檬水', description: '新鲜柠檬切片，搭配冰块和纯净水，清爽解渴，性价比之王。', price: 4.00, brand: '蜜雪冰城' },
+        { name: '珍珠奶茶', description: '经典的蜜雪奶茶，搭配Q弹珍珠，是每个人的入门款。', price: 7.00, brand: '蜜雪冰城' },
+        { name: '摩天脆脆冰淇淋', description: '香草味的冰淇淋甜筒，顶部加上酥脆的巧克力棒，童年的味道。', price: 5.00, brand: '蜜雪冰城' },
+        { name: '满杯百香果', description: '新鲜百香果果肉与茶底的激情碰撞，酸甜可口，果香四溢。', price: 8.00, brand: '蜜雪冰城' },
+        { name: '血糯米红豆奶茶', description: '招牌血糯米搭配软糯红豆，口感丰富，暖心暖胃的五谷奶茶。', price: 16.00, brand: '沪上阿姨' },
+        { name: '鲜炖梨膏', description: '手工鲜炖梨膏，清润降燥，搭配银耳，是养生人士的首选。', price: 18.00, brand: '沪上阿姨' },
+        { name: '绿豆牛乳冰', description: '清爽的绿豆沙搭配顺滑牛乳，夏日解暑，口感绵密。', price: 15.00, brand: '沪上阿姨' },
+        { name: '芋圆葡萄', description: '新鲜葡萄果肉搭配手工芋圆，Q弹有嚼劲，果味十足。', price: 20.00, brand: '沪上阿姨' },
+        { name: '烤奶', description: '独特的烘焙工艺，带来焦糖般的炭烧风味，奶香浓郁。', price: 16.00, brand: '茶颜悦色' },
+        { name: '奶霜草莓果茶', description: '新鲜草莓果肉与绿茶的完美结合，顶部覆盖咸香奶霜。', price: 26.00, brand: '奈雪的茶' },
+        { name: '鲜芋牛奶西米露', description: '新鲜芋头蒸煮成泥，搭配西米和牛奶，口感顺滑。', price: 19.00, brand: 'CoCo都可' },
+        { name: '冰淇淋红茶', description: '顺滑的香草冰淇淋球，缓缓融入醇厚的红茶中，经典之选。', price: 14.00, brand: '一点点' },
+        { name: '芝芝芒芒', description: '大块新鲜芒果果肉，搭配绿妍茶底和浓郁芝士奶盖，果香四溢。', price: 32.00, brand: '喜茶' },
+        { name: '声声乌龙', description: '带有独特烟熏风味的乌龙茶底，入口甘醇，回味悠长。', price: 17.00, brand: '茶颜悦色' },
+        { name: '霸气橙子', description: '精选进口新奇士橙，整颗鲜切，搭配清香绿茶，VC爆棚。', price: 25.00, brand: '奈雪的茶' }
     ]
 
 
@@ -10481,7 +10591,11 @@ const productData = {
  * 根据指定的商品类别，渲染商品列表
  * @param {string} category - 商品类别 (例如 'takeout', 'electronics')
  */
-function renderProducts(category) {
+/**
+ * 根据指定的商品类别，渲染商品列表 (V2 - 支持品牌标记)
+ * @param {string} category - 商品类别 (例如 'takeout', 'electronics')
+ */
+ function renderProducts(category) {
     productGrid.innerHTML = ''; // 清空现有商品
     const items = productData[category] || []; // 获取对应类别的商品数组
 
@@ -10493,7 +10607,13 @@ function renderProducts(category) {
     items.forEach(item => {
         const card = document.createElement('div');
         card.className = 'product-card';
+
+        // ▼▼▼ 核心修改：检查是否存在品牌信息，如果存在则生成品牌标签HTML ▼▼▼
+        const brandTagHTML = item.brand ? `<div class="product-brand-tag">${item.brand}</div>` : '';
+        // ▲▲▲ 修改结束 ▲▲▲
+
         card.innerHTML = `
+            ${brandTagHTML} 
             <div class="product-name">${item.name}</div>
             <div class="product-description">${item.description}</div>
             <div class="product-footer">
@@ -10567,7 +10687,7 @@ ordersBackButton.addEventListener('click', () => {
     phoneFrame.classList.remove('show-orders');
 });
 
-// --- “加入购物车” 功能 ---
+// ▼▼▼ 使用这个新版本，替换旧的 productGrid 点击事件监听器 ▼▼▼
 productGrid.addEventListener('click', async (event) => {
     if (event.target.classList.contains('add-to-cart-btn')) {
         const card = event.target.closest('.product-card');
@@ -10575,7 +10695,17 @@ productGrid.addEventListener('click', async (event) => {
         const priceText = card.querySelector('.product-price').textContent;
         const price = parseFloat(priceText.replace('¥', ''));
 
-        const product = { id: Date.now(), name, price };
+        // --- ▼▼▼ 新增逻辑：获取品牌信息 ▼▼▼ ---
+        // 1. 找到当前激活的分类
+        const activeCategory = document.querySelector('.category-tab.active').dataset.category;
+        // 2. 在原始数据中找到对应的商品对象
+        const originalProduct = productData[activeCategory].find(p => p.name === name);
+        // 3. 获取品牌，如果商品没有品牌属性，则为 null
+        const brand = originalProduct ? originalProduct.brand : null;
+        // --- ▲▲▲ 新增逻辑结束 ▲▲▲ ---
+
+        // 将包含品牌的新商品对象添加到购物车
+        const product = { id: Date.now(), name, price, brand }; // <-- 在这里加入了 brand
         shoppingCart.push(product);
         await saveCartToDB();
 
@@ -10587,6 +10717,7 @@ productGrid.addEventListener('click', async (event) => {
         }, 1000);
     }
 });
+// ▲▲▲ 替换结束 ▲▲▲
 
 // --- 购物车渲染和操作 ---
 function renderCart() {
@@ -10813,7 +10944,7 @@ async function renderOrders(orders) {
 // === END: SHOPMALL 购物流程 JS (FUNCTIONS & EVENTS) ===
 
 // === START: 订单分享功能 JS (V3 - 按正确顺序执行) ===
-// === START: 订单分享功能 JS (V4 - 修正导航逻辑) ===
+// ▼▼▼ 使用这个新版本，替换旧的 ordersListContainer 点击事件监听器 ▼▼▼
 ordersListContainer.addEventListener('click', async (event) => {
     const shareBtn = event.target.closest('.order-share-btn');
     if (!shareBtn) return;
@@ -10821,7 +10952,6 @@ ordersListContainer.addEventListener('click', async (event) => {
     const orderId = parseInt(shareBtn.dataset.orderId, 10);
 
     try {
-        // --- 1. 准备工作：获取订单和收件人信息 (这部分不变) ---
         const ordersData = await dbHelper.loadData('settingsStore', 'myOrders');
         const orderToShare = ordersData.value.find(o => o.id === orderId);
         if (!orderToShare) throw new Error("找不到该订单");
@@ -10830,13 +10960,26 @@ ordersListContainer.addEventListener('click', async (event) => {
         const recipientContact = contactsData.value.find(c => c.ai.name === orderToShare.recipient.name);
         if (!recipientContact) throw new Error("找不到收件人对应的聊天对话");
 
-        // --- 2. 保存消息 (这部分不变) ---
+        // --- ▼▼▼ 核心修改：生成包含品牌信息的商品描述 ▼▼▼ ---
+        const itemsText = orderToShare.items.map(item => {
+            // 如果商品有品牌，就格式化为 "品牌 的 '商品名'"
+            if (item.brand) {
+                return `${item.brand}的“${item.name}”`;
+            }
+            // 如果没有，就只显示商品名
+            return `“${item.name}”`;
+        }).join('，'); // 用中文逗号连接，更自然
+
+        // 更新发送给 AI 的提示信息
+        const aiTriggerMessage = `(我给你分享了一个订单，商品是${itemsText}，请根据你的人设和我们的关系对此作出回应。)`;
+        // --- ▲▲▲ 修改结束 ▲▲▲ ---
+
         const messageText = `[ORDER_SHARE_CARD]${JSON.stringify(orderToShare)}`;
         const userMessage = {
             sender: 'user', text: messageText, timestamp: new Date(),
             uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9)
         };
-        // 手动更新并保存联系人数据
+        
         if (!Array.isArray(recipientContact.history)) recipientContact.history = [];
         recipientContact.history.push(userMessage);
         recipientContact.lastMessage = "分享了一个订单";
@@ -10847,30 +10990,19 @@ ordersListContainer.addEventListener('click', async (event) => {
             await dbHelper.saveData('messageContacts', 'allContacts', allContacts);
         }
         
-        // ▼▼▼ START: 核心导航逻辑修改 ▼▼▼
-
-        // 3. 设置正确的导航层级
-        // 首先，将“消息App”设为底层显示的界面
         phoneFrame.classList.add('show-messages');
-        // 然后，移除所有可能存在的“七袋”相关界面的显示类
         phoneFrame.classList.remove('show-cart');
         phoneFrame.classList.remove('show-orders');
         
-        // 4. 最后，打开聊天界面并触发AI回复
         await openChatView(recipientContact.id);
         
-        const aiTriggerMessage = `(我给你分享了一个订单，商品是“${orderToShare.items.map(i => i.name).join(', ')}”，请根据你的人设和我们的关系对此作出回应。)`;
         await callAI(aiTriggerMessage, recipientContact);
-
-        // ▲▲▲ END: 核心导航逻辑修改 ▲▲▲
 
     } catch (error) {
         console.error("分享订单失败:", error);
         alert(`分享失败: ${error.message}`);
     }
 });
-// === END: 订单分享功能 JS (V4 - 修正导航逻辑) ===
-// === END: 订单分享功能 JS (V3 - 按正确顺序执行) ===
 
 // ▼▼▼ START: 在这里粘贴新的摸鱼App交互逻辑 ▼▼▼
 
@@ -12341,6 +12473,43 @@ lotteryModal.addEventListener('click', async (event) => {
         alert(`恭喜你！\n\n花费 ¥${cost.toFixed(2)}，喜中 ¥${prize.toFixed(2)} 元大奖！`);
     }, 310);
 });
+
+/**
+ * Fallback Function: Processes a single long text response from the AI
+ * and splits it into multiple, more natural-sounding message chunks.
+ * @param {string} longText - The full text content from the AI's response.
+ * @returns {string[]} An array of smaller message strings.
+ */
+ function fallbackProcessLongText(longText) {
+    if (!longText || typeof longText !== 'string') {
+        return [];
+    }
+
+    // 1. Use a regular expression to find all natural sentence endings or newlines.
+    // This regex looks for:
+    // - Newlines (\n)
+    // - OR punctuation marks (. ! ?) followed by a space or the end of the text.
+    // - OR an ellipsis (...) followed by a space or the end of the text.
+    const sentenceEndRegex = /(\n|[.!?…](?=\s|$))/g;
+
+    // 2. Replace these found endings with the ending itself plus a unique separator string '|||'.
+    // Example: "Hello world. How are you?" becomes "Hello world.||| How are you?"
+    const withSeparators = longText.replace(sentenceEndRegex, '$1|||');
+
+    // 3. Split the text using our unique separator.
+    const chunks = withSeparators.split('|||');
+
+    // 4. Clean up the resulting array by trimming whitespace and removing any empty chunks.
+    const messages = chunks.map(chunk => chunk.trim()).filter(chunk => chunk.length > 0);
+
+    // 5. Edge Case: If after all processing, no messages were created (e.g., a single word),
+    // return the original text as a single-item array.
+    if (messages.length === 0 && longText.trim()) {
+        return [longText.trim()];
+    }
+
+    return messages;
+}
 
     </script>
 
