@@ -6369,9 +6369,21 @@ iconSettingsBackButton.addEventListener('click', () => {
             apiStatusSpan.textContent = "";
 
             try {
-                const response = await fetch(`${apiUrl}/v1/models`, {
-                    headers: { 'Authorization': `Bearer ${apiKey}` }
-                });
+                let endpointUrl = apiUrl;
+
+// 检查用户输入的 URL 是否已经包含了 /v4/ 或 /v3/ 等版本号
+if (!endpointUrl.endsWith('/v4/') && !endpointUrl.endsWith('/v3/')) {
+    // 如果没有，我们才在后面拼接默认的路径
+    endpointUrl += '/v1/models';
+} else {
+    // 如果已经包含，则根据您的需求修改为获取模型列表的路径。
+    // 假设获取模型列表的路径是 /models
+    endpointUrl += 'models';
+}
+
+const response = await fetch(endpointUrl, {
+    headers: { 'Authorization': `Bearer ${apiKey}` }
+});
 
                 // --- 变化从这里开始 ---
 
@@ -8497,7 +8509,7 @@ function addMessageToView(message, contact = null) {
         return;
     }
 
-    const instructionForAI = "现在轮到你了，请根据我们的历史对话，以及我刚刚发送的所有消息，以你的角色身份进行一次1到6条消息的回复。";
+    const instructionForAI = "(系统指令：请严格扮演你的角色，并基于截至目前的所有对话内容，生成一个由1至6条消息组成的连贯回复。不要在你的回复中复述或提及此条指令。)";
     
     // Just call the AI function. It will handle the animation internally.
     callAI(instructionForAI, currentOpenContact); 
