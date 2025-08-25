@@ -4429,10 +4429,22 @@
     z-index: 1; /* 确保它在卡片内容之上 */
 }
 
-/* --- END: 商品卡片品牌标记样式 --- */
-/* === END: Gacha Post 点赞显示样式 (V12) === */
-
-/* === END: Gacha Post 可见范围功能样式 (V9) === */
+/* === 新增：消息编辑功能的样式 === */
+.editing-bubble {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    outline: none;
+    resize: none;
+    background-color: transparent; /* 背景透明，融入气泡 */
+    font-family: inherit; /* 继承父元素字体 */
+    font-size: inherit; /* 继承父元素字号 */
+    color: inherit; /* 继承父元素颜色 */
+    line-height: 1.4;
+    padding: 0;
+    margin: 0;
+    overflow: hidden; /* 隐藏滚动条 */
+}
     </style>
 
     <style id="custom-bubble-styles"></style>
@@ -6356,7 +6368,6 @@ iconSettingsBackButton.addEventListener('click', () => {
         // === 新增：连接按钮的事件监听 ===
         // === 新增：连接按钮的事件监听 (已增强错误提示) ===
         // === 新增：连接按钮的事件监听 (已增强错误提示) ===
-        // === 连接按钮的事件监听 (最终统一版本) ===
         connectButton.addEventListener('click', async () => {
             const apiUrl = apiUrlInput.value.trim();
             const apiKey = apiKeyInput.value.trim();
@@ -6371,33 +6382,29 @@ iconSettingsBackButton.addEventListener('click', () => {
             apiStatusSpan.textContent = "";
 
             try {
-                // --- START: 统一URL构建逻辑 ---
-                let modelsUrl = apiUrl;
-                
-                // 1. 清理末尾的斜杠
-                if (modelsUrl.endsWith('/')) {
-                    modelsUrl = modelsUrl.slice(0, -1);
+                // --- START: CORRECTED LOGIC ---
+                let endpointUrl = apiUrl;
+
+                // 1. Remove any trailing slash from the user's input
+                if (endpointUrl.endsWith('/')) {
+                    endpointUrl = endpointUrl.slice(0, -1);
                 }
 
-                // 2. 检查URL是否已包含版本路径
-                if (!modelsUrl.includes('/v1') && !modelsUrl.includes('/v3') && !modelsUrl.includes('/v4')) {
-                    // 如果不包含，则添加默认的 /v1
-                    modelsUrl += '/v1/models';
-                } else {
-                    // 如果已包含，则直接添加 /models
-                    modelsUrl += '/models';
-                }
-                // --- END: 统一URL构建逻辑 ---
+                // 2. Consistently append /models to the cleaned URL
+                endpointUrl += '/models';
+                // --- END: CORRECTED LOGIC ---
 
-                const response = await fetch(modelsUrl, {
+                const response = await fetch(endpointUrl, {
                     headers: { 'Authorization': `Bearer ${apiKey}` }
                 });
 
 
                 if (!response.ok) {
+                    // If the response status is not 2xx, we throw a specific error
                     throw new Error(`HTTP Error: ${response.status}`);
                 }
 
+                // If the request is successful...
                 const data = await response.json();
                 modelSelect.innerHTML = '<option value="" disabled selected>选择一个模型</option>';
                 data.data.forEach(model => {
@@ -6408,12 +6415,13 @@ iconSettingsBackButton.addEventListener('click', () => {
                 apiStatusSpan.style.color = "green";
 
             } catch (error) {
-                console.error("API 连接失败:", error);
+                console.error("API 连接失败:", error); // Keep detailed error for developers
 
+                // Show different user-friendly tips based on the error type
                 if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
                     apiStatusSpan.textContent = "✗ 网络错误或跨域问题";
                     apiStatusSpan.style.color = "red";
-                    alert("连接失败！最常见的原因是：\n\n1. API服务器未开启CORS跨域许可。\n2. 浏览器插件拦截了请求 (如广告拦截器)。\n3. 您的网络无法访问该URL地址。\n\n请按 F12 打开开发者工具，在“控制台(Console)”中查看详细的错误信息。");
+                    alert("连接失败！最常见的原因是：\n\n1. API服务器未开启CORS跨域许可。\n2. 浏览器插件拦截了请求 (如广告拦截器)。\n3. 您的网络无法访问该URL地址。");
                 } else if (error.message.startsWith('HTTP Error:')) {
                     const status = error.message.split(':')[1].trim();
                     let tip = `(状态码: ${status})`;
@@ -7437,21 +7445,18 @@ async function callAI(triggerMessage, contact, contextData = {}) {
             throw new Error("API未完整配置，请在设置中检查。");
         }
         const { url, key, model, temperature } = settingsData.value;
-       let completionsUrl = url;
+        // --- START: 修正后的URL构建逻辑 ---
+        let completionsUrl = url;
 
-        // 1. 清理末尾的斜杠
+        // 1. 移除用户输入URL末尾可能存在的斜杠
         if (completionsUrl.endsWith('/')) {
             completionsUrl = completionsUrl.slice(0, -1);
         }
 
-        // 2. 检查URL是否已包含版本路径
-        if (!completionsUrl.includes('/v1') && !completionsUrl.includes('/v3') && !completionsUrl.includes('/v4')) {
-            // 如果不包含，则添加默认的 /v1
-            completionsUrl += '/v1/chat/completions';
-        } else {
-            // 如果已包含，则直接添加 /chat/completions
-            completionsUrl += '/chat/completions';
-        }
+        // 2. 拼接正确的聊天端点路径
+        completionsUrl += '/chat/completions';
+        // --- END: 修正后的URL构建逻辑 ---
+
         let timeInfo = contact.timePerceptionEnabled ? `### 现实时间参考\n当前用户的现实时间是：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}\n---\n\n` : "";
         let worldBookContent = "无特定世界观设定，请自由发挥。";
         if (contact.linkedWorldBookIds && contact.linkedWorldBookIds.length > 0) {
@@ -11817,16 +11822,18 @@ function createPostElement(post) {
     const postContentHTML = post.content.replace(/\n/g, '<br>');
     const imageDescHTML = post.imageDescription ? `<p class="gp-image-desc">[图片描述]: ${post.imageDescription}</p>` : '';
     const isPrivate = Array.isArray(post.visibleTo) && post.visibleTo.length > 0;
-    postCard.innerHTML = `
+    const deleteButtonHTML = `
+        <button class="gp-delete-post-btn gp-action-button" title="删除帖子">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18" stroke="#808080" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 6L18 18" stroke="#808080" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>`;
+        postCard.innerHTML = `
         <div class="gp-header">
             <div class="gp-header-content">
                 <div class="gp-user-info">
                     <div class="gp-avatar" style="background-image: url('${post.authorAvatar}');"></div>
-                    <div>
-                        <div class="gp-user-name">${post.authorName}</div>
-                        <div class="gp-user-handle">个性签名</div>
-                    </div>
+                    <div><div class="gp-user-name">${post.authorName}</div><div class="gp-user-handle">个性签名</div></div>
                 </div>
+                ${deleteButtonHTML} 
                 <button class="gp-visibility-btn ${isPrivate ? 'private' : ''}" data-post-id="${post.id}">
                     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
                 </button>
@@ -11857,29 +11864,7 @@ function createPostElement(post) {
     }
     return postCard;
 }
-// ▼▼▼ START: GACHA App 帖子互动逻辑 ▼▼▼
 
-// ▼▼▼ START: GACHA Post 统一点击事件监听器 (V10 最终修复版) ▼▼▼
-// ▼▼▼ START: GACHA Post 统一点击事件监听器 (V12 最终修复版) ▼▼▼
-postsContainer.addEventListener('click', async (event) => {
-    const button = event.target.closest('button');
-    if (!button) return;
-    if (button.classList.contains('gp-like-btn')) {
-        await toggleLike(parseInt(button.closest('.gp-card').dataset.postId));
-        renderAllPosts();
-    } else if (button.classList.contains('gp-comment-btn')) {
-        const commentSection = button.closest('.gp-card').querySelector('.gp-comment-section');
-        commentSection.style.display = (commentSection.style.display === 'none' || commentSection.style.display === '') ? 'block' : 'none';
-    } else if (button.classList.contains('gp-reply-btn')) {
-        showReplyInput(button);
-    } else if (button.classList.contains('gp-visibility-btn')) {
-        openVisibilityModal(parseInt(button.dataset.postId));
-    } else if (button.classList.contains('gp-summon-btn')) {
-        openSummonAiModal(parseInt(button.closest('.gp-card').dataset.postId));
-    }
-});
-
-// ▲▲▲ END: GACHA Post 统一点击事件监听器 (V12 最终修复版) ▲▲▲
 
 
 // ▲▲▲ END: GACHA Post 统一点击事件监听器 (V9 修复版) ▲▲▲
@@ -12008,10 +11993,10 @@ function applyDarkMode(isEnabled) {
  function createCommentElement(comment) {
     const commentElement = document.createElement('div');
     commentElement.className = 'gp-comment-item';
+    commentElement.dataset.commentId = comment.id;
     const commentDate = new Date(comment.timestamp);
     const commentTimeString = `${commentDate.getMonth() + 1}-${commentDate.getDate()} ${commentDate.getHours()}:${String(commentDate.getMinutes()).padStart(2, '0')}`;
     const styledText = comment.text.replace(/(@\S+)/g, '<span class="gp-reply-mention">$1</span>');
-
     let likesHtml = '';
     if (comment.likes && comment.likes.length > 0) {
         const likerNames = comment.likes.map(liker => liker.name).join(', ');
@@ -12022,7 +12007,10 @@ function applyDarkMode(isEnabled) {
             </div>
         `;
     }
-
+    const deleteCommentButtonHTML = `
+        <button class="gp-delete-comment-btn gp-action-button" title="删除评论">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18" stroke="#808080" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 6L18 18" stroke="#808080" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>`;
     commentElement.innerHTML = `
         <div class="gp-comment-avatar" style="background-image: url('${comment.authorAvatar}');"></div>
         <div class="gp-comment-content">
@@ -12033,6 +12021,7 @@ function applyDarkMode(isEnabled) {
             <div class="gp-comment-text">${styledText}</div>
             <div class="gp-comment-actions">
                 <button class="gp-reply-btn">回复</button>
+                ${deleteCommentButtonHTML}
             </div>
             ${likesHtml}
         </div>
@@ -12537,6 +12526,215 @@ lotteryModal.addEventListener('click', async (event) => {
     return messages;
 }
 
+
+// ==========================================================
+// === START: 消息编辑功能 (新增，无侵入) ===
+// ==========================================================
+
+// --- 步骤 1: 使用事件委托，为聊天容器添加双击事件监听 ---
+chatMessagesContainer.addEventListener('dblclick', (event) => {
+    // 检查双击
+    const bubble = event.target.closest('.chat-bubble');
+
+    // 只有用户自己的消息可以编辑，且不能是图片或卡片等特殊消息
+    if (bubble && !bubble.classList.contains('sticker-bubble')) {
+        makeBubbleEditable(bubble);
+    }
+});
+
+/**
+ * 步骤 2: 将一个气泡 DOM 元素转换为可编辑状态
+ * @param {HTMLElement} bubbleElement - 要编辑的气泡元素
+ */
+function makeBubbleEditable(bubbleElement) {
+    // 如果已经在编辑模式，则不执行任何操作
+    if (bubbleElement.querySelector('.editing-bubble')) {
+        return;
+    }
+
+    const messageRow = bubbleElement.closest('.message-row');
+    if (!messageRow || !messageRow.dataset.uuid) return; // 确保能找到 uuid
+
+    const currentText = bubbleElement.textContent;
+
+    // 创建 textarea
+    const textarea = document.createElement('textarea');
+    textarea.className = 'editing-bubble'; // 应用特殊样式
+    textarea.value = currentText;
+
+    // 根据内容自动调整高度
+    textarea.style.height = 'auto';
+    setTimeout(() => {
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }, 0);
+
+    // 替换内容
+    bubbleElement.textContent = '';
+    bubbleElement.appendChild(textarea);
+    textarea.focus(); // 自动聚焦
+
+    // 定义一个统一的完成编辑函数
+    const finishEditing = async (saveChanges) => {
+        const newText = textarea.value.trim();
+        bubbleElement.removeChild(textarea); // 无论如何都先移除 textarea
+
+        if (saveChanges && newText && newText !== currentText) {
+            bubbleElement.textContent = newText; // UI上立即更新
+            await updateMessageInDatabase(messageRow.dataset.uuid, newText); // 更新数据库
+        } else {
+            bubbleElement.textContent = currentText; // 恢复原始内容
+        }
+    };
+
+    // 步骤 3: 绑定事件
+    textarea.addEventListener('blur', () => finishEditing(true));
+
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            finishEditing(true);
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            finishEditing(false);
+        }
+    });
+}
+
+/**
+ * 步骤 4: 更新数据库中的消息
+ * @param {string} uuid - 消息的唯一ID
+ * @param {string} newText - 新的消息文本
+ */
+async function updateMessageInDatabase(uuid, newText) {
+    if (!currentOpenContact || !Array.isArray(currentOpenContact.history)) return;
+
+    // 在当前对话的历史记录中找到对应的消息
+    const messageIndex = currentOpenContact.history.findIndex(msg => msg.uuid === uuid);
+
+    if (messageIndex > -1) {
+        // 更新消息内容
+        currentOpenContact.history[messageIndex].text = newText;
+        
+        // 如果编辑的是最后一条消息，还需要更新联系人列表的预览
+        if (messageIndex === currentOpenContact.history.length - 1) {
+            currentOpenContact.lastMessage = cleanMessageForPreview(newText);
+            const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
+            if (contactItemInList) {
+                contactItemInList.querySelector('.contact-last-message').textContent = currentOpenContact.lastMessage;
+            }
+        }
+        
+        // 调用您已有的主保存函数，将整个联系人对象同步到数据库
+        await saveCurrentContactToDatabase();
+        console.log(`消息 ${uuid} 已更新。`);
+    }
+}
+// ==========================================================
+// === END: 消息编辑功能 ===
+// ==========================================================
+// ==========================================================
+// === START: GACHA 内容删除功能 (V3 - 管理员模式) ===
+// ==========================================================
+
+// 1. 主容器的点击事件监听器
+postsContainer.addEventListener('click', async (event) => {
+    const button = event.target.closest('button');
+    if (!button) return;
+
+    const postCard = button.closest('.gp-card');
+    if (!postCard) return; // 如果找不到父级帖子，则不执行任何操作
+    
+    const postId = parseInt(postCard.dataset.postId);
+
+    // --- 已有的功能逻辑 (根据您的代码库情况，可能需要保留或删除) ---
+    if (button.classList.contains('gp-like-btn')) {
+        await toggleLike(postId);
+        renderAllPosts();
+    } else if (button.classList.contains('gp-comment-btn')) {
+        const commentSection = postCard.querySelector('.gp-comment-section');
+        commentSection.style.display = (commentSection.style.display === 'none' || commentSection.style.display === '') ? 'block' : 'none';
+    } else if (button.classList.contains('gp-reply-btn')) {
+        showReplyInput(button);
+    } else if (button.classList.contains('gp-visibility-btn')) {
+        openVisibilityModal(postId);
+    } else if (button.classList.contains('gp-summon-btn')) {
+        openSummonAiModal(postId);
+    } 
+    // --- 新增的删除逻辑 ---
+    else if (button.classList.contains('gp-delete-post-btn')) {
+        await handleDeletePost(postId);
+    } 
+    else if (button.classList.contains('gp-delete-comment-btn')) {
+        const commentItem = button.closest('.gp-comment-item');
+        const commentId = parseInt(commentItem.dataset.commentId);
+        await handleDeleteComment(postId, commentId);
+    }
+});
+
+
+/**
+ * 2. 处理删除帖子的流程 (无权限检查)
+ * @param {number} postId - 要删除的帖子ID
+ */
+async function handleDeletePost(postId) {
+    if (confirm('确定要删除这篇分享吗？此操作无法撤销。')) {
+        try {
+            await deletePostFromDB(postId);
+            alert('分享已删除。');
+            renderAllPosts();
+        } catch (error) {
+            console.error("删除帖子失败:", error);
+            alert('删除失败，请稍后重试。');
+        }
+    }
+}
+
+/**
+ * 3. 处理删除评论的流程 (无权限检查)
+ * @param {number} postId - 评论所在的帖子ID
+ * @param {number} commentId - 要删除的评论ID
+ */
+async function handleDeleteComment(postId, commentId) {
+    if (confirm('确定要删除这条评论吗？')) {
+        try {
+            await deleteCommentFromDB(postId, commentId);
+            renderAllPosts();
+        } catch (error) {
+            console.error("删除评论失败:", error);
+            alert('删除失败，请稍后重试。');
+        }
+    }
+}
+
+/**
+ * 4. 从数据库中删除指定的帖子
+ * @param {number} postId - 要删除的帖子ID
+ */
+async function deletePostFromDB(postId) {
+    const postsData = await dbHelper.loadData('gachaPosts', 'allPosts');
+    let allPosts = (postsData && Array.isArray(postsData.value)) ? postsData.value : [];
+    const updatedPosts = allPosts.filter(p => p.id !== postId);
+    await dbHelper.saveData('gachaPosts', 'allPosts', updatedPosts);
+}
+
+/**
+ * 5. 从数据库中删除指定的评论
+ * @param {number} postId - 评论所在的帖子ID
+ * @param {number} commentId - 要删除的评论ID
+ */
+async function deleteCommentFromDB(postId, commentId) {
+    const postsData = await dbHelper.loadData('gachaPosts', 'allPosts');
+    let allPosts = (postsData && Array.isArray(postsData.value)) ? postsData.value : [];
+    const post = allPosts.find(p => p.id === postId);
+    if (post && Array.isArray(post.comments)) {
+        post.comments = post.comments.filter(c => c.id !== commentId);
+        await dbHelper.saveData('gachaPosts', 'allPosts', allPosts);
+    }
+}
+// ==========================================================
+// === END: GACHA 内容删除功能 ===
+// ==========================================================
     </script>
 
 </body>
