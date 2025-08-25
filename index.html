@@ -2042,6 +2042,7 @@
             word-wrap: break-word;
             font-size: 13.5px;
             min-width: 0;
+            transition: opacity 0.2s ease-in-out;
             /* 确保能正确换行 */
         }
 
@@ -4445,6 +4446,17 @@
     margin: 0;
     overflow: hidden; /* 隐藏滚动条 */
 }
+
+
+/* === 新增：为HTML消息解锁宽度限制 === */
+.message-content-wrapper.is-html-content {
+    max-width: 100%;
+}
+
+/* === 新增：用于强制浏览器使用硬件加速的样式，减轻卡顿 === */
+.phone-frame, .screen, .chat-messages-container {
+    will-change: transform, scroll-position;
+}
     </style>
 
     <style id="custom-bubble-styles"></style>
@@ -4453,6 +4465,7 @@
 
 <body>
     <div id="click-shield" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; display: none;"></div>
+    <div id="off-screen-render-container" style="position: absolute; top: -9999px; left: -9999px; width: 375px; z-index: -1;"></div>
     <div class="phone-frame">
         <div id="dynamic-island" class="dynamic-island">
             <div class="island-collapsed-content">
@@ -7495,7 +7508,32 @@ async function callAI(triggerMessage, contact, contextData = {}) {
             { type: "function", function: { name: "acceptListenInvite", description: "当用户邀请你一起听歌，且你决定接受时，调用此工具，并附上你的回复。", parameters: { type: "object", properties: { message: { type: "string", description: "你同意一起听时，要对用户说的话。例如：'好呀，我们一起听吧！'" } }, required: ["message"] } } },
             { type: "function", function: { name: "addCommentToPost", description: "当你想参与讨论、发表看法或与评论区的人互动时，调用此工具在当前帖子下发表一条新评论。", parameters: { type: "object", properties: { postId: { type: "number" }, commentText: { type: "string" } }, required: ["postId", "commentText"] } } },
             { type: "function", function: { name: "likeComment", description: "当你看到一条你赞同、喜欢或觉得有趣的评论时，调用此工具为其点赞，以示支持。", parameters: { type: "object", properties: { postId: { type: "number" }, commentId: { type: "number" } }, required: ["postId", "commentId"] } } },
-            { type: "function", function: { name: "createSocialPost", description: "当你认为时机合适，想要基于最近的聊天内容，发布一条新的朋友圈动态时，调用此工具。", parameters: { type: "object", properties: { postText: { type: "string", description: "朋友圈的正文内容。" }, imageDescription: { type: "string", description: "（可选）如果动态适合配图，为图片生成一段文字描述。" } }, required: ["postText"] } } }
+            { type: "function", function: { name: "createSocialPost", description: "当你认为时机合适，想要基于最近的聊天内容，发布一条新的朋友圈动态时，调用此工具。", parameters: { type: "object", properties: { postText: { type: "string", description: "朋友圈的正文内容。" }, imageDescription: { type: "string", description: "（可选）如果动态适合配图，为图片生成一段文字描述。" } }, required: ["postText"] } } },
+            {
+        type: "function",
+        function: {
+            name: "renderHTML",
+            description: "当用户要求你输出HTML、CSS或JavaScript代码来创建一个可见的UI元素时，调用此工具。不要用它来解释代码，而是直接用它来渲染结果。",
+            parameters: {
+                type: "object",
+                properties: {
+                    htmlContent: {
+                        type: "string",
+                        description: "要渲染的HTML代码字符串。"
+                    },
+                    cssContent: {
+                        type: "string",
+                        description: "(可选) 专门用于这段HTML的CSS样式代码字符串。"
+                    },
+                    jsContent: {
+                        type: "string",
+                        description: "(可选) 用于与这段HTML交互的JavaScript代码字符串。"
+                    }
+                },
+                required: ["htmlContent"]
+            }
+        }
+    }
         ];
 
         const response = await fetch(completionsUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, body: JSON.stringify({ model, messages, temperature: parseFloat(temperature) || 1.0, tools: tools, tool_choice: "auto" }) });
@@ -7568,6 +7606,30 @@ async function callAI(triggerMessage, contact, contextData = {}) {
                             await saveMessageToHistory(stickerMessage, contactId);
                         }
                         break;
+                        case 'renderHTML':
+            // 移除加载动画
+            if (typingRowForTransform) {
+                typingRowForTransform.remove();
+                typingRowForTransform = null;
+            }
+
+            // 构造一个新的消息对象，类型为'html'
+            const htmlMessage = {
+                sender: 'ai',
+                type: 'html',
+                content: {
+                    html: args.htmlContent,
+                    css: args.cssContent || '',
+                    js: args.jsContent || ''
+                },
+                timestamp: new Date(),
+                uuid: Date.now() + '-' + Math.random().toString(36).substr(2, 9)
+            };
+            
+            // 渲染并保存
+            addMessageToView(htmlMessage, contact);
+            await saveMessageToHistory(htmlMessage, contactId);
+            break;
 
                     case 'createSocialPost':
                         await createAiPost(contact, args.postText, args.imageDescription);
@@ -7840,15 +7902,21 @@ async function callAI(triggerMessage, contact, contextData = {}) {
                 await saveMessageToHistory(aiMessage);
             }
         }
-        // --- 功能 A: 打开聊天界面 (已更新，只加载最新的30条) ---
-// === openChatView (V3 - 支持直接跳转定位) ===
-// 用这个新版本替换你现有的 openChatView 函数
 
+// ==========================================================
+// === openChatView  ===
+// ==========================================================
 async function openChatView(contactId, options = {}) {
-    setTimeout(() => {
-        chatScreen.classList.remove('emoji-panel-active');
-    }, 0);
+    const renderContainer = document.getElementById('off-screen-render-container');
+    if (!renderContainer) {
+        console.error("离屏渲染容器不存在！");
+        return;
+    }
 
+    // 1. 确保表情面板关闭
+    chatScreen.classList.remove('emoji-panel-active');
+
+    // 2. 加载联系人数据
     const contactsData = await dbHelper.loadData('messageContacts', 'allContacts');
     if (!contactsData || !Array.isArray(contactsData.value)) {
         console.error("无法加载联系人数据"); return;
@@ -7861,22 +7929,16 @@ async function openChatView(contactId, options = {}) {
     applyChatViewSettings(currentOpenContact);
     chatContactName.textContent = currentOpenContact.ai.name;
     
-    // ▼▼▼ 优化开始 ▼▼▼
-
-    // 1. 在开始渲染前，先将消息容器隐藏
-    chatMessagesContainer.style.visibility = 'hidden';
-
-    chatMessagesContainer.innerHTML = ''; // 清空旧消息
+    // 3. 【核心修复】将渲染目标指向离屏容器
+    let targetContainer = renderContainer;
+    targetContainer.innerHTML = ''; 
 
     const history = Array.isArray(currentOpenContact.history) ? currentOpenContact.history : [];
 
+    // 4. 渲染所有消息到离屏容器
     if (options.targetMessageUuid) {
-        // 跳转模式：一次性渲染所有历史记录（因为是隐藏的，所以用户看不到渲染过程）
-        history.forEach(message => {
-            addMessageToView(message);
-        });
+        history.forEach(message => addMessageToView(message, currentOpenContact, targetContainer));
     } else {
-        // 普通模式：加载最新消息和“加载更早”按钮
         if (history.length > 30) {
             const loadMoreBtn = document.createElement('button');
             loadMoreBtn.id = 'load-more-messages-btn';
@@ -7884,35 +7946,38 @@ async function openChatView(contactId, options = {}) {
             loadMoreBtn.textContent = '查看更早的消息';
             loadMoreBtn.style.margin = '15px auto';
             loadMoreBtn.addEventListener('click', loadMoreMessages);
-            chatMessagesContainer.appendChild(loadMoreBtn);
+            targetContainer.appendChild(loadMoreBtn);
         }
         const initialMessages = history.slice(-30);
-        initialMessages.forEach(message => { addMessageToView(message); });
+        initialMessages.forEach(message => addMessageToView(message, currentOpenContact, targetContainer));
     }
     
+    // 5. 将屏幕切换到聊天界面（用户将看到白色过渡）
     phoneFrame.classList.add('show-chat');
 
-    setTimeout(() => {
-        if (options.targetMessageUuid) {
-            const targetMessage = chatMessagesContainer.querySelector(`.message-row[data-uuid="${options.targetMessageUuid}"]`);
-            if (targetMessage) {
-                // 2. 在容器仍然隐藏的状态下，瞬间完成滚动定位
-                targetMessage.scrollIntoView({ behavior: 'auto', block: 'center' });
-                targetMessage.classList.add('message-highlight');
-                setTimeout(() => {
-                    targetMessage.classList.remove('message-highlight');
-                }, 1500);
-            }
-        } else {
-            chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'auto' });
+    // 6. 【瞬间】将离屏容器中计算好的内容移入可见容器
+    chatMessagesContainer.innerHTML = '';
+    // 使用 while 循环瞬间移动所有子元素，性能优于 innerHTML = renderContainer.innerHTML
+    while (renderContainer.firstChild) {
+        chatMessagesContainer.appendChild(renderContainer.firstChild);
+    }
+    
+    // 7. 立即滚动到目标位置（此时高度已计算完成，不会卡顿）
+    if (options.targetMessageUuid) {
+        const targetMessage = chatMessagesContainer.querySelector(`.message-row[data-uuid="${options.targetMessageUuid}"]`);
+        if (targetMessage) {
+            targetMessage.scrollIntoView({ behavior: 'auto', block: 'center' });
+            targetMessage.classList.add('message-highlight');
+            setTimeout(() => targetMessage.classList.remove('message-highlight'), 1500);
         }
-
-        // 3. 在一切都准备就绪后，再将容器设为可见
-        chatMessagesContainer.style.visibility = 'visible';
-        
-    }, 50); 
-    // ▲▲▲ 优化结束 ▲▲▲
+    } else {
+        chatMessagesContainer.scrollTo({ top: chatMessagesContainer.scrollHeight, behavior: 'auto' });
+    }
+    
+    // 8. 确保输入框失去焦点，防止在移动端拉起键盘导致页面卡顿
+    chatMessageInput.blur();
 }
+
 
         // 重新修改 loadMoreMessages 函数
 
@@ -8303,140 +8368,166 @@ async function loadMoreMessages() {
          * @param {string} text - 原始消息文本
          * @returns {string} - 清理掉特殊标签后的预览文本
          */
-        function cleanMessageForPreview(text) {
-            if (typeof text !== 'string') return '';
+// === cleanMessageForPreview (V2 - 已支持HTML) ===
+function cleanMessageForPreview(text) {
+    if (typeof text !== 'string') return '';
 
-            if (text.includes('[STICKER_START]')) {
+    // ▼▼▼ 新增规则：优先判断是否为HTML ▼▼▼
+    if (isHtmlString(text)) {
+        return '[HTML消息]';
+    }
+    // ▲▲▲ 新增结束 ▲▲▲
+
+    if (text.includes('[STICKER_START]')) {
         return '[AI表情包]';
     }
-
-            // 优先匹配 [MESSAGE_START]...[MESSAGE_END] 格式，并提取中间的内容
-            const messageMatch = text.match(/\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/);
-            if (messageMatch && messageMatch[1]) {
-                return messageMatch[1].trim(); // 返回指令中间的纯文本
-            }
-
-            // 如果是转账指令，显示为 "[转账]"
-            if (text.includes('[TRANSFER_START]')) {
-                return '[转账]';
-            }
-
-            // 如果是一起听邀请，显示为 "[一起听邀请]"
-            if (text.includes('[MUSIC_SHARE]')) {
-                return '[一起听邀请]';
-            }
-
-            // 如果没有匹配到任何特殊指令（例如用户自己发的消息），则原样返回
-            return text;
-        }
+    const messageMatch = text.match(/\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/);
+    if (messageMatch && messageMatch[1]) {
+        return messageMatch[1].trim();
+    }
+    if (text.includes('[TRANSFER_START]')) {
+        return '[转账]';
+    }
+    if (text.includes('[MUSIC_SHARE]')) {
+        return '[一起听邀请]';
+    }
+    // (其他规则不变)
+    return text;
+}
         /**
         * 功能：将消息添加到视图中
         * (根据用户提供的最新设计蓝图更新转账卡片样式)
         */
- // === addMessageToView (V4 - 完整功能最终版) ===
-function addMessageToView(message, contact = null) {
-    if (!message || typeof message.text !== 'string') {
-        console.warn("尝试渲染一个无效的消息对象，已跳过:", message);
-        return null; // 返回 null，表示没有创建任何元素
+// ==========================================================
+// === addMessageToView ===
+// ==========================================================
+// ==========================================================
+// === addMessageToView (V10 - 适配离屏渲染) ===
+// ==========================================================
+function addMessageToView(message, contact = null, container = null) {
+    const targetContainer = container || chatMessagesContainer;
+
+    if (!message) {
+        console.warn("addMessageToView 收到无效消息:", message);
+        return null;
     }
 
-    // 系统消息是特殊的，它不使用标准的气泡结构
+    // 2. 独立处理【系统消息】，因为它没有头像和外框
     if (message.type === 'system') {
         const notification = document.createElement('div');
         notification.className = 'system-notification';
         notification.textContent = message.text;
-        chatMessagesContainer.appendChild(notification);
-        return notification; // 创建后直接返回
+        targetContainer.appendChild(notification);
+        // 处理完后必须立即返回，不再执行后续代码
+        return notification;
     }
 
-    // --- 标准消息气泡的创建流程 ---
+    // 3. 为所有【非系统消息】构建通用的“行”结构（外框和头像）
     const activeContact = contact || currentOpenContact;
     const settings = (activeContact && activeContact.avatarSettings) || { show: true, radius: '50%' };
+    
+    // 创建基础元素
     const row = document.createElement('div');
+    const indicator = document.createElement('div');
+    const wrapper = document.createElement('div');
+    const avatar = document.createElement('img');
+    
+    // 设置基础元素的class和属性
     row.className = 'message-row';
     if (message.uuid) { row.dataset.uuid = message.uuid; }
-
-    const indicator = document.createElement('div');
     indicator.className = 'selection-indicator';
-    row.appendChild(indicator);
-
-    const wrapper = document.createElement('div');
     wrapper.className = 'message-content-wrapper';
-
-    const avatar = document.createElement('img');
     avatar.className = 'chat-avatar';
     avatar.style.borderRadius = settings.radius;
 
+    // 根据发送者设置不同的样式和头像源
     if (message.sender === 'user') {
         wrapper.classList.add('user');
         avatar.src = (activeContact && activeContact.user) ? activeContact.user.avatar : '';
-    } else if (message.sender === 'ai') {
+    } else { // 涵盖所有AI发送的消息 (html, sticker, text, etc.)
         wrapper.classList.add('ai');
         avatar.src = (activeContact && activeContact.ai) ? activeContact.ai.avatar : '';
     }
 
-    let contentElement; // 这个变量将用来存放最终显示的内容（气泡、卡片等）
+    // 4. 决定“行”结构中要填充的【核心内容】
+    let contentElement; // 声明一个变量，用来存放最终要显示的内容元素
 
-    // --- 统一渲染逻辑判断 ---
-    const transferRegex = /\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/;
-    const musicShareRegex = /\[MUSIC_SHARE\]/; // 为“一起听”定义正则表达式
-    const transferMatch = message.text.match(transferRegex);
+    // --- 使用 if / else if / else 保证每种消息只走一条渲染路径 ---
+    
+    // 路径A：渲染HTML
+    if (message.type === 'html' && message.content && message.content.html) {
+        wrapper.classList.add('is-html-content'); // 为wrapper添加修饰符类
+        contentElement = document.createElement('div');
+        const uniqueId = 'html-render-' + message.uuid;
+        contentElement.id = uniqueId;
+        contentElement.className = 'html-render-container'; // 使用专属class
+        contentElement.innerHTML = message.content.html;
 
-    if (message.type === 'sticker' && message.url) {
+        // 【注意】：JS和CSS注入逻辑不能在离屏容器中执行，因为它们需要DOM可见
+        if (!container) { 
+             // CSS注入
+            if (message.content.css) {
+                const style = document.createElement('style');
+                const scopedCss = message.content.css.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|s*\{)/g, `#${uniqueId} $1 `);
+                style.textContent = scopedCss;
+                document.head.appendChild(style);
+            }
+            // JS的执行需要延迟到元素被添加到DOM之后
+            setTimeout(() => {
+                if (message.content.js) {
+                    try { new Function(message.content.js)(); } 
+                    catch (e) { console.error("执行渲染的JS时出错:", e); }
+                }
+            }, 0);
+        }
+    }
+    // 路径B：渲染贴纸
+    else if (message.type === 'sticker' && message.url) {
         contentElement = document.createElement('img');
         contentElement.src = message.url;
         contentElement.className = 'chat-bubble sticker-bubble';
     } 
-    // ▼▼▼ START: 补回“一起听”卡片渲染逻辑 ▼▼▼
-    else if (musicShareRegex.test(message.text)) {
-        contentElement = document.createElement('div');
-        contentElement.className = 'listen-invite-card';
-        contentElement.innerHTML = `
-            <div style="width: 200px; height: 100px; position: relative; background: white; box-shadow: 0px 4px 6.099999904632568px rgba(0, 0, 0, 0.05); overflow: hidden; border-radius: 24px">
-                <div style="left: 46px; top: 18px; position: absolute"><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 400; word-wrap: break-word">邀请你加入 </span><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 700; word-wrap: break-word">一起听</span></div>
-                <div style="left: 18px; top: 46px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 400; word-wrap: break-word">我的耳机分你一半</div>
-                <div style="width: 153px; height: 0px; left: 18px; top: 42px; position: absolute; outline: 1px var(--Miscellaneous-Button---Disabeld-BG, rgba(118, 118, 128, 0.12)) solid; outline-offset: -0.50px"></div>
-                <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg" style="position: absolute; left: 20px; top: 19px;"> 
-                    <path d="M4.63158 18.5263C7.18953 18.5263 9.26316 16.4527 9.26316 13.8947C9.26316 11.3368 7.18953 9.26315 4.63158 9.26315C2.07363 9.26315 0 11.3368 0 13.8947C0 16.4527 2.07363 18.5263 4.63158 18.5263Z" fill="black"/> 
-                    <rect x="6.73682" y="2.52631" width="2.52632" height="10.9474" fill="black"/> 
-                    <rect x="6.73682" width="9.26316" height="5.05263" rx="2" fill="black"/> 
-                </svg>
-                <div style="width: 321px; height: 226px; left: 63px; top: -170px; position: absolute; opacity: 0.08; background: #007AFF; box-shadow: 10px 10px 10px; border-radius: 9999px; filter: blur(5px)"></div>
-                <div style="left: 83px; top: 79px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 300; word-wrap: break-word">FROM MUSIC APP</div>
-            </div>
-        `;
-    }
-    // ▲▲▲ END: 补回“一起听”卡片渲染逻辑 ▲▲▲
-    else if (message.text.includes('[ORDER_SHARE_CARD]')) {
-        contentElement = document.createElement('div');
-        contentElement.innerHTML = `<div style="width: 200px; height: 100px; position: relative; background: white; box-shadow: 0px 4px 6.099999904632568px rgba(0, 0, 0, 0.05); overflow: hidden; border-radius: 24px"><div style="left: 18px; top: 18px; position: absolute; color: black; font-size: 13px; font-family: Inter; font-weight: 400; word-wrap: break-word">分享商品订单</div><div style="left: 18px; top: 46px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 400; word-wrap: break-word">快看看是什么吧？</div><div style="width: 153px; height: 0px; left: 18px; top: 42px; position: absolute; outline: 1px var(--Miscellaneous-Button---Disabeld-BG, rgba(118, 118, 128, 0.12)) solid; outline-offset: -0.50px"></div><div style="left: 103px; top: 79px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 300; word-wrap: break-word">FROM 7 SHOP</div></div>`;
-    }
-    else if (transferMatch) {
-        const remark = transferMatch[1].trim();
-        const amount = parseFloat(transferMatch[2]).toFixed(2);
-        contentElement = document.createElement('div');
-        contentElement.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
-        contentElement.innerHTML = `<div style="left: 23px; top: 11px; position: absolute; color: black; font-size: 16px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">转账</div><div style="left: 23px; top: 42px; position: absolute; color: #AFAFAF; font-size: 11px; font-family: sans-serif; font-weight: 400; word-wrap: break-word">${remark}</div><div style="width: 130px; height: 22px; left: 20px; top: 64px; position: absolute; color: black; font-size: 20px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">¥ ${amount}</div><div style="width: 160px; height: 0px; left: 20px; top: 37px; position: absolute; border: 0.5px solid rgba(118, 118, 128, 0.12);"></div><div style="width: 24px; height: 24px; left: 156px; top: 8px; position: absolute;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.295 16.705L12.585 12.415L8.295 8.125C8.1067 7.9367 8.00091 7.6813 8.00091 7.415C8.00091 7.1487 8.1067 6.89331 8.295 6.705C8.48331 6.5167 8.7387 6.41091 9.005 6.41091C9.2713 6.41091 9.5267 6.5167 9.715 6.705L14.715 11.705C14.8087 11.798 14.8831 11.9086 14.9339 12.0304C14.9847 12.1523 15.0108 12.283 15.0108 12.415C15.0108 12.547 14.9847 12.6777 14.9339 12.7996C14.8831 12.9214 14.8087 13.032 14.715 13.125L9.715 18.125C9.62204 18.2187 9.50144 18.2931 9.36958 18.3439C9.23772 18.3947 9.09699 18.4208 8.955 18.4208C8.81301 18.4208 8.67228 18.3947 8.54042 18.3439C8.40856 18.2931 8.28796 18.2187 8.195 18.125C8.0067 17.9367 7.90091 17.6813 7.90091 17.415C7.90091 17.1487 8.0067 16.8933 8.195 16.705L8.295 16.705Z" fill="#363636"/></svg></div>`;
-    }
-    else { // 默认渲染普通文本气泡
-        contentElement = document.createElement('div');
-        contentElement.className = 'chat-bubble';
-        if (message.sender === 'user') contentElement.classList.add('user-bubble');
-        else contentElement.classList.add('ai-bubble');
+    // 路径C：渲染各种特殊指令卡片或普通文本气泡
+    else {
+        const text = message.text || ''; // 确保text存在
+        const transferRegex = /\[TRANSFER_START\]([\s\S]*?)-(\d*\.?\d+)\[TRANSFER_END\]/;
+        const musicShareRegex = /\[MUSIC_SHARE\]/;
+        const orderShareRegex = /\[ORDER_SHARE_CARD\]/;
         
-        let visibleText = message.text;
-        const messageMatch = message.text.match(/\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/);
-        if (messageMatch && messageMatch[1]) {
-            visibleText = messageMatch[1].trim();
+        const transferMatch = text.match(transferRegex);
+        
+        if (transferMatch) {
+            const remark = transferMatch[1].trim();
+            const amount = parseFloat(transferMatch[2]).toFixed(2);
+            contentElement = document.createElement('div');
+            contentElement.style.cssText = "width: 200px; height: 100px; position: relative; background: white; overflow: hidden; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
+            contentElement.innerHTML = `<div style="left: 23px; top: 11px; position: absolute; color: black; font-size: 16px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">转账</div><div style="left: 23px; top: 42px; position: absolute; color: #AFAFAF; font-size: 11px; font-family: sans-serif; font-weight: 400; word-wrap: break-word">${remark}</div><div style="width: 130px; height: 22px; left: 20px; top: 64px; position: absolute; color: black; font-size: 20px; font-family: sans-serif; font-weight: 500; word-wrap: break-word">¥ ${amount}</div><div style="width: 160px; height: 0px; left: 20px; top: 37px; position: absolute; border: 0.5px solid rgba(118, 118, 128, 0.12);"></div><div style="width: 24px; height: 24px; left: 156px; top: 8px; position: absolute;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.295 16.705L12.585 12.415L8.295 8.125C8.1067 7.9367 8.00091 7.6813 8.00091 7.415C8.00091 7.1487 8.1067 6.89331 8.295 6.705C8.48331 6.5167 8.7387 6.41091 9.005 6.41091C9.2713 6.41091 9.5267 6.5167 9.715 6.705L14.715 11.705C14.8087 11.798 14.8831 11.9086 14.9339 12.0304C14.9847 12.1523 15.0108 12.283 15.0108 12.415C15.0108 12.547 14.9847 12.6777 14.9339 12.7996C14.8831 12.9214 14.8087 13.032 14.715 13.125L9.715 18.125C9.62204 18.2187 9.50144 18.2931 9.36958 18.3439C9.23772 18.3947 9.09699 18.4208 8.955 18.4208C8.81301 18.4208 8.67228 18.3947 8.54042 18.3439C8.40856 18.2931 8.28796 18.2187 8.195 18.125C8.0067 17.9367 7.90091 17.6813 7.90091 17.415C7.90091 17.1487 8.0067 16.8933 8.195 16.705L8.295 16.705Z" fill="#363636"/></svg></div>`;
+        } else if (musicShareRegex.test(text)) {
+            contentElement = document.createElement('div');
+            contentElement.className = 'listen-invite-card';
+            contentElement.innerHTML = `<div style="width: 200px; height: 100px; position: relative; background: white; box-shadow: 0px 4px 6.099999904632568px rgba(0, 0, 0, 0.05); overflow: hidden; border-radius: 24px"><div style="left: 46px; top: 18px; position: absolute"><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 400; word-wrap: break-word">邀请你加入 </span><span style="color: black; font-size: 13px; font-family: Inter; font-weight: 700; word-wrap: break-word">一起听</span></div><div style="left: 18px; top: 46px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 400; word-wrap: break-word">我的耳机分你一半</div><div style="width: 153px; height: 0px; left: 18px; top: 42px; position: absolute; outline: 1px var(--Miscellaneous-Button---Disabeld-BG, rgba(118, 118, 128, 0.12)) solid; outline-offset: -0.50px"></div><svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg" style="position: absolute; left: 20px; top: 19px;"> <path d="M4.63158 18.5263C7.18953 18.5263 9.26316 16.4527 9.26316 13.8947C9.26316 11.3368 7.18953 9.26315 4.63158 9.26315C2.07363 9.26315 0 11.3368 0 13.8947C0 16.4527 2.07363 18.5263 4.63158 18.5263Z" fill="black"/> <rect x="6.73682" y="2.52631" width="2.52632" height="10.9474" fill="black"/> <rect x="6.73682" width="9.26316" height="5.05263" rx="2" fill="black"/> </svg><div style="width: 321px; height: 226px; left: 63px; top: -170px; position: absolute; opacity: 0.08; background: #007AFF; box-shadow: 10px 10px 10px; border-radius: 9999px; filter: blur(5px)"></div><div style="left: 83px; top: 79px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 300; word-wrap: break-word">FROM MUSIC APP</div></div>`;
+        } else if (orderShareRegex.test(text)) {
+            contentElement = document.createElement('div');
+            contentElement.innerHTML = `<div style="width: 200px; height: 100px; position: relative; background: white; box-shadow: 0px 4px 6.099999904632568px rgba(0, 0, 0, 0.05); overflow: hidden; border-radius: 24px"><div style="left: 18px; top: 18px; position: absolute; color: black; font-size: 13px; font-family: Inter; font-weight: 400; word-wrap: break-word">分享商品订单</div><div style="left: 18px; top: 46px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 400; word-wrap: break-word">快看看是什么吧？</div><div style="width: 153px; height: 0px; left: 18px; top: 42px; position: absolute; outline: 1px var(--Miscellaneous-Button---Disabeld-BG, rgba(118, 118, 128, 0.12)) solid; outline-offset: -0.50px"></div><div style="left: 103px; top: 79px; position: absolute; color: #BDBDBD; font-size: 10px; font-family: Inter; font-weight: 300; word-wrap: break-word">FROM 7 SHOP</div></div>`;
         }
-        contentElement.textContent = visibleText;
+        else { 
+            contentElement = document.createElement('div');
+            contentElement.className = 'chat-bubble';
+            if (message.sender === 'user') {
+                contentElement.classList.add('user-bubble');
+            } else {
+                contentElement.classList.add('ai-bubble');
+            }
+            contentElement.textContent = text.replace(/\[MESSAGE_START\]([\s\S]*?)\[MESSAGE_END\]/, '$1').trim();
+        }
     }
-
+    
     if (contentElement) {
-         wrapper.appendChild(avatar);
-         wrapper.appendChild(contentElement);
-         row.appendChild(wrapper);
-         chatMessagesContainer.appendChild(row);
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(contentElement);
+        row.appendChild(indicator);
+        row.appendChild(wrapper);
+        targetContainer.appendChild(row); // <--- 使用传入的目标容器
     }
     
     return row;
@@ -12546,49 +12637,92 @@ chatMessagesContainer.addEventListener('dblclick', (event) => {
  * 步骤 2: 将一个气泡 DOM 元素转换为可编辑状态
  * @param {HTMLElement} bubbleElement - 要编辑的气泡元素
  */
+// ==========================================================
+// === makeBubbleEditable (防止跳动修复版) ===
+// ==========================================================
+// ==========================================================
+// === makeBubbleEditable (最终防卡顿版) ===
+// ==========================================================
+// ==========================================================
+// === makeBubbleEditable (最终防卡顿版) ===
+// ==========================================================
 function makeBubbleEditable(bubbleElement) {
-    // 如果已经在编辑模式，则不执行任何操作
     if (bubbleElement.querySelector('.editing-bubble')) {
         return;
     }
 
     const messageRow = bubbleElement.closest('.message-row');
-    if (!messageRow || !messageRow.dataset.uuid) return; // 确保能找到 uuid
+    if (!messageRow || !messageRow.dataset.uuid) return; 
 
-    const currentText = bubbleElement.textContent;
+    // **【关键】**：如果是 HTML 消息，我们编辑其 innerHTML 而非 textContent
+    let currentText;
+    if (bubbleElement.classList.contains('html-render-container')) {
+        // 对于 HTML 消息，我们取出它的内部 HTML 源码进行编辑
+        currentText = bubbleElement.innerHTML;
+    } else {
+        // 对于普通文本，取出其 textContent
+        currentText = bubbleElement.textContent;
+    }
 
-    // 创建 textarea
     const textarea = document.createElement('textarea');
-    textarea.className = 'editing-bubble'; // 应用特殊样式
+    textarea.className = 'editing-bubble'; 
     textarea.value = currentText;
+    
+    // 【新增】将 UUID 绑定到 textarea 上
+    textarea.dataset.uuid = messageRow.dataset.uuid; 
 
-    // 根据内容自动调整高度
     textarea.style.height = 'auto';
     setTimeout(() => {
         textarea.style.height = textarea.scrollHeight + 'px';
     }, 0);
 
-    // 替换内容
-    bubbleElement.textContent = '';
+    // 清空现有内容，并放入 textarea
+    bubbleElement.innerHTML = ''; // 使用 innerHTML 确保清空所有子元素
     bubbleElement.appendChild(textarea);
-    textarea.focus(); // 自动聚焦
+    textarea.focus(); 
 
-    // 定义一个统一的完成编辑函数
+    // **【核心新增】**：添加一个点击事件保护层（护盾），以避免 blur 和键盘收起冲突
+    const shield = document.createElement('div');
+    shield.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;';
+    document.body.appendChild(shield);
+
     const finishEditing = async (saveChanges) => {
         const newText = textarea.value.trim();
-        bubbleElement.removeChild(textarea); // 无论如何都先移除 textarea
+        const uuid = textarea.dataset.uuid;
 
-        if (saveChanges && newText && newText !== currentText) {
-            bubbleElement.textContent = newText; // UI上立即更新
-            await updateMessageInDatabase(messageRow.dataset.uuid, newText); // 更新数据库
+        // 1. **移除护盾**
+        shield.removeEventListener('click', handleShieldClick);
+        shield.remove();
+        
+        // 2. **执行保存**：原地更新 UI
+        if (saveChanges && newText !== currentText) {
+            await updateMessageInDatabase(uuid, newText);
         } else {
-            bubbleElement.textContent = currentText; // 恢复原始内容
+            // 如果取消保存，直接调用 updateBubbleInView 刷新，但内容是旧的
+            // 必须先移除 textarea 才能正确恢复气泡结构
+            if (bubbleElement.contains(textarea)) {
+                bubbleElement.removeChild(textarea); 
+            }
+            // 重新渲染旧的 message 对象，以保持界面不变
+            const contact = currentOpenContact;
+            const messageToRestore = contact.history.find(msg => msg.uuid === uuid);
+            if (messageToRestore) {
+                 updateBubbleInView(messageToRestore, null, true);
+            }
         }
     };
+    
+    // **【核心新增】**：手动处理“点击外部保存”逻辑
+    const handleShieldClick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        finishEditing(true); 
+    };
 
-    // 步骤 3: 绑定事件
-    textarea.addEventListener('blur', () => finishEditing(true));
+    // 监听护盾的点击事件，一旦点击护盾，则认为编辑完成
+    shield.addEventListener('click', handleShieldClick);
 
+    // **【重要】**：保留对 Enter 和 Escape 键的监听
     textarea.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -12599,24 +12733,39 @@ function makeBubbleEditable(bubbleElement) {
             finishEditing(false);
         }
     });
-}
 
+
+    // **【重要移除】**：移除对 blur 的监听，因为它会与键盘收起同时触发
+    // textarea.addEventListener('blur', () => finishEditing(true)); // <-- 此行已移除
+}
 /**
  * 步骤 4: 更新数据库中的消息
  * @param {string} uuid - 消息的唯一ID
  * @param {string} newText - 新的消息文本
  */
+// ==========================================================
+// === updateMessageInDatabase (最终防卡顿版) ===
+// ==========================================================
 async function updateMessageInDatabase(uuid, newText) {
     if (!currentOpenContact || !Array.isArray(currentOpenContact.history)) return;
 
-    // 在当前对话的历史记录中找到对应的消息
     const messageIndex = currentOpenContact.history.findIndex(msg => msg.uuid === uuid);
 
     if (messageIndex > -1) {
-        // 更新消息内容
-        currentOpenContact.history[messageIndex].text = newText;
+        const messageToUpdate = currentOpenContact.history[messageIndex];
         
-        // 如果编辑的是最后一条消息，还需要更新联系人列表的预览
+        // 1. 更新内存中的消息数据 (支持 HTML/Text 转换)
+        if (isHtmlString(newText)) {
+            messageToUpdate.type = 'html'; 
+            messageToUpdate.content = { html: newText, css: '', js: '' }; 
+            delete messageToUpdate.text; 
+        } else {
+            messageToUpdate.type = 'text'; 
+            messageToUpdate.text = newText;
+            delete messageToUpdate.content; 
+        }
+        
+        // 2. 更新最后一条消息状态 (不变)
         if (messageIndex === currentOpenContact.history.length - 1) {
             currentOpenContact.lastMessage = cleanMessageForPreview(newText);
             const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
@@ -12625,9 +12774,11 @@ async function updateMessageInDatabase(uuid, newText) {
             }
         }
         
-        // 调用您已有的主保存函数，将整个联系人对象同步到数据库
+        // 3. 同步到数据库
         await saveCurrentContactToDatabase();
-        console.log(`消息 ${uuid} 已更新。`);
+        
+        // 4. 【核心修复】原地更新 UI，并确保滚动位置被保持
+        updateBubbleInView(messageToUpdate, null, true); 
     }
 }
 // ==========================================================
@@ -12735,6 +12886,184 @@ async function deleteCommentFromDB(postId, commentId) {
 // ==========================================================
 // === END: GACHA 内容删除功能 ===
 // ==========================================================
+
+/**
+ * 简单检测一个字符串是否为HTML
+ * @param {string} str - 要检测的字符串
+ * @returns {boolean}
+ */
+ function isHtmlString(str) {
+    if (typeof str !== 'string') return false;
+    // 一个简单的判断：如果字符串包含<tag>或</tag>结构，就认为是HTML
+    const htmlRegex = /<[a-z][\s\S]*>/i;
+    return htmlRegex.test(str);
+}
+// ==========================================================
+// === isHtmlString (新增功能) ===
+// ==========================================================
+function isHtmlString(str) {
+    if (typeof str !== 'string') return false;
+    const htmlRegex = /<[a-z][\s\S]*>/i;
+    return htmlRegex.test(str);
+}
+
+// ==========================================================
+// === updateBubbleInView (最终平滑修复版 - 确保滚动同步) ===
+// ==========================================================
+/**
+ * 找到并更新聊天界面中的指定消息气泡，并添加平滑过渡效果。
+ * @param {object} updatedMessage - 已更新的消息对象。
+ * @param {HTMLElement|null} container - 消息应该被渲染到的 DOM 容器（可选，通常是 chatMessagesContainer）。
+ * @param {boolean} shouldMaintainScroll - 【新增】是否应尝试保持当前滚动位置。
+ */
+ function updateBubbleInView(updatedMessage, container = null, shouldMaintainScroll = false) {
+    if (!updatedMessage || !updatedMessage.uuid) return;
+
+    const messageRow = (container || chatMessagesContainer).querySelector(`.message-row[data-uuid="${updatedMessage.uuid}"]`);
+    if (!messageRow) return;
+
+    const bubbleElement = messageRow.querySelector('.chat-bubble');
+    if (!bubbleElement) return;
+
+    // 1. 记录保存前的滚动状态 (如果需要保持)
+    let scrollPosition = 0;
+    let scrollHeightBefore = 0;
+    if (shouldMaintainScroll) {
+        scrollPosition = chatMessagesContainer.scrollTop;
+        scrollHeightBefore = chatMessagesContainer.scrollHeight;
+    }
+
+    // 2. 设置初始透明度为 0，准备过渡
+    bubbleElement.style.opacity = 0;
+
+    // 3. 延迟更新内容和恢复透明度
+    setTimeout(() => {
+        bubbleElement.innerHTML = ''; // 清空现有内容
+
+        // --- 内容更新逻辑 ---
+        if (updatedMessage.type === 'html' && updatedMessage.content && updatedMessage.content.html) {
+            messageRow.querySelector('.message-content-wrapper').classList.add('is-html-content');
+            const uniqueId = 'html-render-' + updatedMessage.uuid;
+            bubbleElement.id = uniqueId;
+            bubbleElement.className = 'html-render-container';
+            bubbleElement.innerHTML = updatedMessage.content.html;
+
+            if (!container) { 
+                if (updatedMessage.content.css) {
+                    const style = document.createElement('style');
+                    const scopedCss = updatedMessage.content.css.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|s*\{)/g, `#${uniqueId} $1 `);
+                    style.textContent = scopedCss;
+                    document.head.appendChild(style);
+                }
+                setTimeout(() => {
+                    if (updatedMessage.content.js) {
+                        try { new Function(updatedMessage.content.js)(); }
+                        catch (e) { console.error("执行渲染的JS时出错:", e); }
+                    }
+                }, 0);
+            }
+
+        } else if (updatedMessage.type === 'sticker' && updatedMessage.url) {
+            bubbleElement.className = 'chat-bubble sticker-bubble';
+            const img = document.createElement('img');
+            img.src = updatedMessage.url;
+            bubbleElement.appendChild(img);
+
+        } else {
+            // 渲染普通文本
+            // 确保移除 HTML 相关的类，并添加正确的普通气泡类
+            messageRow.querySelector('.message-content-wrapper').classList.remove('is-html-content');
+            bubbleElement.className = updatedMessage.sender === 'user' ? 'chat-bubble user-bubble' : 'chat-bubble ai-bubble';
+            bubbleElement.textContent = updatedMessage.text;
+        }
+
+        // 4. 恢复透明度，触发 CSS 过渡效果
+        bubbleElement.style.opacity = 1;
+
+        // 5. 【核心修复】使用 requestAnimationFrame 保证滚动在下一帧绘制前执行
+        if (shouldMaintainScroll) {
+            window.requestAnimationFrame(() => {
+                const scrollHeightAfter = chatMessagesContainer.scrollHeight;
+                // 仅在滚动高度发生变化时才调整，这是为了适应键盘收起或内容增减
+                if (scrollHeightAfter !== scrollHeightBefore) {
+                     const newScrollTop = scrollPosition + (scrollHeightAfter - scrollHeightBefore);
+                     chatMessagesContainer.scrollTop = newScrollTop;
+                }
+            });
+        }
+        
+    }, 10);
+}
+
+// ==========================================================
+// === 新增：deleteMessage (确保数据同步的删除功能) ===
+// ==========================================================
+/**
+ * 删除指定的聊天消息，并确保数据成功同步到数据库。
+ * @param {string} messageUuid - 要删除的消息的唯一标识符。
+ * @returns {Promise<boolean>} - 如果删除成功则返回 true。
+ */
+ async function deleteMessage(messageUuid) {
+    if (!currentOpenContact || !Array.isArray(currentOpenContact.history)) {
+        console.error("无法删除消息：当前联系人或聊天记录不存在。");
+        return false;
+    }
+
+    const initialHistoryLength = currentOpenContact.history.length;
+    
+    // 从内存中删除消息
+    currentOpenContact.history = currentOpenContact.history.filter(msg => msg.uuid !== messageUuid);
+
+    // 检查是否成功删除
+    if (currentOpenContact.history.length === initialHistoryLength) {
+        console.warn(`消息 ${messageUuid} 未在历史记录中找到，可能已被删除。`);
+        return false;
+    }
+
+    // 更新联系人列表的最后一条消息预览 (如果被删除的是最后一条消息)
+    if (initialHistoryLength > 0 && currentOpenContact.history.length < initialHistoryLength) {
+        // 如果删除的是最后一条，更新预览为倒数第二条
+        if (currentOpenContact.history.length > 0) {
+            const newLastMessage = currentOpenContact.history[currentOpenContact.history.length - 1];
+            currentOpenContact.lastMessage = cleanMessageForPreview(newLastMessage.text || (newLastMessage.content && newLastMessage.content.html) || '');
+        } else {
+            // 如果所有消息都删除了，清空预览
+            currentOpenContact.lastMessage = '无消息';
+        }
+        
+        // 在UI上更新联系人列表的最后一条消息
+        const contactItemInList = contactList.querySelector(`.contact-item[data-contact-id="${currentOpenContact.id}"]`);
+        if (contactItemInList) {
+            contactItemInList.querySelector('.contact-last-message').textContent = currentOpenContact.lastMessage;
+        }
+    }
+    
+    // 强制将修改后的数据同步到数据库
+    await saveCurrentContactToDatabase();
+    console.log(`消息 ${messageUuid} 已成功删除并保存到数据库。`);
+    
+    return true;
+}
+// ==========================================================
+// === removeMessageFromView (V4 - 适配新删除功能) ===
+// ==========================================================
+async function removeMessageFromView(messageElement) {
+    const uuid = messageElement.dataset.uuid;
+    if (!uuid) {
+        console.error("无法删除：消息元素没有UUID。");
+        return;
+    }
+    
+    // 【修改】: 在删除 UI 元素之前，先调用我们的新函数
+    const isDeleted = await deleteMessage(uuid);
+    
+    if (isDeleted) {
+        // 【关键】: 只有当数据成功从数据库中删除后，才从界面上移除元素
+        if (messageElement && messageElement.parentNode) {
+            messageElement.parentNode.removeChild(messageElement);
+        }
+    }
+}
     </script>
 
 </body>
